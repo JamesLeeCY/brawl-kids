@@ -3,7 +3,7 @@ import { CONFIG } from '../config';
 import type { CharacterDef } from '../data/load';
 import { hasBuff, type Entity } from '../sim/entity';
 import { ENEMY_TEAM, type GameEvent, type World } from '../sim/world';
-import { OUTLINE, drawFigure, drawItemShape, roundRect, shade } from './character';
+import { OUTLINE, drawFigure, drawItemShape, roundRect, shade, type Expression } from './character';
 import { getPose, withCarryArms } from './poses';
 import { drawStage } from './stage';
 import { FONT, text } from './text';
@@ -70,6 +70,32 @@ export function poseName(w: World, e: Entity): string {
       return 'lying';
     case 'rolling':
       return 'crouch';
+  }
+}
+
+/** 依角色狀態決定表情 */
+export function expressionFor(w: World, e: Entity): Expression {
+  switch (e.state) {
+    case 'attack': {
+      const pose = w.currentFrame(e)?.pose ?? '';
+      return pose === 'victory' ? 'happy' : 'attack';
+    }
+    case 'hurt':
+    case 'grabbed':
+    case 'falling':
+    case 'lying':
+    case 'dead':
+    case 'broken':
+      return 'hurt';
+    case 'dizzy':
+      return 'dizzy';
+    case 'defend':
+    case 'grabbing':
+    case 'run':
+    case 'rolling':
+      return 'focus';
+    default:
+      return 'normal';
   }
 }
 
@@ -204,7 +230,7 @@ export class BattleRenderer {
       ctx.strokeStyle = 'rgba(255,215,90,0.8)';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(x, y - 30, 26, 38, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y - 36, 30, 46, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }
@@ -219,6 +245,7 @@ export class BattleRenderer {
       held,
       airborne: e.y > 0,
       glow: e.boss ? '#ff2a2a' : undefined,
+      expression: expressionFor(w, e),
     });
     if (hasBuff(e, 'blockProjectile')) {
       ctx.save();
@@ -229,8 +256,8 @@ export class BattleRenderer {
       ctx.beginPath();
       for (let i = 0; i <= 6; i++) {
         const a = (i / 6) * Math.PI * 2 + w.tick * 0.03;
-        const px = x + e.facing * 4 + Math.cos(a) * 30;
-        const py = y - 32 + Math.sin(a) * 38;
+        const px = x + e.facing * 4 + Math.cos(a) * 34;
+        const py = y - 36 + Math.sin(a) * 46;
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
@@ -240,21 +267,27 @@ export class BattleRenderer {
     if (e.state === 'dizzy' || e.state === 'broken' || e.state === 'grabbed') {
       for (let i = 0; i < 3; i++) {
         const a = w.tick * 0.12 + (i * Math.PI * 2) / 3;
-        star(ctx, x + Math.cos(a) * 14, y - 70 + Math.sin(a) * 4, 4, '#ffe14d');
+        star(ctx, x + Math.cos(a) * 16, y - 88 + Math.sin(a) * 4, 4.5, '#ffe14d');
       }
     }
     // 敵人與 AI 頭上小血條；玩家標記
     if (e.state !== 'dead') {
       if (e.slot < 0) {
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(x - 16, y - 78, 32, 4);
+        ctx.fillRect(x - 17, y - 94, 34, 5);
         ctx.fillStyle = e.boss ? '#ff4d4d' : '#ffb84d';
-        ctx.fillRect(x - 16, y - 78, (32 * e.hp) / e.maxHp, 4);
+        ctx.fillRect(x - 17, y - 94, (34 * e.hp) / e.maxHp, 5);
+        ctx.strokeStyle = OUTLINE;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x - 17, y - 94, 34, 5);
       } else {
         ctx.font = `bold 10px ${FONT}`;
         ctx.textAlign = 'center';
         ctx.fillStyle = SLOT_COLORS[e.slot];
-        ctx.fillText(e.ai ? 'COM' : `${e.slot + 1}P`, x, y - 74);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = OUTLINE;
+        ctx.strokeText(e.ai ? 'COM' : `${e.slot + 1}P`, x, y - 90);
+        ctx.fillText(e.ai ? 'COM' : `${e.slot + 1}P`, x, y - 90);
         ctx.textAlign = 'left';
       }
     }
@@ -721,7 +754,7 @@ export function drawPanel(ctx: CanvasRenderingContext2D, def: CharacterDef, c: E
   ctx.clip();
   ctx.fillStyle = shade(def.palette.accent, -0.45);
   ctx.fillRect(x + 5, y + 6, 37, 36);
-  drawFigure(ctx, def, { pose: getPose(c.hp > 0 ? 'idle_0' : 'hurt'), x: x + 23, y: y + 82, facing: 1, scale: 1, tick, upperOnly: true, alpha: c.hp > 0 ? 1 : 0.5 });
+  drawFigure(ctx, def, { pose: getPose(c.hp > 0 ? 'idle_0' : 'hurt'), x: x + 20, y: y + 70, facing: 1, scale: 0.86, tick, upperOnly: true, alpha: c.hp > 0 ? 1 : 0.5, expression: c.hp > 0 ? 'normal' : 'hurt' });
   ctx.restore();
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = 2;

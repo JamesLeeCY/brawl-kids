@@ -116,7 +116,7 @@ export class ResultScene extends Scene {
       const def = this.world.charDef(c);
       const x = VW / 2 + (i - (ws.length - 1) / 2) * 170;
       const pose = getPose(Math.floor(this.t / 25) % 2 ? 'victory' : 'cast_up');
-      drawFigure(ctx, def, { pose, x, y: 210, facing: 1, scale: 1.9, tick: this.t });
+      drawFigure(ctx, def, { pose, x, y: 222, facing: 1, scale: 1.8, tick: this.t, expression: 'happy' });
       text(ctx, def.name, x, 236, 16, '#fff', 'center');
       text(ctx, `「${def.quote}」`, x, 258, 14, def.palette.accent, 'center', true, true);
     });

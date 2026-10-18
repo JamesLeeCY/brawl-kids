@@ -52,11 +52,12 @@ export class TitleScene extends Scene {
       const k = left ? i : i - half;
       const x = left ? 40 + k * 46 : VW - 40 - k * 46;
       const y = 250 + (k % 2) * 26;
-      const pose = getPose(Math.floor(this.t / 40 + i) % 3 === 0 ? 'victory' : `idle_${Math.floor(this.t / 30) % 2}`);
-      drawFigure(ctx, def, { pose, x, y, facing: left ? 1 : -1, scale: 1.15, tick: this.t });
+      const cheer = Math.floor(this.t / 40 + i) % 3 === 0;
+      const pose = getPose(cheer ? 'victory' : `idle_${Math.floor(this.t / 30) % 2}`);
+      drawFigure(ctx, def, { pose, x, y: y + 6, facing: left ? 1 : -1, scale: 1.15, tick: this.t, expression: cheer ? 'happy' : 'normal' });
     });
-    text(ctx, '混戰小英雄', VW / 2, 110, 64, '#ffd23f', 'center', true, true);
-    text(ctx, 'BRAWL KIDS', VW / 2, 145, 22, '#ffffff', 'center', true, true);
+    text(ctx, '台灣大亂鬥', VW / 2, 110, 64, '#ffd23f', 'center', true, true);
+    text(ctx, 'TAIWAN BRAWL', VW / 2, 145, 22, '#ffffff', 'center', true, true);
     this.options.forEach((o, i) => button(ctx, o, VW / 2, 290 + i * 40, 200, this.sel === i));
     if ((this.t >> 5) % 2 === 0) text(ctx, touchMode() ? '點選單或「攻擊」開始' : '按任一玩家的攻擊鍵開始', VW / 2, 420, 15, '#fff', 'center');
     if (touchMode()) hint(ctx, '點「攻擊」或選單開始　·　左半邊按住＝搖桿　·　推搖桿方向再點「必殺」放必殺技');

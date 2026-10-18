@@ -18,7 +18,11 @@ export interface FigureOpts {
   airborne?: boolean;
   glow?: string;
   tint?: string;
+  /** 表情：一般 / 攻擊 / 受傷 / 開心 / 暈眩 / 專注 */
+  expression?: Expression;
 }
+
+export type Expression = 'normal' | 'attack' | 'hurt' | 'happy' | 'dizzy' | 'focus';
 
 const D2R = Math.PI / 180;
 const dir = (a: number) => ({ x: Math.sin(a * D2R), y: Math.cos(a * D2R) });
@@ -44,7 +48,7 @@ export function shade(hex: string, amt: number): string {
 /** 荒野亂鬥式粗描邊顏色 */
 export const OUTLINE = '#1a1530';
 /** 頭部放大倍率（Q 版大頭） */
-const HEAD_SCALE = 1.2;
+const HEAD_SCALE = 1.45;
 
 /** 肢體：先畫較粗的深色描邊再畫本色 */
 function limb(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, w: number, color: string) {
@@ -115,7 +119,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   const neck = { x: hip.x + u.x * 18, y: hip.y + u.y * 18 };
   const sh = { x: hip.x + u.x * 15, y: hip.y + u.y * 15 };
   const hu = up(p.t + (p.h ?? 0));
-  const headPos = { x: neck.x + hu.x * 12, y: neck.y + hu.y * 12 };
+  const headPos = { x: neck.x + hu.x * 13.5, y: neck.y + hu.y * 13.5 };
   const arm = (ua: number, fa: number) => {
     const e = dir(ua);
     const f = dir(fa);
@@ -259,37 +263,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
       ctx.fill();
       drawHair(ctx, head.x, head.y, look.hair, hair);
       if (acc === 'frog') drawFrogHood(ctx, head.x, head.y, pal.accent);
-      // 耳朵
-      circle(ctx, head.x - 3, head.y + 1, 2.4, shade(pal.skin, -0.08));
-      // 臉
-      // 大眼睛：白眼 + 黑瞳 + 反光
-      for (const ex of [5, 9.6]) {
-        circle(ctx, head.x + ex, head.y + 1, 2.3, '#ffffff');
-        circle(ctx, head.x + ex + 0.5, head.y + 1.2, 1.4, '#1b1b1b');
-        circle(ctx, head.x + ex + 0.9, head.y + 0.5, 0.5, '#ffffff');
-      }
-      ctx.fillStyle = '#d0706a';
-      ctx.fillRect(head.x + 6, head.y + 6, 4, 1.5);
-      if (look.beard) {
-        ctx.fillStyle = hair;
-        ctx.beginPath();
-        ctx.arc(head.x + 2, head.y + 2, 10.5, Math.PI * 0.05, Math.PI * 0.75);
-        ctx.lineTo(head.x + 4, head.y + 4);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#d0706a';
-        ctx.fillRect(head.x + 6, head.y + 6, 4, 1.5);
-      }
-      if (look.glasses) {
-        ctx.strokeStyle = '#111';
-        ctx.lineWidth = 1.3;
-        ctx.strokeRect(head.x + 2.6, head.y - 1.2, 4.6, 4);
-        ctx.strokeRect(head.x + 7.8, head.y - 1.2, 4, 4);
-        ctx.beginPath();
-        ctx.moveTo(head.x + 2.6, head.y);
-        ctx.lineTo(head.x - 3, head.y - 1);
-        ctx.stroke();
-      }
+      drawFace(ctx, head.x, head.y, o.expression ?? 'normal', def, o.tick);
       if (acc === 'headmirror') {
         // 額鏡
         ctx.strokeStyle = '#6b7280';
@@ -416,6 +390,209 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
       ctx.stroke();
       ctx.fillRect(x - 12, y - 3, 6, 7);
   }
+}
+
+/** 臉部細節（面向右的 3/4 視角，(x,y) 為頭中心、半徑 11） */
+function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Expression, def: CharacterDef, tick: number): void {
+  const pal = def.palette;
+  const look = def.look;
+  const skinDark = shade(pal.skin, -0.32);
+  // 耳朵（小、膚色、柔和描邊，放在頭的後側）
+  ctx.beginPath();
+  ctx.ellipse(x - 5.2, y + 2, 1.9, 2.4, 0, 0, Math.PI * 2);
+  ctx.fillStyle = pal.skin;
+  ctx.fill();
+  ctx.strokeStyle = skinDark;
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x - 5, y + 2.1, 0.9, Math.PI * 0.5, Math.PI * 1.5);
+  ctx.stroke();
+  // 鬍子（先畫，嘴巴疊在上面）
+  if (look.beard) {
+    ctx.fillStyle = pal.hair;
+    ctx.beginPath();
+    ctx.arc(x + 2, y + 2, 10.5, Math.PI * 0.02, Math.PI * 0.78);
+    ctx.lineTo(x + 3, y + 3.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // 腮紅
+  ctx.fillStyle = 'rgba(255,110,120,0.32)';
+  ctx.beginPath();
+  ctx.ellipse(x + 4.4, y + 5.4, 2.1, 1.3, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 10.6, y + 5.1, 1.5, 1.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 眼睛（近眼大、遠眼小）
+  const eyes: [number, number, number][] = [
+    [4.8, 0.6, 1],
+    [9.8, 0.4, 0.82],
+  ];
+  const ink = '#1b1530';
+  ctx.lineCap = 'round';
+  for (const [ex, ey, k] of eyes) {
+    const cx = x + ex;
+    const cy = y + ey;
+    if (expr === 'happy') {
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy + 1.4, 2.2 * k, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
+    } else if (expr === 'hurt') {
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(cx - 1.8 * k, cy - 1.6 * k);
+      ctx.lineTo(cx + 1.4 * k, cy);
+      ctx.lineTo(cx - 1.8 * k, cy + 1.6 * k);
+      ctx.stroke();
+    } else if (expr === 'dizzy') {
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let t = 0; t < 12; t++) {
+        const a = t * 0.9 + tick * 0.2;
+        const r = 0.25 * t * k;
+        const px = cx + Math.cos(a) * r;
+        const py = cy + Math.sin(a) * r;
+        if (t === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    } else {
+      const ry = (expr === 'attack' || expr === 'focus' ? 2.3 : 2.9) * k;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 2.4 * k, ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      const look = expr === 'attack' ? 0.7 : 0.4;
+      circle(ctx, cx + look, cy + 0.3, 1.55 * k, '#2a1d17');
+      circle(ctx, cx + look, cy + 0.3, 0.75 * k, '#000000');
+      circle(ctx, cx + look + 0.6, cy - 0.5, 0.55 * k, '#ffffff');
+      // 上眼瞼（睫毛線）
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 2.5 * k, ry, 0, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.stroke();
+    }
+  }
+
+  // 眉毛
+  const browCol = pal.hair === '#cfcfcf' || pal.hair === '#e5e5e5' ? shade(pal.hair, -0.35) : shade(pal.hair, -0.1);
+  ctx.strokeStyle = browCol;
+  ctx.lineWidth = 1.6;
+  const brows: Record<Expression, [number, number, number, number][]> = {
+    normal: [[2.6, -3.0, 6.6, -3.4], [8.2, -3.3, 11.4, -3.0]],
+    happy: [[2.6, -3.4, 6.6, -4.2], [8.2, -4.1, 11.4, -3.4]],
+    attack: [[2.4, -4.0, 6.6, -2.2], [8.0, -2.2, 11.6, -3.9]],
+    focus: [[2.4, -3.6, 6.6, -2.6], [8.0, -2.6, 11.6, -3.5]],
+    hurt: [[2.6, -2.4, 6.4, -4.0], [8.2, -4.0, 11.2, -2.4]],
+    dizzy: [[2.6, -3.0, 6.6, -3.8], [8.2, -3.8, 11.4, -3.0]],
+  };
+  for (const [x0, y0, x1, y1] of brows[expr]) {
+    ctx.beginPath();
+    ctx.moveTo(x + x0, y + y0);
+    ctx.quadraticCurveTo(x + (x0 + x1) / 2, y + Math.min(y0, y1) - 0.6, x + x1, y + y1);
+    ctx.stroke();
+  }
+
+  // 鼻子
+  ctx.strokeStyle = skinDark;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + 11.4, y + 1.4);
+  ctx.quadraticCurveTo(x + 13, y + 3.4, x + 11.2, y + 3.9);
+  ctx.stroke();
+
+  // 嘴巴
+  const mx = x + 8;
+  const my = y + 6.8;
+  const mouthIn = '#7a1f2b';
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 1.1;
+  switch (expr) {
+    case 'attack':
+      ctx.beginPath();
+      ctx.moveTo(mx - 2.6, my - 0.8);
+      ctx.lineTo(mx + 2.6, my - 0.8);
+      ctx.quadraticCurveTo(mx + 2.2, my + 3, mx, my + 3);
+      ctx.quadraticCurveTo(mx - 2.2, my + 3, mx - 2.6, my - 0.8);
+      ctx.fillStyle = mouthIn;
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(mx - 2.2, my - 0.6, 4.4, 1);
+      break;
+    case 'hurt':
+      ctx.beginPath();
+      ctx.ellipse(mx, my + 0.8, 1.6, 1.9, 0, 0, Math.PI * 2);
+      ctx.fillStyle = mouthIn;
+      ctx.fill();
+      ctx.stroke();
+      break;
+    case 'happy':
+      ctx.beginPath();
+      ctx.moveTo(mx - 3, my - 0.6);
+      ctx.quadraticCurveTo(mx, my + 4.6, mx + 3, my - 0.6);
+      ctx.closePath();
+      ctx.fillStyle = mouthIn;
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ff8fa0';
+      ctx.beginPath();
+      ctx.ellipse(mx, my + 1.9, 1.4, 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'dizzy':
+      ctx.beginPath();
+      ctx.moveTo(mx - 2.6, my);
+      ctx.quadraticCurveTo(mx - 1.3, my - 1, mx, my);
+      ctx.quadraticCurveTo(mx + 1.3, my + 1, mx + 2.6, my);
+      ctx.stroke();
+      break;
+    case 'focus':
+      ctx.beginPath();
+      ctx.moveTo(mx - 2, my + 0.4);
+      ctx.lineTo(mx + 2, my + 0.4);
+      ctx.stroke();
+      break;
+    default:
+      ctx.beginPath();
+      ctx.moveTo(mx - 2.2, my - 0.2);
+      ctx.quadraticCurveTo(mx, my + 1.8, mx + 2.2, my - 0.2);
+      ctx.stroke();
+  }
+
+  // 眼鏡（疊在眼睛上）
+  if (look.glasses) {
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    rrPath(ctx, x + 2, y - 2.6, 5.6, 5.2, 1.6);
+    rrPath(ctx, x + 7.8, y - 2.6, 4.4, 5, 1.4);
+    ctx.moveTo(x + 7.6, y - 0.6);
+    ctx.lineTo(x + 7.8, y - 0.6);
+    ctx.moveTo(x + 2, y - 0.8);
+    ctx.lineTo(x - 3, y - 1.4);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(200,230,255,0.18)';
+    ctx.fill();
+  }
+}
+
+function rrPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
 /** 青蛙頭套 */

@@ -322,7 +322,7 @@ export class OnlineSelectScene extends Scene {
   private share(): void {
     const url = shareUrl(this.net.code);
     if (navigator.share && navigator.maxTouchPoints > 0) {
-      navigator.share({ title: '混戰小英雄', text: `一起來打！房間代碼 ${this.net.code}`, url }).catch(() => undefined);
+      navigator.share({ title: '台灣大亂鬥', text: `一起來打！房間代碼 ${this.net.code}`, url }).catch(() => undefined);
       return;
     }
     navigator.clipboard?.writeText(url).then(
@@ -445,7 +445,7 @@ export class OnlineSelectScene extends Scene {
       ctx.clip();
       ctx.fillStyle = shade(def.palette.accent, -0.55);
       ctx.fillRect(x + 14, y + 32, 160, 122);
-      drawFigure(ctx, def, { pose: getPose(s.ready ? 'victory' : `idle_${(this.t >> 5) % 2}`), x: x + 94, y: y + 212, facing: 1, scale: 1.8, tick: this.t, upperOnly: true });
+      drawFigure(ctx, def, { pose: getPose(s.ready ? 'victory' : `idle_${(this.t >> 5) % 2}`), x: x + 94, y: y + 180, facing: 1, scale: 1.65, tick: this.t, upperOnly: true, expression: s.ready ? 'happy' : 'normal' });
       ctx.restore();
       if (mine && !s.ready) {
         text(ctx, '◀', x + 22, y + 98, 18, '#fff', 'center');

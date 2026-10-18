@@ -132,6 +132,16 @@ export class JoinScene extends Scene {
     this.app.scenes.pop();
   }
 
+  /** 手機沒有實體鍵盤：點畫面跳出輸入框 */
+  onClick(): void {
+    if (this.net && this.net.status !== 'error' && this.net.status !== 'closed') return;
+    const v = window.prompt('輸入 6 碼房間代碼', this.code);
+    if (v === null) return;
+    this.net = null;
+    this.code = [...v.toUpperCase()].filter(isValidCodeChar).join('').slice(0, CODE_LENGTH);
+    if (this.code.length === CODE_LENGTH) this.connect();
+  }
+
   render(ctx: CanvasRenderingContext2D): void {
     menuBackground(ctx, this.t, '#0b2545', '#13315c');
     text(ctx, '加入房間', VW / 2, 70, 30, '#ffd23f', 'center', true, true);
@@ -150,6 +160,7 @@ export class JoinScene extends Scene {
     const n = this.net;
     if (!n) {
       text(ctx, this.code.length === CODE_LENGTH ? '按 Enter 連線' : '直接用鍵盤輸入英文字母與數字，Backspace 刪除', VW / 2, 260, 15, '#fff', 'center', false);
+      text(ctx, '手機 / 平板：點一下畫面輸入代碼', VW / 2, 286, 13, '#cbd5e1', 'center', false);
     } else if (n.status === 'error' || n.status === 'closed') {
       text(ctx, n.error || '連線已中斷', VW / 2, 260, 15, '#ff8a8a', 'center');
       text(ctx, '按 Enter 重新輸入', VW / 2, 290, 14, '#fff', 'center', false);
@@ -305,13 +316,19 @@ export class OnlineSelectScene extends Scene {
       }
       if (this.isHost && (k.left || k.right)) this.aiCursor = this.nextAiSlot(0, 1);
     }
-    if (this.isHost && k.A && me.ready) {
-      const share = shareUrl(this.net.code);
-      navigator.clipboard?.writeText(share).then(
-        () => (this.copied = 120),
-        () => (this.copied = -1),
-      );
+    if (this.isHost && k.A && me.ready) this.share();
+  }
+
+  private share(): void {
+    const url = shareUrl(this.net.code);
+    if (navigator.share && navigator.maxTouchPoints > 0) {
+      navigator.share({ title: '混戰小英雄', text: `一起來打！房間代碼 ${this.net.code}`, url }).catch(() => undefined);
+      return;
     }
+    navigator.clipboard?.writeText(url).then(
+      () => (this.copied = 120),
+      () => (this.copied = -1),
+    );
   }
 
   private nextAiSlot(from: number, dir: 1 | -1): number {

@@ -3,6 +3,7 @@ import { Sfx } from './audio/sfx';
 import { CONFIG } from './config';
 import { getGameData } from './data';
 import { Keyboard } from './input/keyboard';
+import { TouchControls } from './input/touch';
 import { text } from './render/text';
 import { SceneManager, unionPressed, type App, type MenuInput } from './scenes/scene';
 import { defaultSlots } from './scenes/select';
@@ -24,6 +25,8 @@ kb.setBindings(settings.bindings);
 const sfx = new Sfx();
 sfx.setVolumes(settings.masterVolume, settings.sfxVolume);
 kb.onFirstInput = () => sfx.unlock();
+new TouchControls(kb, document.body);
+window.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('pointerdown', () => sfx.unlock());
 
 const app: App = {
@@ -47,7 +50,7 @@ if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;
 // ---------- 畫布縮放：保持 16:9，等比放大，邊緣留黑 ----------
 let scale = 1;
 function resize(): void {
-  const s = Math.min(window.innerWidth / VW, window.innerHeight / VH);
+  const s = Math.min(window.innerWidth / VW, (window.innerHeight - (document.body.classList.contains('touch-mode') && window.innerHeight > window.innerWidth ? 8 : 0)) / VH);
   const cssW = Math.floor(VW * s);
   const cssH = Math.floor(VH * s);
   canvas.style.width = `${cssW}px`;
@@ -75,7 +78,7 @@ let fpsTimer = last;
 
 function tick(codes: string[]): void {
   if (codes.includes('F3')) app.showFps = !app.showFps;
-  const held = settings.bindings.map((b) => kb.snapshot(b));
+  const held = settings.bindings.map((b, i) => kb.snapshot(b, i));
   kb.endTick();
   const pressed = held.map((h, i) => pressedEdges(h, prevHeld[i]));
   prevHeld = held;

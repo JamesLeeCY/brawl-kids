@@ -19,8 +19,10 @@ export interface LobbySlot {
 }
 
 export type NetMsg =
-  | { type: 'hello'; v: string }
-  | { type: 'welcome'; slot: number }
+  /** 加入者打招呼；id 用來在斷線重連時認回原本的欄位，e / have 告訴房主自己收到哪裡 */
+  | { type: 'hello'; v: string; id?: string; e?: number; have?: number[] }
+  /** 房主回應；重連時附上房主收到這位加入者的最後 tick，讓對方補送 */
+  | { type: 'welcome'; slot: number; e?: number; have?: number }
   | { type: 'reject'; reason: string; stale?: boolean }
   | { type: 'lobbystate'; slots: LobbySlot[]; opt: number }
   | { type: 'sel'; charIdx: number; team: number; ready: boolean }
@@ -30,6 +32,8 @@ export type NetMsg =
   | { type: 'in'; e: number; s: number; t: number; b: number }
   | { type: 'hash'; e: number; s: number; t: number; h: string }
   | { type: 'drop'; e: number; s: number; t: number }
+  /** 世界卡在第 t tick 等按鍵：請對方從 t 起補送（中繼掉包或重連後的缺口） */
+  | { type: 'need'; e: number; t: number }
   | { type: 'ping'; ts: number }
   | { type: 'pong'; ts: number }
   | { type: 'bye' }
@@ -74,6 +78,15 @@ const RELAY_SILENCE = 10000;
 const RELAY_FLUSH_MS = 125;
 /** 每批附帶的最近按鍵封包數（約涵蓋 3 批），某一批被丟掉時下一批可補上 */
 const RELAY_REDUNDANCY = 24;
+/** 直連多久沒收到訊息視為斷線（每秒都有 ping） */
+const P2P_SILENCE = 6000;
+/** 斷線後保留欄位、等對方重連的時間：比賽中大家會暫停等待，所以較短 */
+const RESUME_GRACE_MATCH = 20000;
+const RESUME_GRACE_LOBBY = 45000;
+/** 加入者重連的總時限 */
+const RECONNECT_TIMEOUT = 30000;
+/** 每段比賽保留的按鍵紀錄筆數（重連時補送用，約 4 人 × 30 秒） */
+const LOG_KEEP = 4 * 60 * 30;
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const CODE_LENGTH = 6;
@@ -216,7 +229,7 @@ class RelayChannel implements Channel {
 
   constructor(
     readonly hub: RelayHub,
-    private to: string,
+    readonly to: string,
   ) {}
 
   get open(): boolean {
@@ -263,8 +276,19 @@ export class NetSession {
   private registered = false;
   /** 中繼：已連上的 broker 用戶端 */
   private hubs: RelayHub[] = [];
-  /** 房主：中繼加入者 id → 欄位 */
-  private relaySlots = new Map<string, number>();
+  /** 房主：加入者 id → 欄位（直連與中繼共用，重連時據此認回原欄位） */
+  private guestIds = new Map<string, number>();
+  /** 房主：暫時斷線、等待重連的加入者（欄位 → 期限與原本的連線） */
+  private lost = new Map<number, { until: number; link: Link }>();
+  /** 加入者：與房主斷線，正在重新連線 */
+  reconnecting = false;
+  private reconnectTimer = 0;
+  private reconnectRelay = false;
+  private hubPromise: Promise<RelayHub> | null = null;
+  /** 各段比賽的按鍵 / 斷線紀錄（重連時補送） */
+  private inLog = new Map<number, Map<string, NetMsg>>();
+  /** 房主最近一次送出的開賽訊息（重連的加入者若錯過可補送） */
+  private lastStart: NetMsg | null = null;
   private relayStarted = false;
   /** 加入者只處理一次版本不同 */
   private versionChecked = false;
@@ -276,13 +300,21 @@ export class NetSession {
     private version: string,
   ) {
     // 關閉分頁時通知其他人，避免對方等到逾時才發現
-    window.addEventListener('pagehide', () => {
-      if (this.status !== 'closed') this.broadcast({ type: 'bye' });
+    // （進入 bfcache 的 persisted 情況可能還會回來，不算離開）
+    window.addEventListener('pagehide', (e) => {
+      if (this.status !== 'closed' && !e.persisted) this.broadcast({ type: 'bye' });
     });
-    // 中繼通道沒有底層斷線事件：一段時間沒收到訊息就視為離線
+    // 一段時間沒收到訊息就視為斷線（中繼沒有底層斷線事件；手機切換網路時直連也常默默中斷）
     this.watchTimer = window.setInterval(() => {
       const now = performance.now();
-      for (const [slot, l] of this.links) if (l.conn.kind === 'relay' && now - l.lastSeen > RELAY_SILENCE) this.onLinkClosed(slot);
+      for (const [slot, l] of this.links) {
+        const limit = l.conn.kind === 'relay' ? RELAY_SILENCE : P2P_SILENCE;
+        if (l.verified && now - l.lastSeen > limit) this.onLinkClosed(slot);
+      }
+      for (const [slot, rec] of this.lost) if (now > rec.until) this.finalizeLeave(slot);
+      // 世界卡住超過 1.2 秒：請大家從缺的那個 tick 起補送（中繼一次掉太多包時，備援封包補不回來）
+      const ls = this.lockstep;
+      if (ls && ls.stalledMs(now) > 1200) this.broadcast({ type: 'need', e: this.epoch, t: ls.nextNeeded() });
     }, 1000);
   }
 
@@ -423,37 +455,104 @@ export class NetSession {
     // 給房主的訊息，加上加入者附帶的備援按鍵封包（收件者為 '*'）
     const mine = env.b.filter((it) => it.to === 'h' || (it.to === '*' && it.m.type === 'in')).map((it) => it.m);
     if (!mine.length) return;
-    let slot = this.relaySlots.get(env.f);
-    if (slot === undefined || !this.links.has(slot)) {
-      if (!mine.some((m) => m.type === 'hello')) return;
-      const s = this.admit(new RelayChannel(hub, env.f));
-      if (s === null) return;
-      slot = s;
-      this.relaySlots.set(env.f, s);
+    let slot = this.relaySlot(hub, env.f);
+    if (slot === null) {
+      const hello = mine.find((m): m is Extract<NetMsg, { type: 'hello' }> => m.type === 'hello');
+      if (!hello) return;
+      this.onGuestHello(new RelayChannel(hub, env.f), hello, env.f);
+      slot = this.relaySlot(hub, env.f);
+      if (slot === null) return;
     }
     const link = this.links.get(slot);
     if (link) link.lastSeen = performance.now();
     for (const m of mine) this.onData(slot, m);
   }
 
+  /** 這位中繼加入者（在這個 broker 上）目前的欄位；暫時斷線中的會被救回 */
+  private relaySlot(hub: RelayHub, f: string): number | null {
+    const slot = this.guestIds.get(f);
+    if (slot === undefined) return null;
+    const conn = this.links.get(slot)?.conn ?? this.lost.get(slot)?.link.conn;
+    if (!(conn instanceof RelayChannel) || conn.hub !== hub || conn.to !== f) return null;
+    return this.slotOf(conn);
+  }
+
+  /** 找出通道所在的欄位；若它被誤判為斷線（例如手機短暫凍結）而又收到訊息，直接救回 */
+  private slotOf(ch: Channel): number | null {
+    for (const [slot, l] of this.links) if (l.conn === ch) return slot;
+    for (const [slot, rec] of this.lost)
+      if (rec.link.conn === ch) {
+        this.lost.delete(slot);
+        rec.link.lastSeen = performance.now();
+        this.links.set(slot, rec.link);
+        return slot;
+      }
+    return null;
+  }
+
   private acceptP2P(c: DataConnection): void {
     c.on('open', () => {
       const ch = p2pChannel(c);
-      const slot = this.admit(ch);
-      if (slot === null) return;
       c.on('data', (d) => {
+        const m = d as NetMsg;
+        const slot = this.slotOf(ch);
+        if (slot === null) {
+          // 還沒認識的連線：先等對方打招呼（新玩家或斷線重連）
+          if (m.type === 'hello') this.onGuestHello(ch, m);
+          return;
+        }
         const l = this.links.get(slot);
         if (l) l.lastSeen = performance.now();
-        this.onData(slot, d as NetMsg);
+        this.onData(slot, m);
       });
-      c.on('close', () => this.onLinkClosed(slot));
-      c.on('error', () => this.onLinkClosed(slot));
+      const closed = () => {
+        for (const [slot, l] of this.links) if (l.conn === ch) this.onLinkClosed(slot);
+      };
+      c.on('close', closed);
+      c.on('error', closed);
     });
+  }
+
+  /** 房主收到尚未配對通道的招呼：版本檢查後，認回斷線重連的玩家，或分配新欄位 */
+  private onGuestHello(ch: Channel, m: Extract<NetMsg, { type: 'hello' }>, fallbackId?: string): void {
+    if (m.v !== this.version) {
+      this.onVersionMismatch(ch);
+      return;
+    }
+    const id = m.id ?? fallbackId;
+    const known = id === undefined ? undefined : this.guestIds.get(id);
+    if (known !== undefined && (this.links.has(known) || this.lost.has(known))) {
+      this.resume(known, ch, m);
+      return;
+    }
+    const slot = this.admit(ch);
+    if (slot === null) return;
+    if (id !== undefined) this.guestIds.set(id, slot);
+    this.links.get(slot)!.verified = true;
+    ch.send({ type: 'welcome', slot });
+    this.inbox.push({ from: slot, msg: { type: 'peer-join', slot } });
+  }
+
+  /** 斷線重連：換上新通道，並補送對方錯過的按鍵 */
+  private resume(slot: number, ch: Channel, m: Extract<NetMsg, { type: 'hello' }>): void {
+    const old = this.links.get(slot) ?? this.lost.get(slot)?.link;
+    this.lost.delete(slot);
+    this.links.delete(slot);
+    if (old && old.conn !== ch) old.conn.close();
+    this.links.set(slot, { conn: ch, rtt: old?.rtt ?? 0, verified: true, lastSeen: performance.now() });
+    ch.send({ type: 'hello', v: this.version });
+    ch.send({ type: 'welcome', slot, e: this.epoch, have: this.lockstep ? this.lockstep.nextNeeded() - 1 : -1 });
+    const from = m.e ?? this.epoch;
+    // 對方錯過了這一場的開賽訊息：先補送
+    if (from < this.epoch && this.lastStart && 'epoch' in this.lastStart && this.lastStart.epoch === this.epoch) {
+      ch.send(this.lastStart);
+      this.resendLog(ch, this.epoch, () => -1);
+    } else this.resendLog(ch, from, (s) => m.have?.[s] ?? -1);
   }
 
   /** 收一位新加入者：分配欄位並打招呼；房間滿或比賽中則拒絕 */
   private admit(ch: Channel): number | null {
-    const free = [1, 2, 3].find((s) => !this.links.has(s));
+    const free = [1, 2, 3].find((s) => !this.links.has(s) && !this.lost.has(s));
     if (this.inMatch || free === undefined) {
       ch.send({ type: 'reject', reason: this.inMatch ? '房間正在比賽中，請等這場結束再加入。' : '房間已滿（最多 4 人）。' });
       setTimeout(() => ch.close(), 300);
@@ -465,6 +564,12 @@ export class NetSession {
   }
 
   // ---------------- 加入者 ----------------
+  private helloMsg(): NetMsg {
+    const ls = this.lockstep;
+    const have = ls ? ls.nextNeeded() - 1 : -1;
+    return { type: 'hello', v: this.version, id: this.myId, e: this.epoch, have: [have, have, have, have] };
+  }
+
   private openGuest(): void {
     const peer = new Peer(PEER_OPTIONS);
     this.peer = peer;
@@ -478,25 +583,11 @@ export class NetSession {
       if (this.status === 'connecting') giveUpP2P();
     }, P2P_GRACE);
     peer.on('open', () => {
+      if (conn) return; // 與配對伺服器重連時也會觸發
       const c = peer.connect(ID_PREFIX + this.code, { reliable: true, serialization: 'json' });
       conn = c;
-      c.on('open', () => {
-        if (this.relayStarted) {
-          c.close();
-          return;
-        }
-        window.clearTimeout(grace);
-        this.links.set(0, { conn: p2pChannel(c), rtt: 0, verified: false, lastSeen: performance.now() });
-        c.send({ type: 'hello', v: this.version } satisfies NetMsg);
-        this.startPing();
-      });
-      c.on('data', (d) => {
-        if (this.links.get(0)?.conn.kind !== 'p2p') return;
-        this.links.get(0)!.lastSeen = performance.now();
-        this.onData(0, d as NetMsg);
-      });
-      c.on('close', () => this.links.get(0)?.conn.kind === 'p2p' && this.onLinkClosed(0));
-      c.on('error', () => this.links.get(0)?.conn.kind === 'p2p' && this.onLinkClosed(0));
+      c.on('open', () => window.clearTimeout(grace));
+      this.wireGuestP2P(c, giveUpP2P);
       c.on('iceStateChanged', (state: RTCIceConnectionState) => {
         if (state === 'failed' && this.status === 'connecting') giveUpP2P();
       });
@@ -512,35 +603,128 @@ export class NetSession {
       window.clearTimeout(grace);
       giveUpP2P();
     });
+    peer.on('disconnected', () => {
+      window.setTimeout(() => {
+        if (!peer.destroyed && peer.disconnected) peer.reconnect();
+      }, 1000);
+    });
   }
 
-  /** 加入者改走中繼：優先用延遲最低的 broker */
-  private startRelayJoin(): void {
-    if (this.relayStarted) return;
-    this.relayStarted = true;
+  /** 加入者的直連通道：第一次連線與斷線重連共用 */
+  private wireGuestP2P(c: DataConnection, onEarlyClose?: () => void): void {
+    const ch = p2pChannel(c);
+    c.on('open', () => {
+      const cur = this.links.get(0);
+      // 第一次連線時中繼已接手、或重連時已改用中繼：不再用這條直連
+      if ((!this.reconnecting && (this.relayStarted || cur?.verified)) || (this.reconnecting && this.reconnectRelay)) {
+        c.close();
+        return;
+      }
+      this.links.set(0, { conn: ch, rtt: cur?.rtt ?? 0, verified: false, lastSeen: performance.now() });
+      ch.send(this.helloMsg());
+      this.startPing();
+    });
+    c.on('data', (d) => {
+      const l = this.links.get(0);
+      if (l?.conn !== ch) return;
+      l.lastSeen = performance.now();
+      this.onData(0, d as NetMsg);
+    });
+    const closed = () => {
+      const l = this.links.get(0);
+      if (l?.conn !== ch) return;
+      if (!l.verified && this.status === 'connecting' && onEarlyClose) {
+        this.links.delete(0);
+        onEarlyClose();
+      } else this.onLinkClosed(0);
+    };
+    c.on('close', closed);
+    c.on('error', closed);
+  }
+
+  /** 連上一個中繼 broker（優先第一個，最多等 2.5 秒；連不上才用其他最先連上的）；只建立一次 */
+  private connectRelayHub(): Promise<RelayHub> {
+    if (this.hubPromise) return this.hubPromise;
     const topic = `${TOPIC_BASE}/${this.code}/r`;
     const hubs = RELAY_BROKERS.map((url, i) => new RelayHub(url, `bkg${i}-${this.myId}`, topic, this.myId));
     const attempts = hubs.map((hub) => hub.connect((payload) => this.onRelayGuest(payload)));
-    // 優先用第一個 broker（最多等 2.5 秒），連不上才用其他最先連上的
     const preferred = Promise.race([attempts[0], new Promise<never>((_, rej) => window.setTimeout(() => rej(new Error('slow')), 2500))]);
-    preferred
+    this.hubPromise = preferred
       .catch(() => Promise.any(attempts))
       .then((hub) => {
         this.hubs.push(hub);
         hubs.forEach((h, i) => h !== hub && attempts[i].then(() => h.close()).catch(() => h.close()));
-        const ch = new RelayChannel(hub, 'h');
-        this.links.set(0, { conn: ch, rtt: 0, verified: false, lastSeen: performance.now() });
-        // 訂閱生效需要一點時間；打招呼重送幾次直到房主回應
-        const greet = () => {
-          if (this.status === 'connecting' && this.links.get(0)?.conn === ch) ch.send({ type: 'hello', v: this.version });
-        };
-        greet();
-        [800, 2000, 4000, 7000].forEach((ms) => window.setTimeout(greet, ms));
-        this.startPing();
+        return hub;
+      });
+    this.hubPromise.catch(() => {
+      this.hubPromise = null; // 下次可再試
+    });
+    return this.hubPromise;
+  }
+
+  /** 透過中繼打招呼，重送幾次直到房主回應（訂閱生效需要一點時間） */
+  private greetViaRelay(hub: RelayHub): void {
+    const prev = this.links.get(0);
+    const ch = new RelayChannel(hub, 'h');
+    this.links.set(0, { conn: ch, rtt: prev?.rtt ?? 0, verified: false, lastSeen: performance.now() });
+    const greet = () => {
+      const waiting = this.status === 'connecting' || this.reconnecting;
+      if (waiting && this.links.get(0)?.conn === ch) ch.send(this.helloMsg());
+    };
+    greet();
+    [800, 2000, 4000, 7000, 11000, 16000, 22000].forEach((ms) => window.setTimeout(greet, ms));
+    this.startPing();
+  }
+
+  /** 加入者改走中繼 */
+  private startRelayJoin(): void {
+    if (this.relayStarted) return;
+    this.relayStarted = true;
+    this.connectRelayHub()
+      .then((hub) => {
+        if (this.status === 'connecting') this.greetViaRelay(hub);
       })
       .catch(() => {
         if (this.status === 'connecting') this.fail('直連失敗，中繼伺服器也連不上。請檢查網路，或換個網路（例如手機熱點）再試。');
       });
+  }
+
+  /**
+   * 加入者與房主斷線（手機切換網路、螢幕關掉、切到別的 App…）：先試直連 4 秒，不行就走中繼。
+   * 房主會保留欄位一段時間；重連後雙方補送錯過的按鍵，比賽接著進行。
+   */
+  private startReconnect(): void {
+    if (this.reconnecting) return;
+    this.reconnecting = true;
+    this.reconnectRelay = false;
+    window.clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = window.setTimeout(() => {
+      if (!this.reconnecting) return;
+      this.reconnecting = false;
+      this.links.get(0)?.conn.close();
+      this.links.delete(0);
+      this.fail('與房主的連線中斷，重新連線失敗。請確認網路後重新加入。');
+    }, RECONNECT_TIMEOUT);
+    const peer = this.peer;
+    if (peer && !peer.destroyed && !forceRelay()) {
+      const go = () => {
+        if (this.reconnecting && !this.reconnectRelay) this.wireGuestP2P(peer.connect(ID_PREFIX + this.code, { reliable: true, serialization: 'json' }));
+      };
+      if (peer.disconnected) {
+        peer.once('open', go);
+        peer.reconnect();
+      } else go();
+    }
+    const viaRelay = () => {
+      if (!this.reconnecting) return;
+      this.reconnectRelay = true;
+      this.connectRelayHub()
+        .then((hub) => {
+          if (this.reconnecting) this.greetViaRelay(hub);
+        })
+        .catch(() => window.setTimeout(viaRelay, 3000));
+    };
+    window.setTimeout(viaRelay, peer && !forceRelay() ? 4000 : 0);
   }
 
   private onRelayGuest(payload: string): void {
@@ -568,15 +752,12 @@ export class NetSession {
     if (!link) return;
     switch (m.type) {
       case 'hello':
-        if (m.v !== this.version) {
-          this.onVersionMismatch(link.conn);
+        // 房主：新玩家的招呼在 onGuestHello 處理；已認識的通道再打招呼 = 對方以為斷線而重連（例如只有單向收不到），再歡迎一次並補送
+        if (this.role === 'host') {
+          if (link.verified && m.v === this.version) this.resume(from, link.conn, m);
           return;
         }
-        if (this.role === 'host' && !link.verified) {
-          link.verified = true;
-          link.conn.send({ type: 'welcome', slot: from });
-          this.inbox.push({ from, msg: { type: 'peer-join', slot: from } });
-        }
+        if (m.v !== this.version) this.onVersionMismatch(link.conn);
         return;
       case 'welcome':
         if (link.verified) return; // 中繼重送的招呼可能讓房主回多次
@@ -584,6 +765,15 @@ export class NetSession {
         this.mySlot = m.slot;
         this.status = 'open';
         window.clearTimeout(this.timeout);
+        if (this.reconnecting) {
+          this.reconnecting = false;
+          window.clearTimeout(this.reconnectTimer);
+          // 補送房主錯過的自己的按鍵
+          if (m.e !== undefined && m.have !== undefined && m.have >= 0) {
+            const have = m.have;
+            this.resendLog(link.conn, m.e, (s) => (s === this.mySlot ? have : Infinity));
+          }
+        }
         return;
       case 'reject':
         if (m.stale) this.onVersionMismatch(null);
@@ -598,7 +788,7 @@ export class NetSession {
         return;
       }
       case 'bye':
-        this.onLinkClosed(from);
+        this.onLinkClosed(from, true);
         return;
       case 'in':
         if (this.role === 'host') {
@@ -609,6 +799,10 @@ export class NetSession {
         return;
       case 'drop':
         this.routeEpoch(m);
+        return;
+      case 'need':
+        // 房主補送所有人的按鍵；加入者只補自己的
+        this.resendLog(link.conn, m.e, this.role === 'host' ? () => m.t - 1 : (s) => (s === this.mySlot ? m.t - 1 : Infinity), true);
         return;
       case 'hash':
         if (this.role === 'host' && m.s !== from) return;
@@ -625,6 +819,7 @@ export class NetSession {
 
   /** 依 epoch 分派按鍵 / 斷線訊息；未來 epoch 先暫存 */
   private routeEpoch(m: Extract<NetMsg, { type: 'in' | 'drop' }>): void {
+    this.record(m);
     if (m.e === this.epoch) this.applyEpochMsg(m);
     else if (m.e > this.epoch) {
       const list = this.pending.get(m.e) ?? [];
@@ -650,25 +845,74 @@ export class NetSession {
     }
   }
 
-  private onLinkClosed(slot: number): void {
+  /** 通道斷了。hard = 對方明確離開（關掉分頁）；否則先保留欄位等對方重連 */
+  private onLinkClosed(slot: number, hard = false): void {
     const link = this.links.get(slot);
     if (!link) return;
     this.links.delete(slot);
-    for (const [id, s] of this.relaySlots) if (s === slot) this.relaySlots.delete(id);
-    link.conn.close();
     if (this.role === 'guest') {
+      link.conn.close();
+      if (!hard && link.verified && this.status === 'open') {
+        this.startReconnect();
+        return;
+      }
       if (this.status !== 'error') this.status = 'closed';
       window.clearInterval(this.pingTimer);
       return;
     }
-    if (!link.verified) return;
-    // 房主：比賽中有人斷線 → 宣告其按鍵從某 tick 起為空，其他人繼續
+    if (!link.verified) {
+      link.conn.close();
+      return;
+    }
+    if (!hard) {
+      // 通道先不關：若只是短暫凍結又收到訊息，可直接救回
+      this.lost.set(slot, { until: performance.now() + (this.inMatch ? RESUME_GRACE_MATCH : RESUME_GRACE_LOBBY), link });
+      return;
+    }
+    link.conn.close();
+    this.finalizeLeave(slot);
+  }
+
+  /** 房主：確定某位加入者離開了 */
+  private finalizeLeave(slot: number): void {
+    this.lost.get(slot)?.link.conn.close();
+    this.lost.delete(slot);
+    for (const [id, s] of this.guestIds) if (s === slot) this.guestIds.delete(id);
+    // 比賽中有人斷線 → 宣告其按鍵從某 tick 起為空，其他人繼續
     if (this.lockstep && this.lockstep.humanSlots.includes(slot) && !this.lockstep.isDropped(slot)) {
       const t = this.lockstep.lastReceived(slot) + 1;
       this.lockstep.drop(slot, t);
       this.broadcast({ type: 'drop', e: this.epoch, s: slot, t });
     }
     this.inbox.push({ from: slot, msg: { type: 'peer-leave', slot } });
+  }
+
+  /** 房主：正在等待重連的欄位 */
+  lostSlots(): number[] {
+    return [...this.lost.keys()];
+  }
+
+  /** 記下按鍵 / 斷線訊息，重連時補送 */
+  private record(m: Extract<NetMsg, { type: 'in' | 'drop' }>): void {
+    let log = this.inLog.get(m.e);
+    if (!log) {
+      log = new Map();
+      this.inLog.set(m.e, log);
+      for (const e of [...this.inLog.keys()]) if (e < m.e - 2) this.inLog.delete(e);
+    }
+    log.set(m.type === 'in' ? `${m.s}:${m.t}` : `d${m.s}`, m);
+    if (log.size > LOG_KEEP) log.delete(log.keys().next().value as string);
+  }
+
+  /** 補送 fromEpoch（只送對方還沒有的 tick）及之後各段的紀錄 */
+  private resendLog(ch: Channel, fromEpoch: number, have: (slot: number) => number, onlyThisEpoch = false): void {
+    for (const [e, log] of this.inLog) {
+      if (e < fromEpoch || (onlyThisEpoch && e !== fromEpoch)) continue;
+      for (const m of log.values()) {
+        if (m.type === 'in' && (e === fromEpoch ? m.t <= have(m.s) : have(m.s) === Infinity)) continue;
+        ch.send(m);
+      }
+    }
   }
 
   // ---------------- 比賽 ----------------
@@ -718,6 +962,8 @@ export class NetSession {
 
   /** 加入者：送給房主；房主：送給所有加入者 */
   broadcast(m: NetMsg): void {
+    if (m.type === 'in' || m.type === 'drop') this.record(m);
+    if (m.type === 'start' || m.type === 'rematch') this.lastStart = m;
     for (const l of this.links.values()) if (l.conn.open && (l.verified || m.type === 'ping')) l.conn.send(m);
   }
 
@@ -768,6 +1014,8 @@ export class NetSession {
     this.broadcast({ type: 'bye' });
     window.clearInterval(this.pingTimer);
     window.clearInterval(this.watchTimer);
+    window.clearTimeout(this.reconnectTimer);
+    this.reconnecting = false;
     this.status = 'closed';
     setTimeout(() => {
       for (const l of this.links.values()) l.conn.close();

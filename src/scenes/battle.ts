@@ -244,6 +244,10 @@ export class BattleScene extends Scene {
       overlay(ctx, 0.65, VW);
       text(ctx, net.error || '對手已離線', VW / 2, 200, 22, '#ff8a8a', 'center', true, true);
       text(ctx, '按 攻擊 / Enter 回到標題', VW / 2, 240, 15, '#fff', 'center');
+    } else if (net.reconnecting) {
+      text(ctx, '連線不穩，正在重新連線…', VW / 2, 120, 22, '#ffd23f', 'center', true, true);
+    } else if (net.lostSlots().length) {
+      text(ctx, `${net.lostSlots().map((s) => `${s + 1}P`).join('、')} 連線中斷，等待重新連線…`, VW / 2, 120, 22, '#ffd23f', 'center', true, true);
     } else if (this.stall > 20) {
       text(ctx, '等待對手…', VW / 2, 120, 22, '#ffd23f', 'center', true, true);
     }

@@ -460,13 +460,16 @@ export class OnlineSelectScene extends Scene {
     }
     button(ctx, this.isHost && !this.me.ready ? `模式：${o.label}（攻擊切換）` : `模式：${o.label}`, VW / 2, 350, 420, this.isHost && !this.me.ready);
     let h1: string;
+    const lost = n.lostSlots();
     if (n.status !== 'open') h1 = n.error || '與房主的連線已中斷，按 Esc 返回標題';
+    else if (n.reconnecting) h1 = '連線不穩，正在重新連線…';
+    else if (lost.length) h1 = `${lost.map((s) => `${s + 1}P`).join('、')} 連線中斷，等待重新連線…`;
     else if (this.warn > 0) h1 = '對戰至少需要兩隊！請調整隊伍或加入電腦。';
     else if (this.copied > 0) h1 = '✓ 已複製分享連結';
     else if (this.aiCursor >= 0) h1 = '設定電腦：←→ 選欄位　攻擊 加入/改難度/移除　↑↓ 換角色　跳躍 換隊　防禦 完成';
     else if (this.isHost && this.me.ready) h1 = '已確定：← / → 設定電腦　攻擊 複製分享連結　防禦 取消';
     else h1 = '←→ 選角　↑↓ 選隊伍　跳躍 確定　防禦 取消' + (this.isHost ? '　攻擊 切換模式' : '');
-    text(ctx, h1, VW / 2, 404, 12, n.status !== 'open' || this.warn > 0 ? '#ff8a8a' : '#fff', 'center', false);
+    text(ctx, h1, VW / 2, 404, 12, n.status !== 'open' || n.reconnecting || lost.length || this.warn > 0 ? '#ff8a8a' : '#fff', 'center', false);
     hint(ctx, '所有玩家都確定後由房主開始　·　Esc 離開連線');
   }
 }

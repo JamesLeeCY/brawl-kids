@@ -34,6 +34,10 @@ export class Lockstep {
   private dropped = new Map<number, number>();
   private lastSeen = new Map<number, number>();
   private nextSend: number;
+  /** 已經用掉（世界已前進過）的最後一個 tick */
+  private taken = 0;
+  private tryAt = 0;
+  private progressAt = performance.now();
 
   constructor(
     readonly delay: number,
@@ -81,6 +85,7 @@ export class Lockstep {
 
   /** 若下一個 tick 所有真人玩家的按鍵都到齊，回傳依欄位排列的快照；否則 null（需等待） */
   take(worldTick: number): (Snapshot | undefined)[] | null {
+    this.tryAt = performance.now();
     const t = worldTick + 1;
     const out: (Snapshot | undefined)[] = new Array(MAX_SLOTS).fill(undefined);
     for (const s of this.humanSlots) {
@@ -94,6 +99,19 @@ export class Lockstep {
       out[s] = decodeSnapshot(b);
     }
     for (const s of this.humanSlots) this.inputs.get(s)!.delete(t);
+    this.taken = t;
+    this.progressAt = this.tryAt;
     return out;
+  }
+
+  /** 世界下一個需要的 tick（重連 / 補送從這裡開始） */
+  nextNeeded(): number {
+    return this.taken + 1;
+  }
+
+  /** 世界卡住等待按鍵多久了（毫秒）；沒有在跑比賽時為 0 */
+  stalledMs(now: number): number {
+    if (now - this.tryAt > 500) return 0;
+    return now - this.progressAt;
   }
 }

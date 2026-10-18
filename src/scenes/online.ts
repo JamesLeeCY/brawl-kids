@@ -167,6 +167,7 @@ export class JoinScene extends Scene {
     } else {
       const dots = '.'.repeat(1 + ((this.t >> 4) % 3));
       text(ctx, `連線中${dots}`, VW / 2, 270, 20, '#ffd23f', 'center');
+      if (this.t > 360) text(ctx, '直連較慢，正在改用中繼伺服器…', VW / 2, 298, 13, '#cbd5e1', 'center', false);
     }
     hint(ctx, 'Esc 返回');
   }
@@ -415,7 +416,7 @@ export class OnlineSelectScene extends Scene {
     const n = this.net;
     text(ctx, '連線選角', VW / 2, 28, 22, '#ffd23f', 'center', true, true);
     const ping = n.role === 'host' ? `最慢延遲 ${Math.round(n.rtt)} ms` : `延遲 ${Math.round(n.rtt)} ms`;
-    text(ctx, `房間 ${n.code}　·　${ping}　·　分享：${shareUrl(n.code)}`, VW / 2, 46, 11, '#cbd5e1', 'center', false);
+    text(ctx, `房間 ${n.code}　·　${n.transportLabel()}　·　${ping}　·　分享：${shareUrl(n.code)}`, VW / 2, 46, 11, '#cbd5e1', 'center', false);
     const ids = this.app.data.selectable;
     const o = onlineOptions(this.app)[this.opt];
     for (let i = 0; i < MAX_SLOTS; i++) {

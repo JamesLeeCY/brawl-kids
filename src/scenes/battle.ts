@@ -235,7 +235,7 @@ export class BattleScene extends Scene {
 
   private renderNetStatus(ctx: CanvasRenderingContext2D): void {
     const net = this.net!;
-    const ping = `${net.role === 'host' ? '房主' : '加入者'}　${Math.round(net.rtt)} ms`;
+    const ping = `${net.role === 'host' ? '房主' : '加入者'}　${net.transportLabel()}　${Math.round(net.rtt)} ms`;
     text(ctx, ping, 8, 444, 11, net.rtt > 150 ? '#fca5a5' : '#86efac', 'left', false, true);
     if (this.desync) text(ctx, '⚠ 畫面可能不同步', VW - 8, 444, 11, '#fca5a5', 'right', false, true);
     const gone = net.lockstep?.humanSlots.filter((s) => net.lockstep!.isDropped(s)) ?? [];

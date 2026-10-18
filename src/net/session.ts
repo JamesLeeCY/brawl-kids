@@ -1,10 +1,13 @@
-// P2P 連線（最多 4 人，星狀拓撲）：用 PeerJS（WebRTC DataChannel）連接玩家的瀏覽器，不需要自架遊戲伺服器。
-// 房主是中心：每位加入者只連房主，房主把每個人的按鍵轉送給其他人。
-// PeerJS 的免費雲端 broker 只負責「介紹」雙方（交換連線資訊），遊戲資料不經過它。
+// 連線（最多 4 人，星狀拓撲）：房主是中心，每位加入者只連房主，房主把每個人的按鍵轉送給其他人。
+// 兩種通道，自動選擇：
+//   1. 直連：PeerJS（WebRTC DataChannel）點對點，延遲最低。PeerJS 的免費雲端 broker 只負責「介紹」雙方。
+//   2. 中繼：直連建立不起來時（行動網路的電信級 NAT、公司 / 學校防火牆），改經公用 MQTT broker（WebSocket / 443）轉送。
+// 兩者都不需要自架伺服器或註冊帳號。
 import Peer, { type DataConnection } from 'peerjs';
 import type { Difficulty } from '../config';
 import type { MatchSetup } from '../sim/world';
 import { Lockstep, MAX_SLOTS, type InputPacket } from './lockstep';
+import { MiniMqtt } from './mqtt';
 
 export interface LobbySlot {
   kind: 'empty' | 'human' | 'ai';
@@ -40,37 +43,43 @@ export interface Inbound {
 }
 
 export type NetStatus = 'connecting' | 'waiting' | 'open' | 'closed' | 'error';
+export type LinkKind = 'p2p' | 'relay';
 
 const ID_PREFIX = 'brawlkids-tw-';
 
-/**
- * ICE 伺服器：STUN 找出公網位址；TURN 在雙方無法直連（對稱型 NAT、公司 / 學校網路）時中繼。
- * 含 TCP 443 的 TURN，可穿過只開放網頁埠的防火牆。
- */
+/** STUN：讓雙方找出自己的公網位址以嘗試直連（免費公用 TURN 已失效，改由 MQTT 中繼補位） */
 const PEER_OPTIONS = {
   debug: 0,
   config: {
-    iceServers: [
-      { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
-      { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
-      {
-        urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turns:openrelay.metered.ca:443?transport=tcp'],
-        username: 'openrelayproject',
-        credential: 'openrelayproject',
-      },
-    ],
+    iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }],
   },
 };
 
-/** 建立 / 加入的逾時（毫秒） */
-const BROKER_TIMEOUT = 12000;
-const CONNECT_TIMEOUT = 20000;
+/**
+ * 中繼用公用 MQTT broker（WebSocket over TLS）。房主同時在全部 broker 上等人，加入者用最先連上的那個。
+ * 順序依台灣實測延遲：EMQX 亞洲節點（約 155 ms 來回）優先，連不上再用全球節點。
+ */
+const RELAY_BROKERS = ['wss://broker-cn.emqx.io:8084/mqtt', 'wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
+const TOPIC_BASE = 'brawlkids-tw/v3';
+
+/** 逾時（毫秒） */
+const HOST_TIMEOUT = 12000;
+/** 直連多久沒成功就改走中繼 */
+const P2P_GRACE = 6000;
+const CONNECT_TIMEOUT = 25000;
+/** 中繼通道多久沒收到任何訊息視為斷線（每秒都有 ping） */
+const RELAY_SILENCE = 10000;
+/** 中繼訊息合併送出的間隔：EMQX 公用 broker 每個連線約限 10 則 / 秒（實測超過就丟包），用 8 則 / 秒保留餘裕 */
+const RELAY_FLUSH_MS = 125;
+/** 每批附帶的最近按鍵封包數（約涵蓋 3 批），某一批被丟掉時下一批可補上 */
+const RELAY_REDUNDANCY = 24;
+
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const CODE_LENGTH = 6;
 
-function randomCode(): string {
+function randomCode(len = CODE_LENGTH): string {
   let s = '';
-  const buf = new Uint32Array(CODE_LENGTH);
+  const buf = new Uint32Array(len);
   crypto.getRandomValues(buf);
   for (const n of buf) s += CODE_CHARS[n % CODE_CHARS.length];
   return s;
@@ -88,10 +97,145 @@ export function shareUrl(code: string): string {
   return u.toString();
 }
 
+/** 測試 / 疑難排解用：網址加上 ?relay=1 直接走中繼 */
+function forceRelay(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get('relay') === '1';
+  } catch {
+    return false;
+  }
+}
+
+// ---------------- 通道 ----------------
+interface Channel {
+  readonly kind: LinkKind;
+  readonly open: boolean;
+  send(m: NetMsg): void;
+  close(): void;
+}
+
+function p2pChannel(c: DataConnection): Channel {
+  return {
+    kind: 'p2p',
+    get open() {
+      return c.open;
+    },
+    send: (m) => c.send(m),
+    close: () => c.close(),
+  };
+}
+
+/** 中繼信封：一則 MQTT 訊息帶多筆，每筆標明收件者（'h' 房主、加入者 id、'*' 所有加入者） */
+interface RelayItem {
+  to: string;
+  m: NetMsg;
+}
+
+/**
+ * 一個 broker 上的中繼連線。全房間只用一個主題：大家都訂閱、都發到這裡，
+ * 每 125 ms 合併成一則送出（公用 broker 有頻率限制），並附上最近的按鍵封包以防掉包；斷線會自動重連。
+ */
+class RelayHub {
+  private mq: MiniMqtt | null = null;
+  private handler: ((payload: string) => void) | null = null;
+  private out: RelayItem[] = [];
+  private recent: RelayItem[] = [];
+  private timer = 0;
+  private closed = false;
+  private backoff = 1000;
+
+  constructor(
+    readonly url: string,
+    private clientId: string,
+    private topic: string,
+    private myId: string,
+  ) {}
+
+  get connected(): boolean {
+    return !this.closed && !!this.mq?.connected;
+  }
+
+  /** 連線並訂閱房間主題；之後若被 broker 斷線會自動重連 */
+  connect(onMessage: (payload: string) => void): Promise<RelayHub> {
+    this.handler = onMessage;
+    return this.open().then(() => this);
+  }
+
+  private open(): Promise<void> {
+    const mq = new MiniMqtt(this.url, `${this.clientId}-${Math.floor(Math.random() * 1e6)}`);
+    this.mq = mq;
+    mq.onClose = () => {
+      if (this.closed || this.mq !== mq) return;
+      window.setTimeout(() => {
+        if (this.closed) return;
+        this.open().catch(() => undefined);
+      }, this.backoff);
+      this.backoff = Math.min(this.backoff * 2, 8000);
+    };
+    return mq.ready.then(() => {
+      this.backoff = 1000;
+      mq.subscribe(this.topic, (payload) => this.handler?.(payload));
+    });
+  }
+
+  send(to: string, m: NetMsg): void {
+    if (this.closed) return;
+    // 同一則訊息同時送給多位加入者 → 合併成一筆廣播
+    const dup = this.out.find((it) => it.m === m);
+    if (dup) dup.to = '*';
+    else this.out.push({ to, m });
+    if (m.type === 'in' && !dup) {
+      this.recent.push({ to: '*', m });
+      if (this.recent.length > RELAY_REDUNDANCY) this.recent.shift();
+    }
+    if (m.type === 'bye') this.flush();
+    else if (!this.timer) this.timer = window.setTimeout(() => this.flush(), RELAY_FLUSH_MS);
+  }
+
+  private flush(): void {
+    window.clearTimeout(this.timer);
+    this.timer = 0;
+    if (!this.out.length || !this.mq?.connected) return;
+    const extra = this.recent.filter((r) => !this.out.some((o) => o.m === r.m));
+    this.mq.publish(this.topic, JSON.stringify({ f: this.myId, b: [...extra, ...this.out] }));
+    this.out = [];
+  }
+
+  close(): void {
+    this.flush();
+    this.closed = true;
+    this.mq?.close();
+  }
+}
+
+/** 對某一位對象的中繼通道（實際走所屬 hub 的房間主題） */
+class RelayChannel implements Channel {
+  readonly kind = 'relay' as const;
+  private closed = false;
+
+  constructor(
+    readonly hub: RelayHub,
+    private to: string,
+  ) {}
+
+  get open(): boolean {
+    return !this.closed && this.hub.connected;
+  }
+
+  send(m: NetMsg): void {
+    if (!this.closed) this.hub.send(this.to, m);
+  }
+
+  close(): void {
+    this.closed = true;
+  }
+}
+
 interface Link {
-  conn: DataConnection;
+  conn: Channel;
   rtt: number;
   verified: boolean;
+  lastSeen: number;
 }
 
 export class NetSession {
@@ -111,31 +255,55 @@ export class NetSession {
   /** 房主：欄位 → 連線；加入者：只有 0（房主） */
   private links = new Map<number, Link>();
   private pingTimer = 0;
+  private watchTimer = 0;
   private retries = 0;
   private timeout = 0;
   /** 房主是否曾成功登記房間（之後斷線只重連、不換代碼） */
   private registered = false;
+  /** 中繼：已連上的 broker 用戶端 */
+  private hubs: RelayHub[] = [];
+  /** 房主：中繼加入者 id → 欄位 */
+  private relaySlots = new Map<string, number>();
+  private relayStarted = false;
+  private roomMissing = false;
+  private readonly myId = randomCode(10);
 
   private constructor(
     readonly role: 'host' | 'guest',
     private version: string,
   ) {
-    // 關閉分頁時通知其他人，避免對方等到 WebRTC 逾時才發現
+    // 關閉分頁時通知其他人，避免對方等到逾時才發現
     window.addEventListener('pagehide', () => {
       if (this.status !== 'closed') this.broadcast({ type: 'bye' });
     });
+    // 中繼通道沒有底層斷線事件：一段時間沒收到訊息就視為離線
+    this.watchTimer = window.setInterval(() => {
+      const now = performance.now();
+      for (const [slot, l] of this.links) if (l.conn.kind === 'relay' && now - l.lastSeen > RELAY_SILENCE) this.onLinkClosed(slot);
+    }, 1000);
   }
 
   static host(version: string): NetSession {
     const s = new NetSession('host', version);
+    s.code = randomCode();
     s.openHost();
+    s.listenRelay();
     return s;
   }
 
   static join(code: string, version: string): NetSession {
     const s = new NetSession('guest', version);
     s.code = code.toUpperCase();
-    s.openGuest();
+    if (forceRelay()) s.startRelayJoin();
+    else s.openGuest();
+    s.timeout = window.setTimeout(() => {
+      if (s.status !== 'connecting') return;
+      s.fail(
+        s.roomMissing
+          ? '找不到這個房間代碼，請確認代碼或請房主重新建立房間。'
+          : '連線逾時：直連與中繼都沒有成功。請確認房主還在房間裡，或換個網路（例如手機熱點）再試。',
+      );
+    }, CONNECT_TIMEOUT);
     return s;
   }
 
@@ -151,23 +319,30 @@ export class NetSession {
     return m;
   }
 
-  // ---------------- 建立連線 ----------------
+  /** 連線方式：加入者看與房主的通道；房主看是否有人走中繼 */
+  linkKind(slot = 0): LinkKind | null {
+    return this.links.get(slot)?.conn.kind ?? null;
+  }
+
+  transportLabel(): string {
+    const kinds = [...this.links.values()].filter((l) => l.verified).map((l) => l.conn.kind);
+    if (!kinds.length) return this.role === 'host' ? '等待玩家' : '連線中';
+    if (kinds.every((k) => k === 'p2p')) return '直連';
+    if (kinds.every((k) => k === 'relay')) return '中繼';
+    return '直連＋中繼';
+  }
+
+  // ---------------- 房主 ----------------
   private openHost(): void {
-    if (!this.registered) this.code = randomCode();
     const peer = new Peer(ID_PREFIX + this.code, PEER_OPTIONS);
     this.peer = peer;
     window.clearTimeout(this.timeout);
     if (!this.registered)
       this.timeout = window.setTimeout(() => {
-        if (!this.registered) this.fail('連不上配對伺服器（逾時）。請檢查網路，或稍後再試。');
-      }, BROKER_TIMEOUT);
-    peer.on('open', () => {
-      this.registered = true;
-      window.clearTimeout(this.timeout);
-      this.status = 'open';
-      this.startPing();
-    });
-    peer.on('connection', (c) => this.acceptGuest(c));
+        if (this.status === 'connecting') this.fail('連不上配對伺服器（逾時）。請檢查網路，或稍後再試。');
+      }, HOST_TIMEOUT);
+    peer.on('open', () => this.markRegistered());
+    peer.on('connection', (c) => this.acceptP2P(c));
     peer.on('error', (err: { type?: string; message?: string }) => {
       if (err.type === 'unavailable-id') {
         if (this.registered) {
@@ -177,75 +352,206 @@ export class NetSession {
           }, 3000);
           return;
         }
-        if (this.retries++ < 5) {
+        if (this.retries++ < 5 && !this.relayStarted) {
           peer.destroy();
+          this.code = randomCode();
           this.openHost();
           return;
         }
       }
       if (err.type === 'peer-unavailable') return; // 某位加入者消失，不影響房間
       const brokerTrouble = err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error' || err.type === 'socket-closed';
-      if (this.registered && brokerTrouble) {
-        // 手機切到別的 App（例如去 LINE 分享連結）時常見：已連線的玩家不受影響，背景重連即可
+      if (brokerTrouble) {
+        // 手機切到別的 App（例如去 LINE 分享連結）時常見：已連線的玩家不受影響，背景重連即可；
+        // 就算一直連不上 PeerJS，中繼仍可讓玩家加入
         window.setTimeout(() => {
           if (!peer.destroyed && peer.disconnected) peer.reconnect();
         }, 2000);
         return;
       }
-      this.fail(describeError(err));
+      if (!this.registered) this.fail(describeError(err));
     });
     peer.on('disconnected', () => {
-      // 與 broker 斷線不影響已建立的 P2P 連線；用同一個代碼重連，讓新玩家仍能用原連結加入
       window.setTimeout(() => {
         if (!peer.destroyed && peer.disconnected) peer.reconnect();
       }, 1000);
     });
-    // 從背景回到前景時檢查一次
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !peer.destroyed && peer.disconnected) peer.reconnect();
     });
   }
 
-  private acceptGuest(c: DataConnection): void {
-    c.on('open', () => {
-      const free = [1, 2, 3].find((s) => !this.links.has(s));
-      if (this.inMatch || free === undefined) {
-        c.send({ type: 'reject', reason: this.inMatch ? '房間正在比賽中，請等這場結束再加入。' : '房間已滿（最多 4 人）。' } satisfies NetMsg);
-        setTimeout(() => c.close(), 300);
-        return;
-      }
-      const link: Link = { conn: c, rtt: 0, verified: false };
-      this.links.set(free, link);
-      c.on('data', (d) => this.onData(free, d as NetMsg));
-      c.on('close', () => this.onLinkClosed(free));
-      c.on('error', () => this.onLinkClosed(free));
-      c.send({ type: 'hello', v: this.version } satisfies NetMsg);
+  private markRegistered(): void {
+    this.registered = true;
+    window.clearTimeout(this.timeout);
+    if (this.status === 'connecting') this.status = 'open';
+    this.startPing();
+  }
+
+  /** 房主在所有中繼 broker 上等待加入者 */
+  private listenRelay(): void {
+    this.relayStarted = true;
+    const topic = `${TOPIC_BASE}/${this.code}/r`;
+    RELAY_BROKERS.forEach((url, i) => {
+      const hub = new RelayHub(url, `bkh${i}-${this.myId}`, topic, 'h');
+      hub
+        .connect((payload) => this.onRelayHost(hub, payload))
+        .then(() => {
+          this.hubs.push(hub);
+          // PeerJS 連不上時也能只靠中繼開房
+          if (!this.registered) this.markRegistered();
+        })
+        .catch(() => undefined);
     });
   }
 
+  private parseRelay(payload: string): { f: string; b: RelayItem[] } | null {
+    try {
+      const d = JSON.parse(payload);
+      return d && typeof d.f === 'string' && Array.isArray(d.b) ? d : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private onRelayHost(hub: RelayHub, payload: string): void {
+    const env = this.parseRelay(payload);
+    if (!env || env.f === 'h') return;
+    // 給房主的訊息，加上加入者附帶的備援按鍵封包（收件者為 '*'）
+    const mine = env.b.filter((it) => it.to === 'h' || (it.to === '*' && it.m.type === 'in')).map((it) => it.m);
+    if (!mine.length) return;
+    let slot = this.relaySlots.get(env.f);
+    if (slot === undefined || !this.links.has(slot)) {
+      if (!mine.some((m) => m.type === 'hello')) return;
+      const s = this.admit(new RelayChannel(hub, env.f));
+      if (s === null) return;
+      slot = s;
+      this.relaySlots.set(env.f, s);
+    }
+    const link = this.links.get(slot);
+    if (link) link.lastSeen = performance.now();
+    for (const m of mine) this.onData(slot, m);
+  }
+
+  private acceptP2P(c: DataConnection): void {
+    c.on('open', () => {
+      const ch = p2pChannel(c);
+      const slot = this.admit(ch);
+      if (slot === null) return;
+      c.on('data', (d) => {
+        const l = this.links.get(slot);
+        if (l) l.lastSeen = performance.now();
+        this.onData(slot, d as NetMsg);
+      });
+      c.on('close', () => this.onLinkClosed(slot));
+      c.on('error', () => this.onLinkClosed(slot));
+    });
+  }
+
+  /** 收一位新加入者：分配欄位並打招呼；房間滿或比賽中則拒絕 */
+  private admit(ch: Channel): number | null {
+    const free = [1, 2, 3].find((s) => !this.links.has(s));
+    if (this.inMatch || free === undefined) {
+      ch.send({ type: 'reject', reason: this.inMatch ? '房間正在比賽中，請等這場結束再加入。' : '房間已滿（最多 4 人）。' });
+      setTimeout(() => ch.close(), 300);
+      return null;
+    }
+    this.links.set(free, { conn: ch, rtt: 0, verified: false, lastSeen: performance.now() });
+    ch.send({ type: 'hello', v: this.version });
+    return free;
+  }
+
+  // ---------------- 加入者 ----------------
   private openGuest(): void {
     const peer = new Peer(PEER_OPTIONS);
     this.peer = peer;
-    this.timeout = window.setTimeout(() => {
-      if (this.status === 'connecting')
-        this.fail('連線逾時：找得到房間但無法建立點對點連線，可能是網路防火牆擋住。請換網路（例如手機熱點）再試。');
-    }, CONNECT_TIMEOUT);
+    let conn: DataConnection | null = null;
+    const giveUpP2P = () => {
+      if (this.relayStarted) return;
+      conn?.close();
+      this.startRelayJoin();
+    };
+    const grace = window.setTimeout(() => {
+      if (this.status === 'connecting') giveUpP2P();
+    }, P2P_GRACE);
     peer.on('open', () => {
       const c = peer.connect(ID_PREFIX + this.code, { reliable: true, serialization: 'json' });
-      this.links.set(0, { conn: c, rtt: 0, verified: false });
+      conn = c;
       c.on('open', () => {
+        if (this.relayStarted) {
+          c.close();
+          return;
+        }
+        window.clearTimeout(grace);
+        this.links.set(0, { conn: p2pChannel(c), rtt: 0, verified: false, lastSeen: performance.now() });
         c.send({ type: 'hello', v: this.version } satisfies NetMsg);
         this.startPing();
       });
-      c.on('data', (d) => this.onData(0, d as NetMsg));
-      c.on('close', () => this.onLinkClosed(0));
-      c.on('error', () => this.onLinkClosed(0));
+      c.on('data', (d) => {
+        if (this.links.get(0)?.conn.kind !== 'p2p') return;
+        this.links.get(0)!.lastSeen = performance.now();
+        this.onData(0, d as NetMsg);
+      });
+      c.on('close', () => this.links.get(0)?.conn.kind === 'p2p' && this.onLinkClosed(0));
+      c.on('error', () => this.links.get(0)?.conn.kind === 'p2p' && this.onLinkClosed(0));
       c.on('iceStateChanged', (state: RTCIceConnectionState) => {
-        if (state === 'failed' && this.status === 'connecting')
-          this.fail('無法建立點對點連線（網路防火牆或 NAT 限制）。請換網路（例如手機熱點）再試。');
+        if (state === 'failed' && this.status === 'connecting') giveUpP2P();
       });
     });
-    peer.on('error', (err: { type?: string; message?: string }) => this.fail(describeError(err)));
+    peer.on('error', (err: { type?: string; message?: string }) => {
+      if (this.status !== 'connecting') return;
+      if (err.type === 'peer-unavailable') this.roomMissing = true;
+      if (err.type === 'browser-incompatible') {
+        this.fail(describeError(err));
+        return;
+      }
+      // 房間在 PeerJS 上找不到、或 PeerJS 連不上：仍嘗試中繼（房主可能只靠中繼開房）
+      window.clearTimeout(grace);
+      giveUpP2P();
+    });
+  }
+
+  /** 加入者改走中繼：優先用延遲最低的 broker */
+  private startRelayJoin(): void {
+    if (this.relayStarted) return;
+    this.relayStarted = true;
+    const topic = `${TOPIC_BASE}/${this.code}/r`;
+    const hubs = RELAY_BROKERS.map((url, i) => new RelayHub(url, `bkg${i}-${this.myId}`, topic, this.myId));
+    const attempts = hubs.map((hub) => hub.connect((payload) => this.onRelayGuest(payload)));
+    // 優先用第一個 broker（最多等 2.5 秒），連不上才用其他最先連上的
+    const preferred = Promise.race([attempts[0], new Promise<never>((_, rej) => window.setTimeout(() => rej(new Error('slow')), 2500))]);
+    preferred
+      .catch(() => Promise.any(attempts))
+      .then((hub) => {
+        this.hubs.push(hub);
+        hubs.forEach((h, i) => h !== hub && attempts[i].then(() => h.close()).catch(() => h.close()));
+        const ch = new RelayChannel(hub, 'h');
+        this.links.set(0, { conn: ch, rtt: 0, verified: false, lastSeen: performance.now() });
+        // 訂閱生效需要一點時間；打招呼重送幾次直到房主回應
+        const greet = () => {
+          if (this.status === 'connecting' && this.links.get(0)?.conn === ch) ch.send({ type: 'hello', v: this.version });
+        };
+        greet();
+        [800, 2000, 4000, 7000].forEach((ms) => window.setTimeout(greet, ms));
+        this.startPing();
+      })
+      .catch(() => {
+        if (this.status === 'connecting') this.fail('直連失敗，中繼伺服器也連不上。請檢查網路，或換個網路（例如手機熱點）再試。');
+      });
+  }
+
+  private onRelayGuest(payload: string): void {
+    const env = this.parseRelay(payload);
+    if (!env || env.f === this.myId) return;
+    const link = this.links.get(0);
+    if (!link || link.conn.kind !== 'relay') return;
+    if (env.f === 'h') {
+      link.lastSeen = performance.now();
+      for (const it of env.b) if (it.to === this.myId || it.to === '*') this.onData(0, it.m);
+    } else {
+      // 其他中繼加入者的按鍵：同一個 broker 上直接收到，不必等房主轉送
+      for (const it of env.b) if (it.m.type === 'in' && it.m.s !== this.mySlot) this.routeEpoch(it.m);
+    }
   }
 
   private startPing(): void {
@@ -260,20 +566,22 @@ export class NetSession {
     switch (m.type) {
       case 'hello':
         if (m.v !== this.version) {
-          if (this.role === 'guest') this.fail('你和房主的遊戲版本不同。請兩人都重新整理網頁（手機請關掉分頁重開）後再試。');
+          const why = '你和房主的遊戲版本不同。請兩人都重新整理網頁（手機請關掉分頁重開）後再試。';
+          if (this.role === 'guest') this.fail(why);
           else {
-            link.conn.send({ type: 'reject', reason: '你和房主的遊戲版本不同。請兩人都重新整理網頁（手機請關掉分頁重開）後再試。' } satisfies NetMsg);
+            link.conn.send({ type: 'reject', reason: why });
             setTimeout(() => link.conn.close(), 300);
           }
           return;
         }
         if (this.role === 'host' && !link.verified) {
           link.verified = true;
-          link.conn.send({ type: 'welcome', slot: from } satisfies NetMsg);
+          link.conn.send({ type: 'welcome', slot: from });
           this.inbox.push({ from, msg: { type: 'peer-join', slot: from } });
         }
         return;
       case 'welcome':
+        if (link.verified) return; // 中繼重送的招呼可能讓房主回多次
         link.verified = true;
         this.mySlot = m.slot;
         this.status = 'open';
@@ -283,7 +591,7 @@ export class NetSession {
         this.fail(m.reason);
         return;
       case 'ping':
-        link.conn.send({ type: 'pong', ts: m.ts } satisfies NetMsg);
+        link.conn.send({ type: 'pong', ts: m.ts });
         return;
       case 'pong': {
         const r = performance.now() - m.ts;
@@ -334,13 +642,21 @@ export class NetSession {
 
   /** 房主把某位加入者的訊息轉送給其他加入者 */
   private relay(from: number, m: NetMsg): void {
-    for (const [slot, l] of this.links) if (slot !== from && l.verified && l.conn.open) l.conn.send(m);
+    const src = this.links.get(from)?.conn;
+    for (const [slot, l] of this.links) {
+      if (slot === from || !l.verified || !l.conn.open) continue;
+      // 同一個 broker 上的中繼加入者已經直接收到了，不必重送
+      if (m.type === 'in' && src instanceof RelayChannel && l.conn instanceof RelayChannel && src.hub === l.conn.hub) continue;
+      l.conn.send(m);
+    }
   }
 
   private onLinkClosed(slot: number): void {
     const link = this.links.get(slot);
     if (!link) return;
     this.links.delete(slot);
+    for (const [id, s] of this.relaySlots) if (s === slot) this.relaySlots.delete(id);
+    link.conn.close();
     if (this.role === 'guest') {
       if (this.status !== 'error') this.status = 'closed';
       window.clearInterval(this.pingTimer);
@@ -376,11 +692,25 @@ export class NetSession {
     for (const s of dropped) this.lockstep!.drop(s, 0);
   }
 
-  /** 依目前延遲決定輸入延遲 tick 數（房主決定，大家共用） */
+  /**
+   * 依目前延遲決定輸入延遲 tick 數（房主決定，大家共用）。
+   * 星狀拓撲最慢的路徑是「最慢的兩位加入者」經房主互傳：單程 ≈ (rtt1 + rtt2) / 2。中繼延遲較高，上限放寬。
+   */
   suggestDelay(): number {
-    const oneWayTicks = this.rtt / 2 / (1000 / 60);
-    // 經房主轉送的玩家要走兩段，因此多留一些
-    return Math.max(3, Math.min(14, Math.ceil(oneWayTicks * (this.role === 'host' ? 2 : 1)) + 2));
+    const live = [...this.links.values()].filter((l) => l.verified);
+    let path = 0;
+    for (let i = 0; i < live.length; i++) {
+      path = Math.max(path, live[i].rtt / 2); // 房主 ↔ 加入者
+      for (let j = i + 1; j < live.length; j++) {
+        const a = live[i];
+        const b = live[j];
+        const sameBroker = a.conn instanceof RelayChannel && b.conn instanceof RelayChannel && a.conn.hub === b.conn.hub;
+        // 同一個 broker 的中繼加入者走全房間主題直達；其餘經房主轉送
+        path = Math.max(path, sameBroker ? Math.max(a.rtt, b.rtt) / 2 : (a.rtt + b.rtt) / 2);
+      }
+    }
+    const relay = live.some((l) => l.conn.kind === 'relay');
+    return Math.max(3, Math.min(relay ? 30 : 14, Math.ceil(path / (1000 / 60)) + 2));
   }
 
   sendInput(pkt: InputPacket): void {
@@ -407,11 +737,13 @@ export class NetSession {
   close(): void {
     this.broadcast({ type: 'bye' });
     window.clearInterval(this.pingTimer);
+    window.clearInterval(this.watchTimer);
     this.status = 'closed';
     setTimeout(() => {
       for (const l of this.links.values()) l.conn.close();
       this.peer?.destroy();
-    }, 100);
+      for (const h of this.hubs) h.close();
+    }, 150);
   }
 }
 

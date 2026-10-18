@@ -5,7 +5,7 @@ import { SLOT_COLORS } from '../render/battle';
 import { drawFigure, roundRect, shade } from '../render/character';
 import { getPose } from '../render/poses';
 import { text } from '../render/text';
-import { CODE_LENGTH, MAX_SLOTS, NetSession, isValidCodeChar, shareUrl, type LobbySlot } from '../net/session';
+import { CODE_LENGTH, MAX_SLOTS, NetSession, isValidCodeChar, shareUrl, type LobbySlot, type Step } from '../net/session';
 import { emptySnapshot, type Snapshot } from '../sim/snapshot';
 import type { MatchSetup } from '../sim/world';
 import { BattleScene } from './battle';
@@ -163,13 +163,24 @@ export class JoinScene extends Scene {
       text(ctx, '手機 / 平板：點一下畫面輸入代碼', VW / 2, 286, 13, '#cbd5e1', 'center', false);
     } else if (n.status === 'error' || n.status === 'closed') {
       text(ctx, n.error || '連線已中斷', VW / 2, 260, 15, '#ff8a8a', 'center');
-      text(ctx, '按 Enter 重新輸入', VW / 2, 290, 14, '#fff', 'center', false);
+      text(ctx, '按 Enter 重新輸入（手機：點一下畫面）', VW / 2, 290, 14, '#fff', 'center', false);
+      this.renderDiag(ctx, n);
     } else {
       const dots = '.'.repeat(1 + ((this.t >> 4) % 3));
       text(ctx, `連線中${dots}`, VW / 2, 270, 20, '#ffd23f', 'center');
       if (this.t > 360) text(ctx, '直連較慢，正在改用中繼伺服器…', VW / 2, 298, 13, '#cbd5e1', 'center', false);
+      this.renderDiag(ctx, n);
     }
     hint(ctx, 'Esc 返回');
+  }
+
+  /** 各連線步驟的狀態：連不上時看得出卡在哪一步 */
+  private renderDiag(ctx: CanvasRenderingContext2D, n: NetSession): void {
+    const d = n.diag;
+    const mark = (s: Step) => (s === 'ok' ? '✓' : s === 'fail' ? '✗' : s === 'skip' ? '略過' : '…');
+    const relay = d.relay ? `${d.relay} 個 ✓` : d.relayFail ? '✗' : '…';
+    const line = `配對伺服器 ${mark(d.peer)}　·　直連 ${mark(d.p2p)}　·　中繼伺服器 ${relay}　·　房主回應 ${d.host ? '✓' : '…'}`;
+    text(ctx, line, VW / 2, 330, 12, '#94a3b8', 'center', false);
   }
 }
 
@@ -416,7 +427,8 @@ export class OnlineSelectScene extends Scene {
     const n = this.net;
     text(ctx, '連線選角', VW / 2, 28, 22, '#ffd23f', 'center', true, true);
     const ping = n.role === 'host' ? `最慢延遲 ${Math.round(n.rtt)} ms` : `延遲 ${Math.round(n.rtt)} ms`;
-    text(ctx, `房間 ${n.code}　·　${n.transportLabel()}　·　${ping}　·　分享：${shareUrl(n.code)}`, VW / 2, 46, 11, '#cbd5e1', 'center', false);
+    const relay = this.isHost ? `　·　中繼伺服器 ${n.relayUp()}` : '';
+    text(ctx, `房間 ${n.code}　·　${n.transportLabel()}${relay}　·　${ping}　·　分享：${shareUrl(n.code)}`, VW / 2, 46, 11, '#cbd5e1', 'center', false);
     const ids = this.app.data.selectable;
     const o = onlineOptions(this.app)[this.opt];
     for (let i = 0; i < MAX_SLOTS; i++) {
@@ -470,7 +482,8 @@ export class OnlineSelectScene extends Scene {
     else if (this.isHost && this.me.ready) h1 = '已確定：← / → 設定電腦　攻擊 複製分享連結　防禦 取消';
     else h1 = '←→ 選角　↑↓ 選隊伍　跳躍 確定　防禦 取消' + (this.isHost ? '　攻擊 切換模式' : '');
     text(ctx, h1, VW / 2, 404, 12, n.status !== 'open' || n.reconnecting || lost.length || this.warn > 0 ? '#ff8a8a' : '#fff', 'center', false);
-    hint(ctx, '所有玩家都確定後由房主開始　·　Esc 離開連線');
+    if (this.isHost && n.guestSlots().length === 0) hint(ctx, '分享連結後請回到這個畫面等朋友加入（停在別的 App 時朋友連不進來）　·　Esc 離開連線');
+    else hint(ctx, '所有玩家都確定後由房主開始　·　Esc 離開連線');
   }
 }
 

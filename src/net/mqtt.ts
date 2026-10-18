@@ -45,6 +45,8 @@ export class MiniMqtt {
   private pid = 1;
   private pingTimer = 0;
   private closed = false;
+  /** 最後一次收到 broker 任何封包的時間（用來偵測手機背景後「看似連著、其實已死」的連線） */
+  lastRx = performance.now();
   readonly ready: Promise<void>;
   onClose: (() => void) | null = null;
 
@@ -116,6 +118,7 @@ export class MiniMqtt {
 
   /** 解析資料流：一個 WebSocket 訊息可能含多個或半個 MQTT 封包 */
   private onBytes(chunk: Uint8Array, onConnack: () => void): void {
+    this.lastRx = performance.now();
     const merged = new Uint8Array(this.buf.length + chunk.length);
     merged.set(this.buf);
     merged.set(chunk, this.buf.length);

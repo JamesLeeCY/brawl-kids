@@ -20,7 +20,7 @@ export interface LobbySlot {
 
 export type NetMsg =
   /** 加入者打招呼；id 用來在斷線重連時認回原本的欄位，e / have 告訴房主自己收到哪裡 */
-  | { type: 'hello'; v: string; id?: string; e?: number; have?: number[] }
+  | { type: 'hello'; v: string; id?: string; e?: number; have?: number[]; r?: boolean }
   /** 房主回應；重連時附上房主收到這位加入者的最後 tick，讓對方補送 */
   | { type: 'welcome'; slot: number; e?: number; have?: number }
   | { type: 'reject'; reason: string; stale?: boolean }
@@ -48,6 +48,20 @@ export interface Inbound {
 }
 
 export type NetStatus = 'connecting' | 'waiting' | 'open' | 'closed' | 'error';
+
+/** 連線各步驟的狀態（加入畫面顯示，方便判斷卡在哪一步） */
+export type Step = 'wait' | 'ok' | 'fail' | 'skip';
+export interface JoinDiag {
+  /** PeerJS 配對伺服器 */
+  peer: Step;
+  /** 點對點直連 */
+  p2p: Step;
+  /** 已連上的中繼伺服器數 / 失敗數 */
+  relay: number;
+  relayFail: number;
+  /** 收到房主的回應 */
+  host: boolean;
+}
 export type LinkKind = 'p2p' | 'relay';
 
 const ID_PREFIX = 'brawlkids-tw-';
@@ -157,6 +171,9 @@ class RelayHub {
   private timer = 0;
   private closed = false;
   private backoff = 1000;
+  private reopenTimer = 0;
+  private lastPublish = 0;
+  private watch = 0;
 
   constructor(
     readonly url: string,
@@ -172,15 +189,35 @@ class RelayHub {
   /** 連線並訂閱房間主題；之後若被 broker 斷線會自動重連 */
   connect(onMessage: (payload: string) => void): Promise<RelayHub> {
     this.handler = onMessage;
+    // 自己發出的訊息也會從房間主題收回來：有在發卻好幾秒都沒收到任何東西 = 連線已死（手機背景常見），強制重連
+    window.clearInterval(this.watch);
+    this.watch = window.setInterval(() => {
+      const mq = this.mq;
+      const now = performance.now();
+      if (!mq?.connected) return;
+      // 有在發卻收不到；或閒置時連每 20 秒一次的心跳回應都沒有
+      if ((now - this.lastPublish < 6000 && now - mq.lastRx > 6000) || now - mq.lastRx > 45000) mq.close();
+    }, 2000);
     return this.open().then(() => this);
   }
 
+  /** 回到前景時呼叫：若已斷線就立刻重連，不等退避時間 */
+  revive(): void {
+    if (this.closed || this.mq?.connected || !this.handler) return;
+    window.clearTimeout(this.reopenTimer);
+    this.backoff = 1000;
+    this.open().catch(() => undefined);
+  }
+
   private open(): Promise<void> {
+    window.clearTimeout(this.reopenTimer);
+    const old = this.mq;
     const mq = new MiniMqtt(this.url, `${this.clientId}-${Math.floor(Math.random() * 1e6)}`);
     this.mq = mq;
+    old?.close();
     mq.onClose = () => {
       if (this.closed || this.mq !== mq) return;
-      window.setTimeout(() => {
+      this.reopenTimer = window.setTimeout(() => {
         if (this.closed) return;
         this.open().catch(() => undefined);
       }, this.backoff);
@@ -212,12 +249,15 @@ class RelayHub {
     if (!this.out.length || !this.mq?.connected) return;
     const extra = this.recent.filter((r) => !this.out.some((o) => o.m === r.m));
     this.mq.publish(this.topic, JSON.stringify({ f: this.myId, b: [...extra, ...this.out] }));
+    this.lastPublish = performance.now();
     this.out = [];
   }
 
   close(): void {
     this.flush();
     this.closed = true;
+    window.clearInterval(this.watch);
+    window.clearTimeout(this.reopenTimer);
     this.mq?.close();
   }
 }
@@ -284,7 +324,10 @@ export class NetSession {
   reconnecting = false;
   private reconnectTimer = 0;
   private reconnectRelay = false;
-  private hubPromise: Promise<RelayHub> | null = null;
+  /** 房主：最近一次認回某欄位的時間（同一批重連招呼可能從多個 broker 進來，只採用第一個） */
+  private resumedAt = new Map<number, number>();
+  /** 加入者的連線步驟（畫面顯示用） */
+  diag: JoinDiag = { peer: 'wait', p2p: 'wait', relay: 0, relayFail: 0, host: false };
   /** 各段比賽的按鍵 / 斷線紀錄（重連時補送） */
   private inLog = new Map<number, Map<string, NetMsg>>();
   /** 房主最近一次送出的開賽訊息（重連的加入者若錯過可補送） */
@@ -303,6 +346,10 @@ export class NetSession {
     // （進入 bfcache 的 persisted 情況可能還會回來，不算離開）
     window.addEventListener('pagehide', (e) => {
       if (this.status !== 'closed' && !e.persisted) this.broadcast({ type: 'bye' });
+    });
+    // 手機從背景回來：中繼連線可能已被系統關掉，立刻重連
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') for (const h of this.hubs) h.revive();
     });
     // 一段時間沒收到訊息就視為斷線（中繼沒有底層斷線事件；手機切換網路時直連也常默默中斷）
     this.watchTimer = window.setInterval(() => {
@@ -329,7 +376,10 @@ export class NetSession {
   static join(code: string, version: string): NetSession {
     const s = new NetSession('guest', version);
     s.code = code.toUpperCase();
-    if (forceRelay()) s.startRelayJoin();
+    if (forceRelay()) {
+      s.diag.peer = s.diag.p2p = 'skip';
+      s.startRelayJoin();
+    }
     else s.openGuest();
     s.timeout = window.setTimeout(() => {
       if (s.status !== 'connecting') return;
@@ -357,6 +407,11 @@ export class NetSession {
   /** 連線方式：加入者看與房主的通道；房主看是否有人走中繼 */
   linkKind(slot = 0): LinkKind | null {
     return this.links.get(slot)?.conn.kind ?? null;
+  }
+
+  /** 房主：目前連上的中繼伺服器數 */
+  relayUp(): string {
+    return `${this.hubs.filter((h) => h.connected).length}/${RELAY_BROKERS.length}`;
   }
 
   transportLabel(): string {
@@ -429,14 +484,24 @@ export class NetSession {
     const topic = `${TOPIC_BASE}/${this.code}/r`;
     RELAY_BROKERS.forEach((url, i) => {
       const hub = new RelayHub(url, `bkh${i}-${this.myId}`, topic, 'h');
-      hub
-        .connect((payload) => this.onRelayHost(hub, payload))
-        .then(() => {
-          this.hubs.push(hub);
-          // PeerJS 連不上時也能只靠中繼開房
+      this.hubs.push(hub);
+      // 連不上的 broker 每 5 秒再試，房主在越多 broker 上等，加入者越容易找到
+      const attempt = () => {
+        if (this.status === 'closed') return;
+        if (hub.connected) {
+          // 已經自動重連成功
           if (!this.registered) this.markRegistered();
-        })
-        .catch(() => undefined);
+          return;
+        }
+        hub
+          .connect((payload) => this.onRelayHost(hub, payload))
+          .then(() => {
+            // PeerJS 連不上時也能只靠中繼開房
+            if (!this.registered) this.markRegistered();
+          })
+          .catch(() => window.setTimeout(attempt, 5000));
+      };
+      attempt();
     });
   }
 
@@ -522,6 +587,11 @@ export class NetSession {
     const id = m.id ?? fallbackId;
     const known = id === undefined ? undefined : this.guestIds.get(id);
     if (known !== undefined && (this.links.has(known) || this.lost.has(known))) {
+      const live = this.links.get(known);
+      const now = performance.now();
+      // 加入者同時在多個 broker 打招呼：已連著就忽略其他 broker 的重複招呼；重連時只採用最先到的那個
+      if (live && live.conn !== ch && (!m.r || now - (this.resumedAt.get(known) ?? -1e9) < 3000)) return;
+      this.resumedAt.set(known, now);
       this.resume(known, ch, m);
       return;
     }
@@ -567,7 +637,7 @@ export class NetSession {
   private helloMsg(): NetMsg {
     const ls = this.lockstep;
     const have = ls ? ls.nextNeeded() - 1 : -1;
-    return { type: 'hello', v: this.version, id: this.myId, e: this.epoch, have: [have, have, have, have] };
+    return { type: 'hello', v: this.version, id: this.myId, e: this.epoch, have: [have, have, have, have], r: this.reconnecting || undefined };
   }
 
   private openGuest(): void {
@@ -576,6 +646,7 @@ export class NetSession {
     let conn: DataConnection | null = null;
     const giveUpP2P = () => {
       if (this.relayStarted) return;
+      if (this.diag.p2p === 'wait') this.diag.p2p = 'fail';
       conn?.close();
       this.startRelayJoin();
     };
@@ -583,10 +654,14 @@ export class NetSession {
       if (this.status === 'connecting') giveUpP2P();
     }, P2P_GRACE);
     peer.on('open', () => {
+      this.diag.peer = 'ok';
       if (conn) return; // 與配對伺服器重連時也會觸發
       const c = peer.connect(ID_PREFIX + this.code, { reliable: true, serialization: 'json' });
       conn = c;
-      c.on('open', () => window.clearTimeout(grace));
+      c.on('open', () => {
+        window.clearTimeout(grace);
+        if (!this.relayStarted) this.diag.p2p = 'ok';
+      });
       this.wireGuestP2P(c, giveUpP2P);
       c.on('iceStateChanged', (state: RTCIceConnectionState) => {
         if (state === 'failed' && this.status === 'connecting') giveUpP2P();
@@ -595,10 +670,8 @@ export class NetSession {
     peer.on('error', (err: { type?: string; message?: string }) => {
       if (this.status !== 'connecting') return;
       if (err.type === 'peer-unavailable') this.roomMissing = true;
-      if (err.type === 'browser-incompatible') {
-        this.fail(describeError(err));
-        return;
-      }
+      // 配對伺服器有回應（只是找不到房間）算連得上；其他錯誤（含瀏覽器不支援直連，例如部分 App 內建瀏覽器）改走中繼
+      this.diag.peer = err.type === 'peer-unavailable' ? 'ok' : 'fail';
       // 房間在 PeerJS 上找不到、或 PeerJS 連不上：仍嘗試中繼（房主可能只靠中繼開房）
       window.clearTimeout(grace);
       giveUpP2P();
@@ -642,51 +715,56 @@ export class NetSession {
     c.on('error', closed);
   }
 
-  /** 連上一個中繼 broker（優先第一個，最多等 2.5 秒；連不上才用其他最先連上的）；只建立一次 */
-  private connectRelayHub(): Promise<RelayHub> {
-    if (this.hubPromise) return this.hubPromise;
+  /**
+   * 加入者同時連上所有中繼 broker，並在每一個上打招呼：房主可能只連得上其中幾個，
+   * 先收到房主回覆的那個 broker 就是之後使用的通道。斷掉的 broker 會自動重連。
+   */
+  private startGuestRelay(): void {
     const topic = `${TOPIC_BASE}/${this.code}/r`;
-    const hubs = RELAY_BROKERS.map((url, i) => new RelayHub(url, `bkg${i}-${this.myId}`, topic, this.myId));
-    const attempts = hubs.map((hub) => hub.connect((payload) => this.onRelayGuest(payload)));
-    const preferred = Promise.race([attempts[0], new Promise<never>((_, rej) => window.setTimeout(() => rej(new Error('slow')), 2500))]);
-    this.hubPromise = preferred
-      .catch(() => Promise.any(attempts))
-      .then((hub) => {
-        this.hubs.push(hub);
-        hubs.forEach((h, i) => h !== hub && attempts[i].then(() => h.close()).catch(() => h.close()));
-        return hub;
-      });
-    this.hubPromise.catch(() => {
-      this.hubPromise = null; // 下次可再試
+    const have = new Set(this.hubs.map((h) => h.url));
+    RELAY_BROKERS.forEach((url, i) => {
+      if (have.has(url)) return;
+      const hub = new RelayHub(url, `bkg${i}-${this.myId}`, topic, this.myId);
+      this.hubs.push(hub);
+      hub
+        .connect((payload) => this.onRelayGuest(hub, payload))
+        .then(() => {
+          this.diag.relay++;
+          this.greetAll();
+        })
+        .catch(() => {
+          // 已選定通道後被主動關掉的 broker 不算失敗
+          if (!this.hubs.includes(hub)) return;
+          this.diag.relayFail++;
+          this.hubs = this.hubs.filter((h) => h !== hub);
+          hub.close();
+          if (this.hubs.length) return;
+          if (this.reconnecting) window.setTimeout(() => this.reconnecting && this.startGuestRelay(), 3000);
+          else if (this.status === 'connecting' && this.diag.p2p !== 'ok')
+            this.fail('直連失敗，中繼伺服器也全部連不上。可能是網路擋住了，請換個網路（例如手機熱點）再試。');
+        });
     });
-    return this.hubPromise;
+    [800, 2000, 4000, 7000, 11000, 16000, 22000].forEach((ms) => window.setTimeout(() => this.greetAll(), ms));
   }
 
-  /** 透過中繼打招呼，重送幾次直到房主回應（訂閱生效需要一點時間） */
-  private greetViaRelay(hub: RelayHub): void {
-    const prev = this.links.get(0);
-    const ch = new RelayChannel(hub, 'h');
-    this.links.set(0, { conn: ch, rtt: prev?.rtt ?? 0, verified: false, lastSeen: performance.now() });
-    const greet = () => {
-      const waiting = this.status === 'connecting' || this.reconnecting;
-      if (waiting && this.links.get(0)?.conn === ch) ch.send(this.helloMsg());
-    };
-    greet();
-    [800, 2000, 4000, 7000, 11000, 16000, 22000].forEach((ms) => window.setTimeout(greet, ms));
-    this.startPing();
+  /** 在每個已連上的 broker 向房主打招呼（直到房主回應為止） */
+  private greetAll(): void {
+    if (!(this.status === 'connecting' || this.reconnecting) || this.links.get(0)?.verified) return;
+    const hello = this.helloMsg();
+    for (const h of this.hubs) if (h.connected) h.send('h', hello);
+  }
+
+  /** 已選定通道：關掉其他 broker（各自都會收到整個房間的訊息，留著浪費流量） */
+  private pruneHubs(keep: RelayHub | null): void {
+    for (const h of this.hubs) if (h !== keep) h.close();
+    this.hubs = keep ? [keep] : [];
   }
 
   /** 加入者改走中繼 */
   private startRelayJoin(): void {
     if (this.relayStarted) return;
     this.relayStarted = true;
-    this.connectRelayHub()
-      .then((hub) => {
-        if (this.status === 'connecting') this.greetViaRelay(hub);
-      })
-      .catch(() => {
-        if (this.status === 'connecting') this.fail('直連失敗，中繼伺服器也連不上。請檢查網路，或換個網路（例如手機熱點）再試。');
-      });
+    this.startGuestRelay();
   }
 
   /**
@@ -718,24 +796,33 @@ export class NetSession {
     const viaRelay = () => {
       if (!this.reconnecting) return;
       this.reconnectRelay = true;
-      this.connectRelayHub()
-        .then((hub) => {
-          if (this.reconnecting) this.greetViaRelay(hub);
-        })
-        .catch(() => window.setTimeout(viaRelay, 3000));
+      this.startGuestRelay();
+      this.greetAll();
     };
     window.setTimeout(viaRelay, peer && !forceRelay() ? 4000 : 0);
   }
 
-  private onRelayGuest(payload: string): void {
+  private onRelayGuest(hub: RelayHub, payload: string): void {
     const env = this.parseRelay(payload);
     if (!env || env.f === this.myId) return;
-    const link = this.links.get(0);
-    if (!link || link.conn.kind !== 'relay') return;
+    let link = this.links.get(0);
+    const onThisHub = link?.conn instanceof RelayChannel && link.conn.hub === hub;
     if (env.f === 'h') {
-      link.lastSeen = performance.now();
-      for (const it of env.b) if (it.to === this.myId || it.to === '*') this.onData(0, it.m);
-    } else {
+      const items = env.b.filter((it) => it.to === this.myId || it.to === '*');
+      if (!items.length) return;
+      if (!onThisHub) {
+        // 還沒有通道（或直連還沒成功）時，房主第一個「回覆給我」的 broker 就成為通道
+        const waiting = this.status === 'connecting' || this.reconnecting;
+        if (!waiting || link?.verified || !items.some((it) => it.to === this.myId)) return;
+        link?.conn.close();
+        link = { conn: new RelayChannel(hub, 'h'), rtt: link?.rtt ?? 0, verified: false, lastSeen: performance.now() };
+        this.links.set(0, link);
+        this.diag.host = true;
+        this.startPing();
+      }
+      link!.lastSeen = performance.now();
+      for (const it of items) this.onData(0, it.m);
+    } else if (onThisHub) {
       // 其他中繼加入者的按鍵：同一個 broker 上直接收到，不必等房主轉送
       for (const it of env.b) if (it.m.type === 'in' && it.m.s !== this.mySlot) this.routeEpoch(it.m);
     }
@@ -764,7 +851,9 @@ export class NetSession {
         link.verified = true;
         this.mySlot = m.slot;
         this.status = 'open';
+        this.diag.host = true;
         window.clearTimeout(this.timeout);
+        if (this.role === 'guest') this.pruneHubs(link.conn instanceof RelayChannel ? link.conn.hub : null);
         if (this.reconnecting) {
           this.reconnecting = false;
           window.clearTimeout(this.reconnectTimer);

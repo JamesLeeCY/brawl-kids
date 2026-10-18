@@ -1,0 +1,56 @@
+{
+  "frames": {
+    "punch_1": { "duration": 3, "pose": "punch_ready", "next": "punch_1_hit", "sound": "whoosh" },
+    "punch_1_hit": {
+      "duration": 4, "pose": "punch_extend", "next": "punch_1_rec", "onA": "punch_2",
+      "itr": [{ "x": 6, "y": 34, "w": 26, "h": 16, "damage": 20, "fall": 15, "dvx": 1.5, "hitstop": 4 }]
+    },
+    "punch_1_rec": { "duration": 10, "pose": "punch_ready", "onA": "punch_2" },
+
+    "punch_2": { "duration": 3, "pose": "punch_ready2", "next": "punch_2_hit", "sound": "whoosh" },
+    "punch_2_hit": {
+      "duration": 4, "pose": "punch2_extend", "next": "punch_2_rec", "onA": "punch_3",
+      "itr": [{ "x": 6, "y": 34, "w": 26, "h": 16, "damage": 22, "fall": 15, "dvx": 1.5, "hitstop": 4 }]
+    },
+    "punch_2_rec": { "duration": 10, "pose": "punch_ready2", "onA": "punch_3" },
+
+    "punch_3": { "duration": 5, "pose": "kick_ready", "next": "punch_3_hit", "sound": "whoosh" },
+    "punch_3_hit": {
+      "duration": 6, "pose": "kick", "next": "punch_3_rec",
+      "itr": [{ "x": 4, "y": 16, "w": 32, "h": 24, "damage": 30, "fall": 60, "dvx": 4, "dvy": 6, "hitstop": 6 }]
+    },
+    "punch_3_rec": { "duration": 12, "pose": "kick_ready" },
+
+    "run_attack": { "duration": 4, "pose": "run_attack", "next": "run_attack_hit", "friction": 0.97, "sound": "whoosh" },
+    "run_attack_hit": {
+      "duration": 10, "pose": "run_attack", "next": "run_attack_rec", "friction": 0.95,
+      "itr": [{ "x": 0, "y": 18, "w": 30, "h": 34, "damage": 35, "fall": 75, "dvx": 5, "dvy": 5, "hitstop": 6 }]
+    },
+    "run_attack_rec": { "duration": 10, "pose": "punch_ready", "friction": 0.8 },
+
+    "jump_attack": { "duration": 3, "pose": "kick_ready", "next": "jump_attack_hit", "sound": "whoosh" },
+    "jump_attack_hit": {
+      "duration": 14, "pose": "flykick", "next": "idle",
+      "itr": [{ "x": 2, "y": 8, "w": 30, "h": 26, "damage": 30, "fall": 75, "dvx": 4, "dvy": 5, "hitstop": 6 }]
+    },
+
+    "swing": { "duration": 5, "pose": "swing_ready", "next": "swing_hit", "sound": "whoosh" },
+    "swing_hit": {
+      "duration": 6, "pose": "swing", "next": "swing_rec",
+      "itr": [{ "x": 4, "y": 20, "w": 40, "h": 40, "damage": 35, "fall": 30, "dvx": 3, "hitstop": 5 }]
+    },
+    "swing_rec": { "duration": 10, "pose": "swing" },
+
+    "swing_light": { "duration": 4, "pose": "swing_ready", "next": "swing_light_hit", "sound": "whoosh" },
+    "swing_light_hit": {
+      "duration": 5, "pose": "swing", "next": "swing_light_rec",
+      "itr": [{ "x": 4, "y": 26, "w": 30, "h": 26, "damage": 24, "fall": 20, "dvx": 2, "hitstop": 4 }]
+    },
+    "swing_light_rec": { "duration": 9, "pose": "swing" },
+
+    "throw": { "duration": 5, "pose": "throw_ready", "next": "throw_release" },
+    "throw_release": { "duration": 10, "pose": "throw", "throwItem": true, "sound": "whoosh" },
+
+    "grab_throw": { "duration": 14, "pose": "throw", "sound": "whoosh" }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "id": "puma",
+  "name": "神伯洋",
+  "title": "黑熊教頭",
+  "accessory": "bear",
+  "quote": "熊熊出擊，收工！",
+  "stats": { "hp": 460, "walkSpeed": 2.8, "runSpeed": 6.2, "jumpPower": 9.5, "weight": 0.9 },
+  "palette": { "skin": "#e8b98f", "main": "#262626", "accent": "#16a34a", "hair": "#111111" },
+  "look": { "hair": "short", "glasses": true },
+  "frames": {
+    "bear_1": { "duration": 8, "pose": "cast_ready", "next": "bear_2", "sound": "special" },
+    "bear_2": {
+      "duration": 14, "pose": "cast", "next": "bear_rec",
+      "spawn": [{ "id": "bear", "x": 26, "y": 34, "vx": 6.5 }]
+    },
+    "bear_rec": { "duration": 10, "pose": "cast" },
+
+    "vortex_1": { "duration": 8, "pose": "cast_ready", "next": "vortex_2", "sound": "special" },
+    "vortex_2": {
+      "duration": 12, "pose": "cast", "next": "vortex_rec",
+      "spawn": [{ "id": "vortex", "x": 40, "y": 30, "vx": 2.2 }]
+    },
+    "vortex_rec": { "duration": 10, "pose": "cast" },
+
+    "guard_1": {
+      "duration": 18, "pose": "cast_up", "sound": "special",
+      "buff": { "type": "blockProjectile", "value": 1, "duration": 240 }
+    }
+  },
+  "moves": [
+    { "command": "D>A", "name": "黑熊出擊", "mp": 75, "startFrame": "bear_1", "role": "ranged" },
+    { "command": "DvA", "name": "反滲透漩渦", "mp": 110, "startFrame": "vortex_1", "role": "burst" },
+    { "command": "D^A", "name": "識讀護盾", "mp": 100, "startFrame": "guard_1", "role": "buff" }
+  ],
+  "projectiles": {
+    "bear": {
+      "life": 70, "size": 16, "hitLimit": 3, "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1, "pose": "bear", "next": "fly",
+          "itr": [{ "x": -12, "y": -14, "w": 24, "h": 28, "damage": 42, "fall": 45, "dvx": 4, "hitstop": 5 }]
+        }
+      }
+    },
+    "vortex": {
+      "life": 120, "size": 22, "pull": 1.6, "pullRadius": 140, "hitLimit": 99, "blockable": false, "startFrame": "spin",
+      "frames": {
+        "spin": {
+          "duration": 1, "pose": "vortex", "next": "spin",
+          "itr": [{ "x": -20, "y": -26, "w": 40, "h": 52, "damage": 8, "fall": 6, "dvx": 0, "hitstop": 2, "rehit": 15, "zRange": 20 }]
+        }
+      }
+    }
+  }
+}

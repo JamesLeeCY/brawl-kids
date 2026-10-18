@@ -1,0 +1,46 @@
+// 設定（按鍵綁定、音量）存在 localStorage；讀寫皆包 try/catch。
+import { DEFAULT_BINDINGS, type Binding } from './input/keyboard';
+import { ACTIONS } from './sim/snapshot';
+
+const KEY = 'brawl-kids.settings.v2';
+
+export interface Settings {
+  bindings: Binding[];
+  masterVolume: number;
+  sfxVolume: number;
+}
+
+export function defaultSettings(): Settings {
+  return { bindings: DEFAULT_BINDINGS.map((b) => ({ ...b })), masterVolume: 0.8, sfxVolume: 0.8 };
+}
+
+export function loadSettings(): Settings {
+  const s = defaultSettings();
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return s;
+    const j = JSON.parse(raw) as Partial<Settings>;
+    if (Array.isArray(j.bindings) && j.bindings.length === s.bindings.length) {
+      j.bindings.forEach((b, i) => {
+        for (const a of ACTIONS) if (typeof b?.[a] === 'string') s.bindings[i][a] = b[a];
+      });
+    }
+    if (typeof j.masterVolume === 'number') s.masterVolume = clamp01(j.masterVolume);
+    if (typeof j.sfxVolume === 'number') s.sfxVolume = clamp01(j.sfxVolume);
+  } catch {
+    /* 無法讀取時使用預設值 */
+  }
+  return s;
+}
+
+export function saveSettings(s: Settings): void {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(s));
+  } catch {
+    /* 私密瀏覽等情況忽略 */
+  }
+}
+
+function clamp01(v: number): number {
+  return Math.max(0, Math.min(1, v));
+}

@@ -1,0 +1,39 @@
+{
+  "id": "guardbot",
+  "name": "保全機器人",
+  "title": "量產型",
+  "selectable": false,
+  "accessory": "robot",
+  "quote": "巡邏完畢。",
+  "stats": { "hp": 150, "walkSpeed": 2.0, "runSpeed": 4.5, "jumpPower": 7.5, "weight": 1.0 },
+  "palette": { "skin": "#9ca3af", "main": "#374151", "accent": "#facc15", "hair": "#6b7280" },
+  "frames": {
+    "punch_1": { "duration": 8, "pose": "punch_ready", "next": "punch_1_hit", "sound": "whoosh" },
+    "punch_1_hit": {
+      "duration": 4, "pose": "punch_extend", "next": "punch_1_rec", "onA": "punch_2",
+      "itr": [{ "x": 6, "y": 34, "w": 24, "h": 16, "damage": 10, "fall": 15, "dvx": 1.5, "hitstop": 4 }]
+    },
+    "punch_1_rec": { "duration": 12, "pose": "punch_ready", "onA": "punch_2" },
+    "punch_2": { "duration": 6, "pose": "punch_ready2", "next": "punch_2_hit", "sound": "whoosh" },
+    "punch_2_hit": {
+      "duration": 4, "pose": "punch2_extend", "next": "punch_2_rec", "onA": "punch_3",
+      "itr": [{ "x": 6, "y": 34, "w": 24, "h": 16, "damage": 10, "fall": 15, "dvx": 1.5, "hitstop": 4 }]
+    },
+    "punch_2_rec": { "duration": 12, "pose": "punch_ready2", "onA": "punch_3" },
+    "punch_3": { "duration": 8, "pose": "kick_ready", "next": "punch_3_hit", "sound": "whoosh" },
+    "punch_3_hit": {
+      "duration": 6, "pose": "kick", "next": "punch_3_rec",
+      "itr": [{ "x": 4, "y": 16, "w": 30, "h": 24, "damage": 16, "fall": 60, "dvx": 4, "dvy": 6, "hitstop": 6 }]
+    },
+    "punch_3_rec": { "duration": 16, "pose": "kick_ready" },
+    "run_attack_hit": {
+      "duration": 10, "pose": "run_attack", "next": "run_attack_rec", "friction": 0.95,
+      "itr": [{ "x": 0, "y": 18, "w": 30, "h": 34, "damage": 18, "fall": 75, "dvx": 5, "dvy": 5, "hitstop": 6 }]
+    },
+    "jump_attack_hit": {
+      "duration": 14, "pose": "flykick", "next": "idle",
+      "itr": [{ "x": 2, "y": 8, "w": 30, "h": 26, "damage": 16, "fall": 75, "dvx": 4, "dvy": 5, "hitstop": 6 }]
+    }
+  },
+  "moves": []
+}

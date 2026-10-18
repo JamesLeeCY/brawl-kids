@@ -1,0 +1,46 @@
+{
+  "id": "jiang",
+  "name": "講萬安",
+  "title": "首都市粘",
+  "accessory": "pin",
+  "quote": "市政會議，到此散會！",
+  "stats": { "hp": 500, "walkSpeed": 2.6, "runSpeed": 5.8, "jumpPower": 9.2, "weight": 1.0 },
+  "palette": { "skin": "#f1c8a0", "main": "#1e3a8a", "accent": "#3b82f6", "hair": "#141414" },
+  "look": { "hair": "sidepart", "glasses": false, "tie": "#60a5fa" },
+  "frames": {
+    "doc_1": { "duration": 4, "pose": "cast_ready", "next": "doc_2", "sound": "special" },
+    "doc_2": { "duration": 6, "pose": "cast", "next": "doc_3", "spawn": [{ "id": "doc", "x": 22, "y": 38, "vx": 8.5 }] },
+    "doc_3": { "duration": 6, "pose": "cast_ready", "next": "doc_4", "spawn": [{ "id": "doc", "x": 22, "y": 38, "vx": 8.5, "dz": -8 }] },
+    "doc_4": { "duration": 6, "pose": "cast", "next": "doc_rec", "spawn": [{ "id": "doc", "x": 22, "y": 38, "vx": 8.5, "dz": 8 }] },
+    "doc_rec": { "duration": 8, "pose": "cast" },
+
+    "metro_1": { "duration": 5, "pose": "crouch", "next": "metro_2", "sound": "special" },
+    "metro_2": {
+      "duration": 16, "pose": "dash", "next": "metro_rec", "friction": 1, "invuln": true,
+      "selfVel": { "vx": 11 },
+      "itr": [{ "x": -4, "y": 10, "w": 32, "h": 44, "damage": 40, "fall": 75, "dvx": 6, "dvy": 5, "hitstop": 6 }]
+    },
+    "metro_rec": { "duration": 10, "pose": "punch_ready", "friction": 0.7 },
+
+    "shield_1": {
+      "duration": 22, "pose": "cast_up", "sound": "special",
+      "buff": { "type": "dmgReduce", "value": 0.5, "duration": 180 }
+    }
+  },
+  "moves": [
+    { "command": "D>A", "name": "市政公文", "mp": 60, "startFrame": "doc_1", "role": "ranged" },
+    { "command": "D>J", "name": "捷運衝刺", "mp": 80, "startFrame": "metro_1", "role": "rush" },
+    { "command": "D^A", "name": "市民護盾", "mp": 150, "startFrame": "shield_1", "role": "buff" }
+  ],
+  "projectiles": {
+    "doc": {
+      "life": 55, "size": 10, "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1, "pose": "paper", "next": "fly",
+          "itr": [{ "x": -7, "y": -6, "w": 14, "h": 12, "damage": 18, "fall": 14, "dvx": 2, "hitstop": 3 }]
+        }
+      }
+    }
+  }
+}

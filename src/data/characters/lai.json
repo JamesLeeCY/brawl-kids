@@ -1,0 +1,51 @@
+{
+  "id": "lai",
+  "name": "來清德",
+  "title": "醫師元首",
+  "accessory": "stethoscope",
+  "quote": "醫生建議：多休息！",
+  "stats": { "hp": 580, "walkSpeed": 2.3, "runSpeed": 5.0, "jumpPower": 8.5, "weight": 1.25 },
+  "palette": { "skin": "#f0c39b", "main": "#1f2937", "accent": "#22c55e", "hair": "#cfcfcf" },
+  "look": { "hair": "neat", "glasses": false, "tie": "#15803d" },
+  "frames": {
+    "pill_1": { "duration": 6, "pose": "cast_ready", "next": "pill_2", "sound": "special" },
+    "pill_2": {
+      "duration": 14, "pose": "cast", "next": "pill_rec",
+      "spawn": [
+        { "id": "pill", "x": 20, "y": 40, "vx": 4, "dz": -12 },
+        { "id": "pill", "x": 24, "y": 44, "vx": 4.5 },
+        { "id": "pill", "x": 20, "y": 40, "vx": 4, "dz": 12 }
+      ]
+    },
+    "pill_rec": { "duration": 8, "pose": "cast" },
+
+    "heal_1": {
+      "duration": 26, "pose": "cast_up", "sound": "special", "heal": 120,
+      "buff": { "type": "dmgReduce", "value": 0.3, "duration": 90 }
+    },
+
+    "slam_1": { "duration": 10, "pose": "slam_ready", "next": "slam_2", "sound": "special" },
+    "slam_2": {
+      "duration": 10, "pose": "slam", "next": "slam_rec", "shake": true,
+      "itr": [{ "x": -60, "y": 0, "w": 120, "h": 34, "damage": 50, "fall": 80, "dvx": 5, "dvy": 7,
+                "hitstop": 6, "zRange": 40, "radial": true }]
+    },
+    "slam_rec": { "duration": 14, "pose": "slam" }
+  },
+  "moves": [
+    { "command": "D>A", "name": "處方籤追蹤", "mp": 80, "startFrame": "pill_1", "role": "ranged" },
+    { "command": "D^A", "name": "仁心回春", "mp": 160, "startFrame": "heal_1", "role": "buff" },
+    { "command": "DvA", "name": "穩健震地", "mp": 100, "startFrame": "slam_1", "role": "burst" }
+  ],
+  "projectiles": {
+    "pill": {
+      "life": 130, "size": 10, "homing": 0.22, "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1, "pose": "pill", "next": "fly",
+          "itr": [{ "x": -9, "y": -9, "w": 18, "h": 18, "damage": 22, "fall": 25, "dvx": 2, "hitstop": 3 }]
+        }
+      }
+    }
+  }
+}

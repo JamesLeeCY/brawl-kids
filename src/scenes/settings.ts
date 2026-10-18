@@ -1,0 +1,115 @@
+import { CONFIG } from '../config';
+import { ACTION_LABELS, DEFAULT_BINDINGS, HUMAN_PLAYERS, keyName } from '../input/keyboard';
+import { roundRect } from '../render/character';
+import { text } from '../render/text';
+import { saveSettings } from '../settings';
+import { ACTIONS } from '../sim/snapshot';
+import { Scene, type MenuInput } from './scene';
+import { hint, menuBackground } from './ui';
+
+const VW = CONFIG.view.width;
+const ROWS = ACTIONS.length + 4; // 7 個按鍵 + 主音量 + 音效音量 + 恢復預設 + 返回
+
+export class SettingsScene extends Scene {
+  private row = 0;
+  private col = 0;
+  private t = 0;
+  private waiting = false;
+
+  update(inp: MenuInput): void {
+    this.t++;
+    if (this.waiting) return;
+    const a = inp.any;
+    if (a.up) this.row = (this.row + ROWS - 1) % ROWS;
+    if (a.down) this.row = (this.row + 1) % ROWS;
+    const s = this.app.settings;
+    if (this.row < ACTIONS.length) {
+      if (a.left) this.col = (this.col + HUMAN_PLAYERS - 1) % HUMAN_PLAYERS;
+      if (a.right) this.col = (this.col + 1) % HUMAN_PLAYERS;
+      if (a.A) this.startRebind();
+    } else if (this.row === ACTIONS.length || this.row === ACTIONS.length + 1) {
+      const key = this.row === ACTIONS.length ? 'masterVolume' : 'sfxVolume';
+      const d = (a.right ? 0.1 : 0) - (a.left ? 0.1 : 0);
+      if (d) {
+        s[key] = Math.round(Math.max(0, Math.min(1, s[key] + d)) * 10) / 10;
+        this.apply();
+        this.app.sfx.play('hit_light');
+      }
+    } else if (this.row === ACTIONS.length + 2 && a.A) {
+      s.bindings = DEFAULT_BINDINGS.map((b) => ({ ...b }));
+      this.apply();
+    } else if (this.row === ACTIONS.length + 3 && a.A) this.app.scenes.pop();
+  }
+
+  private startRebind(): void {
+    this.waiting = true;
+    const action = ACTIONS[this.row];
+    const player = this.col;
+    this.app.kb.capture = (code) => {
+      this.waiting = false;
+      if (code === 'Escape') return;
+      const bs = this.app.settings.bindings;
+      // 若此鍵已被使用，與原位置互換
+      const old = bs[player][action];
+      for (const b of bs) for (const ac of ACTIONS) if (b[ac] === code) b[ac] = old;
+      bs[player][action] = code;
+      this.apply();
+    };
+  }
+
+  private apply(): void {
+    const s = this.app.settings;
+    this.app.kb.setBindings(s.bindings);
+    this.app.sfx.setVolumes(s.masterVolume, s.sfxVolume);
+    saveSettings(s);
+  }
+
+  onEscape(): void {
+    if (this.waiting) {
+      this.app.kb.capture = null;
+      this.waiting = false;
+      return;
+    }
+    this.app.scenes.pop();
+  }
+
+  render(ctx: CanvasRenderingContext2D): void {
+    menuBackground(ctx, this.t, '#0f1d33', '#1e3a5f');
+    text(ctx, '設定', VW / 2, 42, 28, '#ffd23f', 'center');
+    const x0 = 230;
+    const cw = 200;
+    for (let p = 0; p < HUMAN_PLAYERS; p++) text(ctx, `${p + 1}P`, x0 + p * cw + cw / 2, 80, 15, ['#ff5a5a', '#4da6ff'][p], 'center');
+    const s = this.app.settings;
+    ACTIONS.forEach((a, r) => {
+      const y = 92 + r * 28;
+      text(ctx, ACTION_LABELS[a], x0 - 20, y + 19, 14, '#fff', 'right');
+      for (let p = 0; p < HUMAN_PLAYERS; p++) {
+        const sel = this.row === r && this.col === p;
+        ctx.fillStyle = sel ? (this.waiting ? '#ff7b54' : '#ffd23f') : 'rgba(255,255,255,0.1)';
+        roundRect(ctx, x0 + p * cw + 8, y, cw - 16, 24, 5);
+        ctx.fill();
+        const label = sel && this.waiting ? '請按新按鍵…' : keyName(s.bindings[p][a]);
+        text(ctx, label, x0 + p * cw + cw / 2, y + 17, 13, sel ? '#111' : '#fff', 'center');
+      }
+    });
+    const vy = 92 + ACTIONS.length * 28 + 8;
+    const vols: [string, number][] = [
+      ['主音量', s.masterVolume],
+      ['音效音量', s.sfxVolume],
+    ];
+    vols.forEach(([label, v], i) => {
+      const y = vy + i * 28;
+      const sel = this.row === ACTIONS.length + i;
+      text(ctx, label, x0 - 20, y + 18, 14, sel ? '#ffd23f' : '#fff', 'right');
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillRect(x0 + 8, y + 7, 400, 10);
+      ctx.fillStyle = sel ? '#ffd23f' : '#9ecbff';
+      ctx.fillRect(x0 + 8, y + 7, 400 * v, 10);
+      text(ctx, `${Math.round(v * 100)}%`, x0 + 420, y + 18, 13, '#fff');
+    });
+    const by = vy + 62;
+    text(ctx, '恢復預設按鍵', VW / 2 - 90, by + 16, 15, this.row === ACTIONS.length + 2 ? '#ffd23f' : '#fff', 'center');
+    text(ctx, '返回', VW / 2 + 90, by + 16, 15, this.row === ACTIONS.length + 3 ? '#ffd23f' : '#fff', 'center');
+    hint(ctx, '方向鍵移動　攻擊鍵 / Enter 重新綁定　左右調整音量　Esc 返回　·　P1 坐左、P2 坐右');
+  }
+}

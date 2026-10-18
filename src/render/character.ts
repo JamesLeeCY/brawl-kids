@@ -28,11 +28,22 @@ const D2R = Math.PI / 180;
 const dir = (a: number) => ({ x: Math.sin(a * D2R), y: Math.cos(a * D2R) });
 const up = (a: number) => ({ x: Math.sin(a * D2R), y: -Math.cos(a * D2R) });
 
-export function shade(hex: string, amt: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  let r = (n >> 16) & 255;
-  let g = (n >> 8) & 255;
-  let b = n & 255;
+export function shade(color: string, amt: number): string {
+  // 接受 #RRGGBB 或 rgb(r,g,b)（shade 自己的輸出），可連續套用
+  let r: number;
+  let g: number;
+  let b: number;
+  if (color.startsWith('#')) {
+    const n = parseInt(color.slice(1), 16);
+    r = (n >> 16) & 255;
+    g = (n >> 8) & 255;
+    b = n & 255;
+  } else {
+    const m = color.match(/\d+(\.\d+)?/g) ?? ['0', '0', '0'];
+    r = Number(m[0]);
+    g = Number(m[1]);
+    b = Number(m[2]);
+  }
   if (amt < 0) {
     r *= 1 + amt;
     g *= 1 + amt;

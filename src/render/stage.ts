@@ -19,6 +19,235 @@ const hr = (i: number) => {
 
 type Ctx = CanvasRenderingContext2D;
 
+// ================= 類 3D 繪圖工具（參考實景照片的立體感） =================
+const OL3 = 'rgba(26,21,48,0.85)';
+
+/** 透視消失點：建築側面與屋頂朝這裡收斂；鏡頭捲動時看得到的側面會跟著改變 */
+function vanish(): { x: number; y: number } {
+  return { x: VW / 2, y: GROUND_TOP - 80 };
+}
+
+function rgba(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+}
+
+function poly(ctx: Ctx, pts: number[][], fill: string | CanvasGradient, stroke = true): void {
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) {
+    ctx.strokeStyle = OL3;
+    ctx.lineWidth = 1.4;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+}
+
+interface Windows3D {
+  rows: number;
+  cols: number;
+  /** 亮燈比例 0–1 */
+  lit?: number;
+  seed?: number;
+  /** 玻璃帷幕：反射天空 */
+  glass?: boolean;
+  /** 拱形窗 */
+  arch?: boolean;
+  /** 窗框顏色（預設依牆色） */
+  frame?: string;
+  /** 窗戶佔格子的比例（預設 0.66） */
+  size?: number;
+}
+
+interface Opts3D {
+  /** 往消失點收縮的比例，越大越有厚度 */
+  depth?: number;
+  roof?: string;
+  windows?: Windows3D;
+  /** 水平飾帶：y 為距頂端的比例（0–1） */
+  bands?: { y: number; h: number; color: string }[];
+  outline?: boolean;
+}
+
+/** 類 3D 建築：正面 + 朝消失點的側面與屋頂，左上方光源，窗戶與底部陰影 */
+function building3d(ctx: Ctx, x: number, top: number, w: number, h: number, color: string, o: Opts3D = {}): void {
+  const d = o.depth ?? 0.1;
+  const V = vanish();
+  const px = (v: number) => v + (V.x - v) * d;
+  const py = (v: number) => v + (V.y - v) * d;
+  const L = x;
+  const R = x + w;
+  const T = top;
+  const B = top + h;
+  const ol = o.outline !== false;
+  // 側面：建築在消失點左邊看到右側面（背光），右邊看到左側面（受光）
+  if (R < V.x - 2) poly(ctx, [[R, T], [px(R), py(T)], [px(R), py(B)], [R, B]], shade(color, -0.4), ol);
+  else if (L > V.x + 2) poly(ctx, [[L, T], [px(L), py(T)], [px(L), py(B)], [L, B]], shade(color, -0.14), ol);
+  // 屋頂：比消失點低的建築才看得到
+  if (T > V.y) poly(ctx, [[L, T], [R, T], [px(R), py(T)], [px(L), py(T)]], o.roof ?? shade(color, 0.22), ol);
+  // 正面（含窗戶、飾帶、光影）不受鏡頭影響 → 畫進離屏快取，之後每幀只貼一張圖
+  ctx.drawImage(frontCache(ctx, w, h, color, o, ol), L - 1, T - 1, w + 2, h + 2);
+}
+
+const FRONT_CACHE = new Map<string, HTMLCanvasElement>();
+
+function frontCache(ctx: Ctx, w: number, h: number, color: string, o: Opts3D, ol: boolean): HTMLCanvasElement {
+  const sc = Math.min(3, Math.max(1, Math.round(ctx.getTransform().a)));
+  const key = `${Math.round(w)}|${Math.round(h)}|${color}|${sc}|${ol}|${JSON.stringify(o.windows ?? 0)}|${JSON.stringify(o.bands ?? 0)}`;
+  let img = FRONT_CACHE.get(key);
+  if (img) return img;
+  if (FRONT_CACHE.size > 800) FRONT_CACHE.clear();
+  img = document.createElement('canvas');
+  img.width = Math.ceil((w + 2) * sc);
+  img.height = Math.ceil((h + 2) * sc);
+  const c = img.getContext('2d')!;
+  c.scale(sc, sc);
+  c.translate(1, 1);
+  drawFront(c, w, h, color, o, ol);
+  FRONT_CACHE.set(key, img);
+  return img;
+}
+
+function drawFront(ctx: Ctx, w: number, h: number, color: string, o: Opts3D, ol: boolean): void {
+  // 正面：左上亮、右下暗
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, shade(color, 0.16));
+  g.addColorStop(1, shade(color, -0.16));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  for (const b of o.bands ?? []) {
+    ctx.fillStyle = b.color;
+    ctx.fillRect(0, h * b.y, w, b.h);
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(0, h * b.y + b.h, w, 1.5);
+  }
+  if (o.windows) windowGrid(ctx, 0, 0, w, h, color, o.windows);
+  // 邊緣受光線
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillRect(0, 0, 2, h);
+  // 底部環境光遮蔽
+  const ao = ctx.createLinearGradient(0, h - 16, 0, h);
+  ao.addColorStop(0, 'rgba(0,0,0,0)');
+  ao.addColorStop(1, 'rgba(0,0,0,0.3)');
+  ctx.fillStyle = ao;
+  ctx.fillRect(0, h - 16, w, 16);
+  if (ol) {
+    ctx.strokeStyle = OL3;
+    ctx.lineWidth = 1.4;
+    ctx.strokeRect(0, 0, w, h);
+  }
+}
+
+function windowGrid(ctx: Ctx, L: number, T: number, w: number, h: number, wall: string, wo: Windows3D): void {
+  const padX = w * 0.07;
+  const padY = h * 0.07;
+  const cw = (w - padX * 2) / wo.cols;
+  const ch = (h - padY * 2) / wo.rows;
+  const k = wo.size ?? 0.66;
+  const ww = cw * k;
+  const wh = ch * k * 0.96;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  const lits: boolean[] = [];
+  for (let r = 0; r < wo.rows; r++)
+    for (let c = 0; c < wo.cols; c++) {
+      xs.push(L + padX + c * cw + (cw - ww) / 2);
+      ys.push(T + padY + r * ch + (ch - wh) / 2);
+      lits.push(hr((wo.seed ?? 1) * 97 + r * 13 + c * 7) < (wo.lit ?? 0.3));
+    }
+  const n = xs.length;
+  // 依顏色分批：窗框 → 窗玻璃下半 → 上半 → 反光 → 窗台
+  ctx.fillStyle = wo.frame ?? shade(wall, -0.35);
+  for (let i = 0; i < n; i++) ctx.fillRect(xs[i] - 1, ys[i] - 1, ww + 2, wh + 2);
+  const pass = (lit: boolean, bot: string, top: string) => {
+    ctx.fillStyle = bot;
+    for (let i = 0; i < n; i++) {
+      if (lits[i] !== lit) continue;
+      if (wo.arch) {
+        ctx.beginPath();
+        ctx.moveTo(xs[i], ys[i] + wh);
+        ctx.lineTo(xs[i], ys[i] + ww / 2);
+        ctx.arc(xs[i] + ww / 2, ys[i] + ww / 2, ww / 2, Math.PI, 0);
+        ctx.lineTo(xs[i] + ww, ys[i] + wh);
+        ctx.fill();
+      } else ctx.fillRect(xs[i], ys[i], ww, wh);
+    }
+    ctx.fillStyle = top;
+    for (let i = 0; i < n; i++) {
+      if (lits[i] !== lit) continue;
+      if (wo.arch) ctx.fillRect(xs[i] + 1, ys[i] + ww / 2, ww * 0.35, wh * 0.4);
+      else ctx.fillRect(xs[i], ys[i], ww, wh * 0.45);
+    }
+  };
+  pass(true, '#ffc95a', '#fff3c4');
+  pass(false, wo.glass ? '#4f6f99' : '#2b3446', wo.glass ? '#d6ecff' : '#5d6b80');
+  if (!wo.arch && ww >= 6) {
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    for (let i = 0; i < n; i++) if (!lits[i]) ctx.fillRect(xs[i] + ww * 0.3, ys[i], ww * 0.16, wh);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let i = 0; i < n; i++) ctx.fillRect(xs[i] - 1, ys[i] + wh + 1, ww + 2, 1.2);
+}
+
+/** 大氣透視：遠景罩上一層天空色的霧，越接近地平線越濃 */
+function haze(ctx: Ctx, st: StageDef, a = 0.32): void {
+  const g = ctx.createLinearGradient(0, GROUND_TOP - 260, 0, GROUND_TOP);
+  g.addColorStop(0, rgba(st.palette.skyBottom, 0));
+  g.addColorStop(1, rgba(st.palette.skyBottom, a));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, VW, GROUND_TOP);
+}
+
+/** 太陽 / 月亮與光暈（依天空亮度自動判斷） */
+function skyLight(ctx: Ctx, st: StageDef, camX: number): void {
+  const night = luminance(st.palette.skyTop) < 0.3;
+  const x = VW * 0.8 - camX * 0.03;
+  const y = night ? 62 : 70;
+  const glow = ctx.createRadialGradient(x, y, 4, x, y, night ? 80 : 170);
+  glow.addColorStop(0, night ? 'rgba(255,250,220,0.35)' : 'rgba(255,252,230,0.75)');
+  glow.addColorStop(1, 'rgba(255,250,220,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(x - 180, y - 180, 360, 360);
+  ctx.fillStyle = night ? '#fdf6d8' : '#fffdf0';
+  ctx.beginPath();
+  ctx.arc(x, y, night ? 15 : 22, 0, Math.PI * 2);
+  ctx.fill();
+  if (night) {
+    ctx.fillStyle = 'rgba(200,190,150,0.45)';
+    for (const [cx, cy, r] of [[-4, -3, 3.5], [5, 4, 2.5], [3, -6, 1.8]]) {
+      ctx.beginPath();
+      ctx.arc(x + cx, y + cy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+/** 地面接觸陰影：近景建築與地面交界的暗帶 */
+function contactShadow(ctx: Ctx): void {
+  const g = ctx.createLinearGradient(0, GROUND_TOP, 0, GROUND_TOP + 24);
+  g.addColorStop(0, 'rgba(0,0,0,0.32)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, GROUND_TOP, VW, 24);
+}
+
+/** 圓頂 / 球面的立體光影 */
+function sphereShade(ctx: Ctx, cx: number, cy: number, rx: number, ry: number, base: string): CanvasGradient {
+  const g = ctx.createRadialGradient(cx - rx * 0.35, cy - ry * 0.55, rx * 0.05, cx, cy, Math.max(rx, ry) * 1.05);
+  g.addColorStop(0, shade(base, 0.45));
+  g.addColorStop(0.55, base);
+  g.addColorStop(1, shade(base, -0.35));
+  return g;
+}
+
 export function drawStage(ctx: Ctx, w: World, camX: number): void {
   const st = w.stage;
   const g = ctx.createLinearGradient(0, 0, 0, GROUND_TOP);
@@ -26,6 +255,7 @@ export function drawStage(ctx: Ctx, w: World, camX: number): void {
   g.addColorStop(1, st.palette.skyBottom);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, VW, GROUND_TOP + 2);
+  skyLight(ctx, st, camX);
   switch (st.theme) {
     case 'ximending':
       ximending(ctx, st, camX, w.tick);
@@ -57,6 +287,7 @@ export function drawStage(ctx: Ctx, w: World, camX: number): void {
     default:
       generic(ctx, st, camX);
   }
+  contactShadow(ctx);
   // 可行走區與背景要有明顯色差：地面上緣加一道邊線
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.fillRect(0, GROUND_TOP - 3, VW, 3);
@@ -84,27 +315,71 @@ function sign(ctx: Ctx, x: number, y: number, text: string, color: string, on: b
   ctx.restore();
 }
 
-function groundTiles(ctx: Ctx, camX: number, tw: number, th: number, colors: string[], lines?: string) {
-  for (let row = 0; GROUND_TOP + row * th < GROUND_BOTTOM; row++) {
-    const y = GROUND_TOP + row * th;
+/** 類 3D 地面：越近的磚列越高（透視壓縮）、每塊磚有斜面受光與陰影、遠暗近亮。
+ *  依顏色分批呼叫 fillRect（比逐塊切換顏色或 Path2D 合併都快）。 */
+const GROUND_CACHE = new Map<string, HTMLCanvasElement>();
+
+/** 地面以「水平重複的長條圖」快取：顏色週期 = 磚寬 × 顏色數，鏡頭移動時只平移貼圖 */
+function groundTiles(ctx: Ctx, camX: number, tw: number, th: number, colors: string[], _lines?: string) {
+  const period = tw * colors.length * 2;
+  const sc = Math.min(3, Math.max(1, Math.round(ctx.getTransform().a)));
+  const width = Math.ceil(VW + period + tw);
+  const key = `${tw}|${th}|${colors.join(',')}|${sc}|${width}`;
+  let img = GROUND_CACHE.get(key);
+  if (!img) {
+    if (GROUND_CACHE.size > 30) GROUND_CACHE.clear();
+    img = document.createElement('canvas');
+    img.width = width * sc;
+    img.height = Math.ceil((GROUND_BOTTOM - GROUND_TOP) * sc);
+    const c = img.getContext('2d')!;
+    c.scale(sc, sc);
+    c.translate(0, -GROUND_TOP);
+    drawGroundTiles(c, 0, tw, th, colors, width);
+    GROUND_CACHE.set(key, img);
+  }
+  const shift = ((camX % period) + period) % period;
+  ctx.drawImage(img, -shift, GROUND_TOP, width, GROUND_BOTTOM - GROUND_TOP);
+}
+
+function drawGroundTiles(ctx: Ctx, camX: number, tw: number, th: number, colors: string[], VWIDTH: number) {
+  const H = GROUND_BOTTOM - GROUND_TOP;
+  const tiles: number[] = []; // x, y, h, colorIdx, bevel
+  let y = GROUND_TOP;
+  let row = 0;
+  while (y < GROUND_BOTTOM) {
+    const t = (y - GROUND_TOP) / H;
+    const rh = Math.max(5, th * (0.6 + 0.85 * t));
     const off = row % 2 ? tw / 2 : 0;
     const start = Math.floor((camX - off) / tw) - 1;
-    for (let i = start; i * tw + off - camX < VW + tw; i++) {
-      const x = i * tw + off - camX;
-      ctx.fillStyle = colors[(((i + row * 7) % colors.length) + colors.length) % colors.length];
-      ctx.fillRect(x, y, tw, th);
+    const bevel = 1 + t * 1.5;
+    for (let i = start; i * tw + off - camX < VWIDTH + tw; i++) {
+      tiles.push(i * tw + off - camX, y, rh, (((i + row * 7) % colors.length) + colors.length) % colors.length, bevel);
     }
+    y += rh;
+    row++;
   }
-  if (lines) {
-    ctx.strokeStyle = lines;
-    ctx.lineWidth = 1;
-    for (let y = GROUND_TOP; y < GROUND_BOTTOM; y += th) {
-      ctx.beginPath();
-      ctx.moveTo(0, y + 0.5);
-      ctx.lineTo(VW, y + 0.5);
-      ctx.stroke();
-    }
+  for (let c = 0; c < colors.length; c++) {
+    ctx.fillStyle = colors[c];
+    for (let k = 0; k < tiles.length; k += 5) if (tiles[k + 3] === c) ctx.fillRect(tiles[k], tiles[k + 1], tw, tiles[k + 2]);
   }
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  for (let k = 0; k < tiles.length; k += 5) {
+    ctx.fillRect(tiles[k], tiles[k + 1], tw, tiles[k + 4]);
+    ctx.fillRect(tiles[k], tiles[k + 1], tiles[k + 4], tiles[k + 2]);
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  for (let k = 0; k < tiles.length; k += 5) {
+    const bv = tiles[k + 4];
+    ctx.fillRect(tiles[k], tiles[k + 1] + tiles[k + 2] - bv, tw, bv);
+    ctx.fillRect(tiles[k] + tw - bv, tiles[k + 1], bv, tiles[k + 2]);
+  }
+  // 遠暗近亮 + 地平線附近的霧
+  const g = ctx.createLinearGradient(0, GROUND_TOP, 0, GROUND_BOTTOM);
+  g.addColorStop(0, 'rgba(20,24,48,0.3)');
+  g.addColorStop(0.45, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(255,255,255,0.08)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, GROUND_TOP, VWIDTH, H);
 }
 
 function frontEdge(ctx: Ctx, color: string) {
@@ -126,49 +401,36 @@ function ximending(ctx: Ctx, st: StageDef, camX: number, tick: number) {
     const x = i * 90 - fx;
     if (x < -100 || x > VW + 10) continue;
     const h = 90 + hr(i) * 90;
-    ctx.fillStyle = shade(st.palette.near, -0.2 + hr(i + 3) * 0.2);
-    ctx.fillRect(x, GROUND_TOP - 40 - h, 80, h + 40);
-    ctx.fillStyle = 'rgba(255,230,150,0.35)';
-    for (let wy = 0; wy < h - 10; wy += 14)
-      for (let wx = 6; wx < 72; wx += 14) if (hr(i * 31 + wy + wx) > 0.55) ctx.fillRect(x + wx, GROUND_TOP - 40 - h + 8 + wy, 6, 7);
+    building3d(ctx, x, GROUND_TOP - 40 - h, 76, h + 40, shade(st.palette.near, -0.05 + hr(i + 3) * 0.25), {
+      depth: 0.08,
+      windows: { rows: Math.round(h / 16), cols: 4, lit: 0.45, seed: i },
+    });
   }
+  haze(ctx, st, 0.28);
   const rx = 330 - fx;
   if (rx > -160 && rx < VW + 20) {
-    // 八角樓輪廓（簡化）
+    // 西門紅樓：紅磚八角樓（立體量體 + 八角塔樓 + 尖頂）
     const by = GROUND_TOP - 30;
-    ctx.fillStyle = st.palette.far;
-    ctx.beginPath();
-    ctx.moveTo(rx, by);
-    ctx.lineTo(rx, by - 60);
-    ctx.lineTo(rx + 20, by - 80);
-    ctx.lineTo(rx + 90, by - 80);
-    ctx.lineTo(rx + 110, by - 60);
-    ctx.lineTo(rx + 110, by);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = shade(st.palette.far, -0.3);
-    ctx.beginPath();
-    ctx.moveTo(rx + 25, by - 80);
-    ctx.lineTo(rx + 55, by - 100);
-    ctx.lineTo(rx + 85, by - 80);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,220,160,0.7)';
-    for (let k = 0; k < 4; k++) {
-      ctx.beginPath();
-      ctx.arc(rx + 22 + k * 22, by - 40, 6, Math.PI, 0);
-      ctx.fillRect(rx + 16 + k * 22, by - 40, 12, 14);
-      ctx.fill();
-    }
-    ctx.fillStyle = shade(st.palette.far, 0.3);
-    ctx.fillRect(rx, by - 62, 110, 3);
+    building3d(ctx, rx - 10, by - 58, 130, 58, st.palette.far, {
+      depth: 0.07,
+      windows: { rows: 1, cols: 5, arch: true, lit: 1, seed: 3 },
+      bands: [{ y: 0, h: 4, color: shade(st.palette.far, 0.35) }],
+    });
+    building3d(ctx, rx + 22, by - 92, 66, 34, shade(st.palette.far, 0.05), {
+      depth: 0.07,
+      windows: { rows: 1, cols: 3, arch: true, lit: 1, seed: 5 },
+    });
+    const roofG = ctx.createLinearGradient(rx + 20, 0, rx + 90, 0);
+    roofG.addColorStop(0, shade(st.palette.far, -0.05));
+    roofG.addColorStop(1, shade(st.palette.far, -0.45));
+    poly(ctx, [[rx + 18, by - 92], [rx + 55, by - 116], [rx + 92, by - 92]], roofG);
   }
   // 近景：店面 + 霓虹招牌
   const nx = camX * NEAR;
   for (let i = 0; i < 16; i++) {
     const x = i * 120 - nx;
     if (x < -130 || x > VW + 10) continue;
-    ctx.fillStyle = shade(st.palette.near, hr(i + 9) * 0.2);
-    ctx.fillRect(x, GROUND_TOP - 70, 116, 70);
+    building3d(ctx, x, GROUND_TOP - 70, 116, 70, shade(st.palette.near, hr(i + 9) * 0.25), { depth: 0.04 });
     ctx.fillStyle = NEON[i % NEON.length];
     ctx.globalAlpha = 0.25;
     ctx.fillRect(x + 8, GROUND_TOP - 30, 100, 30);
@@ -254,11 +516,12 @@ function xinyi(ctx: Ctx, st: StageDef, camX: number, tick: number) {
     if (x < -100 || x > VW + 10) continue;
     if (Math.abs(x + fx - 470) < 70) continue;
     const h = 90 + hr(i + 20) * 100;
-    ctx.fillStyle = shade(st.palette.near, -0.1 + hr(i) * 0.2);
-    ctx.fillRect(x, GROUND_TOP - 30 - h, 82, h + 30);
-    ctx.fillStyle = 'rgba(180,220,255,0.3)';
-    for (let wy = 6; wy < h - 6; wy += 10) ctx.fillRect(x + 6, GROUND_TOP - 30 - h + wy, 70, 3);
+    building3d(ctx, x, GROUND_TOP - 30 - h, 78, h + 30, shade(st.palette.near, 0.05 + hr(i) * 0.25), {
+      depth: 0.09,
+      windows: { rows: Math.round(h / 11), cols: 5, glass: true, lit: 0.3, seed: i + 40 },
+    });
   }
+  haze(ctx, st, 0.22);
   // 台北 101（分節塔身輪廓）
   const tx = 470 - fx;
   if (tx > -120 && tx < VW + 120) {
@@ -269,14 +532,21 @@ function xinyi(ctx: Ctx, st: StageDef, camX: number, tick: number) {
     let y = base - 46;
     for (let k = 0; k < 8; k++) {
       const h = 22;
-      ctx.fillStyle = k % 2 ? glass : shade(glass, 0.08);
-      ctx.beginPath();
-      ctx.moveTo(tx - 22, y);
-      ctx.lineTo(tx - 28, y - h);
-      ctx.lineTo(tx + 28, y - h);
-      ctx.lineTo(tx + 22, y);
-      ctx.closePath();
-      ctx.fill();
+      // 每一節：玻璃正面（左亮右暗）+ 右側立面，呈現斗拱狀外擴的立體感
+      const sg = ctx.createLinearGradient(tx - 28, 0, tx + 28, 0);
+      sg.addColorStop(0, shade(glass, 0.35));
+      sg.addColorStop(0.5, glass);
+      sg.addColorStop(1, shade(glass, -0.3));
+      poly(ctx, [[tx - 22, y], [tx - 28, y - h], [tx + 28, y - h], [tx + 22, y]], sg);
+      poly(ctx, [[tx + 22, y], [tx + 28, y - h], [tx + 33, y - h + 3], [tx + 26, y + 2]], shade(glass, -0.45));
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 1;
+      for (let m = -18; m <= 18; m += 9) {
+        ctx.beginPath();
+        ctx.moveTo(tx + m * 0.8, y);
+        ctx.lineTo(tx + m, y - h);
+        ctx.stroke();
+      }
       ctx.fillStyle = XY_LIGHT[(k + Math.floor(tick / (st.features.neon?.interval ?? 120))) % XY_LIGHT.length];
       ctx.globalAlpha = 0.55;
       ctx.fillRect(tx - 27, y - h + 1, 54, 2);
@@ -296,10 +566,12 @@ function xinyi(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   for (let i = 0; i < 14; i++) {
     const x = i * 150 - nx;
     if (x < -160 || x > VW + 10) continue;
-    ctx.fillStyle = shade('#334155', hr(i + 4) * 0.2);
-    ctx.fillRect(x, GROUND_TOP - 70, 140, 70);
-    ctx.fillStyle = 'rgba(255,230,170,0.35)';
-    ctx.fillRect(x + 8, GROUND_TOP - 36, 124, 36);
+    building3d(ctx, x, GROUND_TOP - 70, 140, 70, shade('#3d4b63', hr(i + 4) * 0.25), {
+      depth: 0.05,
+      windows: { rows: 1, cols: 4, glass: true, lit: 0.2, seed: i },
+    });
+    ctx.fillStyle = 'rgba(255,230,170,0.45)';
+    ctx.fillRect(x + 8, GROUND_TOP - 30, 124, 30);
     ctx.fillStyle = 'rgba(150,200,255,0.25)';
     ctx.fillRect(x + 8, GROUND_TOP - 64, 124, 8);
     sign(ctx, x + 22, GROUND_TOP - 54, XY_SIGNS[i % XY_SIGNS.length], XY_LIGHT[i % XY_LIGHT.length], true);
@@ -346,13 +618,13 @@ function dome(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   const dx = 560 - fx;
   if (dx > -300 && dx < VW + 300) {
     const by = GROUND_TOP - 26;
-    const g = ctx.createLinearGradient(0, by - 120, 0, by);
-    g.addColorStop(0, '#f1f5f9');
-    g.addColorStop(1, '#94a3b8');
-    ctx.fillStyle = g;
+    ctx.fillStyle = sphereShade(ctx, dx, by, 220, 115, '#c8d2de');
     ctx.beginPath();
     ctx.ellipse(dx, by, 220, 115, 0, Math.PI, 0);
     ctx.fill();
+    ctx.strokeStyle = OL3;
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.strokeStyle = 'rgba(71,85,105,0.45)';
     ctx.lineWidth = 1.5;
     for (let k = -4; k <= 4; k++) {
@@ -382,13 +654,16 @@ function dome(ctx: Ctx, st: StageDef, camX: number, tick: number) {
       ctx.fill();
     }
   }
+  haze(ctx, st, 0.2);
   // 近景：東區商店街
   const nx = camX * NEAR;
   for (let i = 0; i < 14; i++) {
     const x = i * 130 - nx;
     if (x < -140 || x > VW + 10) continue;
-    ctx.fillStyle = shade(st.palette.near, hr(i + 2) * 0.25);
-    ctx.fillRect(x, GROUND_TOP - 64, 124, 64);
+    building3d(ctx, x, GROUND_TOP - 64, 124, 64, shade(st.palette.near, hr(i + 2) * 0.3), {
+      depth: 0.05,
+      windows: { rows: 1, cols: 3, lit: 0.6, seed: i + 7 },
+    });
     ctx.fillStyle = 'rgba(255,240,200,0.4)';
     ctx.fillRect(x + 8, GROUND_TOP - 32, 108, 32);
     ctx.fillStyle = ['#ef4444', '#0ea5e9', '#f59e0b', '#10b981'][i % 4];
@@ -398,7 +673,7 @@ function dome(ctx: Ctx, st: StageDef, camX: number, tick: number) {
     const tx = x + 128;
     ctx.fillStyle = '#5b3a1e';
     ctx.fillRect(tx - 2, GROUND_TOP - 40, 4, 40);
-    ctx.fillStyle = '#2f7d32';
+    ctx.fillStyle = sphereShade(ctx, tx, GROUND_TOP - 48, 14, 14, '#2f7d32');
     ctx.beginPath();
     ctx.arc(tx, GROUND_TOP - 48, 14, 0, Math.PI * 2);
     ctx.fill();
@@ -409,8 +684,21 @@ function dome(ctx: Ctx, st: StageDef, camX: number, tick: number) {
 
 // ---------------- 國立台灣大學 ----------------
 function palm(ctx: Ctx, x: number, baseY: number, h: number, sway: number) {
+  // 樹幹：陰影側 + 受光側兩道線，呈現圓柱感
+  ctx.strokeStyle = '#6d5d48';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(x, baseY);
+  ctx.quadraticCurveTo(x + 3, baseY - h / 2, x + sway, baseY - h);
+  ctx.stroke();
+  ctx.strokeStyle = '#a8977c';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(x - 1.5, baseY);
+  ctx.quadraticCurveTo(x + 1.5, baseY - h / 2, x + sway - 1.5, baseY - h);
+  ctx.stroke();
   ctx.strokeStyle = '#8d7b62';
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 0.01;
   ctx.beginPath();
   ctx.moveTo(x, baseY);
   ctx.quadraticCurveTo(x + 3, baseY - h / 2, x + sway, baseY - h);
@@ -442,29 +730,27 @@ function ntu(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   const lx = 470 - fx;
   if (lx > -300 && lx < VW + 300) {
     const by = GROUND_TOP - 24;
-    ctx.fillStyle = st.palette.far;
-    ctx.fillRect(lx - 200, by - 70, 400, 70);
-    ctx.fillStyle = shade(st.palette.far, -0.15);
-    ctx.fillRect(lx - 200, by - 74, 400, 6);
-    ctx.fillStyle = st.palette.far;
-    ctx.fillRect(lx - 40, by - 120, 80, 120);
-    ctx.fillStyle = shade(st.palette.far, -0.2);
-    ctx.beginPath();
-    ctx.moveTo(lx - 46, by - 120);
-    ctx.lineTo(lx, by - 140);
-    ctx.lineTo(lx + 46, by - 120);
-    ctx.fill();
+    // 總圖書館：兩翼 + 中央塔樓，紅磚色立面與拱窗
+    building3d(ctx, lx - 200, by - 70, 400, 70, st.palette.far, {
+      depth: 0.06,
+      windows: { rows: 2, cols: 12, arch: true, lit: 0.15, seed: 11 },
+      bands: [{ y: 0, h: 5, color: shade(st.palette.far, -0.2) }],
+    });
+    building3d(ctx, lx - 40, by - 120, 80, 120, shade(st.palette.far, 0.06), {
+      depth: 0.06,
+      windows: { rows: 5, cols: 2, arch: true, lit: 0.35, seed: 12, size: 0.42 },
+    });
+    const rg = ctx.createLinearGradient(lx - 46, 0, lx + 46, 0);
+    rg.addColorStop(0, shade(st.palette.far, -0.05));
+    rg.addColorStop(1, shade(st.palette.far, -0.45));
+    poly(ctx, [[lx - 46, by - 120], [lx, by - 142], [lx + 46, by - 120]], rg);
     ctx.fillStyle = '#3d2b1f';
     ctx.beginPath();
     ctx.arc(lx, by - 30, 18, Math.PI, 0);
     ctx.fillRect(lx - 18, by - 30, 36, 30);
     ctx.fill();
-    for (let k = 0; k < 12; k++) {
-      if (k === 5 || k === 6) continue;
-      ctx.fillStyle = '#4b3a2c';
-      ctx.fillRect(lx - 188 + k * 32, by - 56, 12, 20);
-    }
   }
+  haze(ctx, st, 0.25);
   // 椰林大道兩側的椰子樹 + 傅鐘
   const nx = camX * NEAR;
   const bx = 360 - nx;
@@ -550,7 +836,7 @@ function rr(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
 }
 
 /** 填色後加深色粗描邊 */
-function ol(ctx: Ctx, fill: string, path: () => void, lw = 2.5) {
+function ol(ctx: Ctx, fill: string | CanvasGradient, path: () => void, lw = 2.5) {
   ctx.beginPath();
   path();
   ctx.fillStyle = fill;
@@ -565,7 +851,7 @@ function box(ctx: Ctx, x: number, y: number, w: number, h: number, fill: string,
   ol(ctx, fill, () => rr(ctx, x, y, w, h, r), lw);
 }
 
-function blob(ctx: Ctx, x: number, y: number, rx: number, ry: number, fill: string, lw = 2.5) {
+function blob(ctx: Ctx, x: number, y: number, rx: number, ry: number, fill: string | CanvasGradient, lw = 2.5) {
   ol(ctx, fill, () => ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2), lw);
 }
 
@@ -573,7 +859,10 @@ function cloudsOl(ctx: Ctx, camX: number, tick: number) {
   for (let i = 0; i < 5; i++) {
     const x = ((hr(i + 3) * 1400 - camX * 0.08 + tick * 0.06) % (VW + 220)) - 110;
     const y = 30 + hr(i + 8) * 55;
-    ol(ctx, '#ffffff', () => {
+    const cg = ctx.createLinearGradient(0, y - 18, 0, y + 13);
+    cg.addColorStop(0, '#ffffff');
+    cg.addColorStop(1, '#c9d8ec');
+    ol(ctx, cg, () => {
       ctx.ellipse(x, y, 34, 13, 0, 0, Math.PI * 2);
       ctx.moveTo(x + 46, y - 4);
       ctx.ellipse(x + 22, y - 4, 24, 14, 0, 0, Math.PI * 2);
@@ -584,7 +873,13 @@ function cloudsOl(ctx: Ctx, camX: number, tick: number) {
 /** 粗描邊的行道樹 */
 function treeOl(ctx: Ctx, x: number, baseY: number, h: number, leaf = '#3fb34f') {
   box(ctx, x - 4, baseY - h * 0.45, 8, h * 0.45, '#8a5a3b', 2, 2);
-  blob(ctx, x, baseY - h * 0.6, h * 0.32, h * 0.3, leaf, 2.5);
+  // 樹冠：球狀光影 + 地面陰影
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(x + 4, baseY, h * 0.28, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  blob(ctx, x, baseY - h * 0.6, h * 0.32, h * 0.3, sphereShade(ctx, x, baseY - h * 0.6, h * 0.32, h * 0.3, leaf), 2.5);
+  blob(ctx, x - h * 0.16, baseY - h * 0.5, h * 0.17, h * 0.15, sphereShade(ctx, x - h * 0.16, baseY - h * 0.5, h * 0.17, h * 0.15, shade(leaf, -0.08)), 2);
   ctx.fillStyle = 'rgba(255,255,255,0.25)';
   ctx.beginPath();
   ctx.ellipse(x - h * 0.1, baseY - h * 0.7, h * 0.12, h * 0.08, 0, 0, Math.PI * 2);
@@ -608,9 +903,10 @@ function zoo(ctx: Ctx, st: StageDef, camX: number, tick: number) {
     const col = layer ? st.palette.far : shade(st.palette.far, -0.25);
     for (let i = -1; i < 12; i++) {
       const x = i * 170 - (fx * (layer + 1)) % 170;
-      blob(ctx, x, GROUND_TOP - 40 + layer * 18, 130, 70 - layer * 15, col, 2.5);
+      blob(ctx, x, GROUND_TOP - 40 + layer * 18, 130, 70 - layer * 15, sphereShade(ctx, x, GROUND_TOP - 40 + layer * 18, 130, 70 - layer * 15, col), 2.5);
     }
   }
+  haze(ctx, st, 0.25);
   const nx = camX * NEAR;
   // 動物園大門
   const gx = 260 - nx;
@@ -727,6 +1023,7 @@ function maokong(ctx: Ctx, st: StageDef, camX: number, tick: number) {
       ctx.stroke();
     }
   }
+  haze(ctx, st, 0.3);
   // 纜車：斜纜線 + 移動車廂
   const cx = camX * 0.4;
   const y0 = 150;
@@ -755,7 +1052,7 @@ function maokong(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   for (let i = 0; i < 8; i++) {
     const x = i * 230 + 40 - nx;
     if (x < -220 || x > VW + 20) continue;
-    box(ctx, x, GROUND_TOP - 70, 190, 70, '#c98f5c', 4);
+    building3d(ctx, x, GROUND_TOP - 70, 190, 70, '#c98f5c', { depth: 0.05, windows: { rows: 1, cols: 2, lit: 0.7, seed: i } });
     ol(ctx, '#7a3b2e', () => {
       ctx.moveTo(x - 14, GROUND_TOP - 68);
       ctx.lineTo(x + 95, GROUND_TOP - 106);
@@ -794,11 +1091,13 @@ function expo(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   const fx = camX * FAR;
   // 遠景：山丘上的紅色宮殿式大飯店
   const hx = 420 - fx;
-  blob(ctx, hx, GROUND_TOP - 20, 260, 90, '#4caf50');
+  blob(ctx, hx, GROUND_TOP - 20, 260, 90, sphereShade(ctx, hx, GROUND_TOP - 20, 260, 90, '#4caf50'));
   if (hx > -260 && hx < VW + 260) {
     const by = GROUND_TOP - 92;
-    box(ctx, hx - 110, by - 46, 220, 46, st.palette.far, 2);
-    for (let k = 0; k < 9; k++) box(ctx, hx - 100 + k * 23, by - 38, 10, 14, '#ffe08a', 1, 1.5);
+    building3d(ctx, hx - 110, by - 46, 220, 46, st.palette.far, {
+      depth: 0.06,
+      windows: { rows: 1, cols: 9, lit: 0.8, seed: 21 },
+    });
     for (let tier = 0; tier < 3; tier++) {
       const w = 250 - tier * 60;
       const y = by - 46 - tier * 26;
@@ -812,11 +1111,12 @@ function expo(ctx: Ctx, st: StageDef, camX: number, tick: number) {
       if (tier < 2) box(ctx, hx - w / 2 + 34, y - 26, w - 68, 12, st.palette.far, 1, 2);
     }
   }
+  haze(ctx, st, 0.25);
   // 近景：花博爭艷館風格的白色穹頂展館
   const nx = camX * NEAR;
   const dx = 760 - nx;
   if (dx > -200 && dx < VW + 200) {
-    ol(ctx, st.palette.near, () => {
+    ol(ctx, sphereShade(ctx, dx, GROUND_TOP - 40, 150, 110, '#e6ecf4'), () => {
       ctx.moveTo(dx - 150, GROUND_TOP - 4);
       ctx.quadraticCurveTo(dx - 140, GROUND_TOP - 110, dx, GROUND_TOP - 118);
       ctx.quadraticCurveTo(dx + 140, GROUND_TOP - 110, dx + 150, GROUND_TOP - 4);
@@ -861,23 +1161,28 @@ function chifeng(ctx: Ctx, st: StageDef, camX: number, tick: number) {
     const x = i * 100 - fx;
     if (x < -110 || x > VW + 10) continue;
     const h = 120 + hr(i + 4) * 60;
-    box(ctx, x, GROUND_TOP - 40 - h, 92, h + 40, shade(st.palette.far, -0.15 + hr(i) * 0.25), 2);
-    for (let f = 0; f < 4; f++) {
-      const y = GROUND_TOP - 40 - h + 14 + f * 30;
-      if (y > GROUND_TOP - 50) break;
-      box(ctx, x + 8, y, 30, 18, '#ffe7a3', 2, 1.5);
-      box(ctx, x + 52, y, 30, 18, hr(i * 7 + f) > 0.5 ? '#ffe7a3' : '#5a6a7a', 2, 1.5);
-      box(ctx, x + 4, y + 18, 84, 4, '#6b4f3a', 1, 1.5);
-      if (hr(i + f * 3) > 0.6) blob(ctx, x + 20, y + 14, 6, 5, '#4caf50', 1.5);
+    const floors = Math.max(2, Math.floor((h - 10) / 30));
+    building3d(ctx, x, GROUND_TOP - 40 - h, 92, h + 40, shade(st.palette.far, -0.1 + hr(i) * 0.3), {
+      depth: 0.07,
+      windows: { rows: floors + 1, cols: 2, lit: 0.55, seed: i + 60 },
+    });
+    // 陽台：外凸的板與欄杆，帶陰影
+    for (let f = 1; f <= floors; f++) {
+      const y = GROUND_TOP - 40 - h + ((h + 40) * f) / (floors + 1) - 3;
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(x + 2, y + 5, 88, 4);
+      box(ctx, x - 2, y, 96, 5, '#8a6a52', 1, 1.2);
+      if (hr(i + f * 3) > 0.55) blob(ctx, x + 18, y - 4, 6, 5, sphereShade(ctx, x + 18, y - 4, 6, 5, '#4caf50'), 1.2);
     }
   }
+  haze(ctx, st, 0.25);
   // 近景：一樓店面
   const nx = camX * NEAR;
   const blink = Math.floor(tick / (st.features.neon?.interval ?? 150));
   for (let i = 0; i < 14; i++) {
     const x = i * 120 - nx;
     if (x < -130 || x > VW + 10) continue;
-    box(ctx, x, GROUND_TOP - 70, 114, 70, shade(st.palette.near, hr(i + 2) * 0.3), 3);
+    building3d(ctx, x, GROUND_TOP - 70, 114, 70, shade(st.palette.near, hr(i + 2) * 0.3), { depth: 0.04 });
     // 鐵捲門或玻璃店面
     if (i % 3 === 0) {
       box(ctx, x + 8, GROUND_TOP - 46, 98, 46, '#b0b7c0', 2, 2);
@@ -936,9 +1241,10 @@ function government(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   // 北一女：紅磚校舍、綠色窗框
   const sx = 120 - fx;
   if (sx > -220 && sx < VW + 40) {
-    box(ctx, sx - 100, by - 70, 200, 70, '#c0563f', 2);
-    for (let r = 0; r < 2; r++)
-      for (let k = 0; k < 7; k++) box(ctx, sx - 90 + k * 27, by - 62 + r * 30, 14, 18, '#2e7d32', 1, 1.5);
+    building3d(ctx, sx - 100, by - 70, 200, 70, '#c0563f', {
+      depth: 0.07,
+      windows: { rows: 2, cols: 7, lit: 0.1, seed: 31, frame: '#2e7d32' },
+    });
     box(ctx, sx - 104, by - 78, 208, 10, '#f3efe6', 1, 2);
     box(ctx, sx - 40, by - 100, 80, 24, '#f3efe6', 3, 2);
     ctx.font = `900 12px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
@@ -950,16 +1256,21 @@ function government(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   // 總統府：紅磚白帶，中央高塔
   const gx = 560 - fx;
   if (gx > -320 && gx < VW + 320) {
-    box(ctx, gx - 230, by - 80, 460, 80, st.palette.far, 2, 3);
-    for (const y of [by - 80, by - 44]) box(ctx, gx - 232, y, 464, 7, '#f7f4ec', 1, 2);
-    for (let r = 0; r < 2; r++)
-      for (let k = 0; k < 14; k++) {
-        if (k === 6 || k === 7) continue;
-        box(ctx, gx - 218 + k * 32, by - 70 + r * 34, 14, 20, '#f7f4ec', 6, 1.5);
-      }
+    // 兩翼：紅磚 + 白色水平飾帶 + 拱窗
+    building3d(ctx, gx - 230, by - 80, 460, 80, st.palette.far, {
+      depth: 0.05,
+      windows: { rows: 2, cols: 14, arch: true, lit: 0.12, seed: 41, frame: '#f7f4ec' },
+      bands: [
+        { y: 0, h: 7, color: '#f7f4ec' },
+        { y: 0.45, h: 6, color: '#f7f4ec' },
+      ],
+    });
     // 中央塔
-    box(ctx, gx - 34, by - 190, 68, 190, st.palette.far, 2, 3);
-    for (let y = by - 180; y < by - 20; y += 26) box(ctx, gx - 36, y, 72, 5, '#f7f4ec', 1, 1.5);
+    building3d(ctx, gx - 34, by - 190, 68, 190, st.palette.far, {
+      depth: 0.05,
+      windows: { rows: 6, cols: 2, arch: true, lit: 0.1, seed: 42, frame: '#f7f4ec' },
+      bands: [0.12, 0.3, 0.48, 0.66, 0.84].map((y) => ({ y, h: 4, color: '#f7f4ec' })),
+    });
     box(ctx, gx - 44, by - 206, 88, 18, '#f7f4ec', 3, 2.5);
     ol(ctx, st.palette.far, () => {
       ctx.moveTo(gx - 28, by - 206);
@@ -979,10 +1290,21 @@ function government(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   // 臺大醫院舊館：白色古典建築、圓頂與廊柱
   const hx = 1000 - fx;
   if (hx > -220 && hx < VW + 220) {
-    box(ctx, hx - 130, by - 66, 260, 66, st.palette.near, 2, 3);
-    for (let k = 0; k < 8; k++) box(ctx, hx - 112 + k * 30, by - 56, 12, 50, '#e8e2d2', 2, 1.5);
-    box(ctx, hx - 50, by - 92, 100, 28, st.palette.near, 2, 2.5);
-    ol(ctx, '#e0d6bd', () => ctx.arc(hx, by - 92, 34, Math.PI, 0), 2.5);
+    building3d(ctx, hx - 130, by - 66, 260, 66, st.palette.near, {
+      depth: 0.06,
+      windows: { rows: 2, cols: 8, lit: 0.15, seed: 51 },
+    });
+    // 門廊柱列（圓柱光影）
+    for (let k = 0; k < 6; k++) {
+      const cx = hx - 50 + k * 20;
+      const cg = ctx.createLinearGradient(cx - 4, 0, cx + 4, 0);
+      cg.addColorStop(0, '#ffffff');
+      cg.addColorStop(1, '#bdb4a0');
+      ctx.fillStyle = cg;
+      ctx.fillRect(cx - 4, by - 60, 8, 60);
+    }
+    building3d(ctx, hx - 50, by - 92, 100, 28, st.palette.near, { depth: 0.06 });
+    ol(ctx, sphereShade(ctx, hx, by - 92, 34, 34, '#e0d6bd'), () => ctx.arc(hx, by - 92, 34, Math.PI, 0), 2.5);
     ol(ctx, st.palette.near, () => {
       ctx.moveTo(hx - 60, by - 66);
       ctx.lineTo(hx, by - 84);
@@ -995,6 +1317,7 @@ function government(ctx: Ctx, st: StageDef, camX: number, tick: number) {
     ctx.fillText('臺大醫院', hx, by - 70);
     ctx.textAlign = 'left';
   }
+  haze(ctx, st, 0.2);
   // 近景：大道行道樹與路燈
   const nx = camX * NEAR;
   for (let i = 0; i < 16; i++) {
@@ -1022,14 +1345,16 @@ function generic(ctx: Ctx, st: StageDef, camX: number) {
   for (let i = 0; i < 20; i++) {
     const x = i * 80 - fx;
     const h = 60 + hr(i) * 120;
-    ctx.fillStyle = shade(st.palette.far, hr(i + 1) * 0.3 - 0.15);
-    ctx.fillRect(x, GROUND_TOP - h, 72, h);
+    building3d(ctx, x, GROUND_TOP - h, 70, h, shade(st.palette.far, hr(i + 1) * 0.3 - 0.15), {
+      depth: 0.08,
+      windows: { rows: Math.round(h / 16), cols: 3, lit: 0.3, seed: i },
+    });
   }
+  haze(ctx, st, 0.25);
   const nx = camX * NEAR;
   for (let i = 0; i < 16; i++) {
     const x = i * 120 - nx;
-    ctx.fillStyle = shade(st.palette.near, hr(i + 7) * 0.2);
-    ctx.fillRect(x, GROUND_TOP - 50, 110, 50);
+    building3d(ctx, x, GROUND_TOP - 50, 110, 50, shade(st.palette.near, hr(i + 7) * 0.2), { depth: 0.04 });
   }
   groundTiles(ctx, camX, 48, 20, [st.palette.ground, st.palette.groundAlt]);
   frontEdge(ctx, shade(st.palette.ground, -0.5));

@@ -42,6 +42,29 @@ export interface Inbound {
 export type NetStatus = 'connecting' | 'waiting' | 'open' | 'closed' | 'error';
 
 const ID_PREFIX = 'brawlkids-tw-';
+
+/**
+ * ICE 伺服器：STUN 找出公網位址；TURN 在雙方無法直連（對稱型 NAT、公司 / 學校網路）時中繼。
+ * 含 TCP 443 的 TURN，可穿過只開放網頁埠的防火牆。
+ */
+const PEER_OPTIONS = {
+  debug: 0,
+  config: {
+    iceServers: [
+      { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+      { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+      {
+        urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turns:openrelay.metered.ca:443?transport=tcp'],
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+    ],
+  },
+};
+
+/** 建立 / 加入的逾時（毫秒） */
+const BROKER_TIMEOUT = 12000;
+const CONNECT_TIMEOUT = 20000;
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const CODE_LENGTH = 6;
 
@@ -89,6 +112,9 @@ export class NetSession {
   private links = new Map<number, Link>();
   private pingTimer = 0;
   private retries = 0;
+  private timeout = 0;
+  /** 房主是否曾成功登記房間（之後斷線只重連、不換代碼） */
+  private registered = false;
 
   private constructor(
     readonly role: 'host' | 'guest',
@@ -127,26 +153,56 @@ export class NetSession {
 
   // ---------------- 建立連線 ----------------
   private openHost(): void {
-    this.code = randomCode();
-    const peer = new Peer(ID_PREFIX + this.code, { debug: 0 });
+    if (!this.registered) this.code = randomCode();
+    const peer = new Peer(ID_PREFIX + this.code, PEER_OPTIONS);
     this.peer = peer;
+    window.clearTimeout(this.timeout);
+    if (!this.registered)
+      this.timeout = window.setTimeout(() => {
+        if (!this.registered) this.fail('連不上配對伺服器（逾時）。請檢查網路，或稍後再試。');
+      }, BROKER_TIMEOUT);
     peer.on('open', () => {
+      this.registered = true;
+      window.clearTimeout(this.timeout);
       this.status = 'open';
       this.startPing();
     });
     peer.on('connection', (c) => this.acceptGuest(c));
     peer.on('error', (err: { type?: string; message?: string }) => {
-      if (err.type === 'unavailable-id' && this.retries++ < 5) {
-        peer.destroy();
-        this.openHost();
-        return;
+      if (err.type === 'unavailable-id') {
+        if (this.registered) {
+          // 已發出去的連結要繼續有效：舊連線還沒被伺服器釋放，稍後用同一個代碼重連
+          window.setTimeout(() => {
+            if (!peer.destroyed) peer.reconnect();
+          }, 3000);
+          return;
+        }
+        if (this.retries++ < 5) {
+          peer.destroy();
+          this.openHost();
+          return;
+        }
       }
       if (err.type === 'peer-unavailable') return; // 某位加入者消失，不影響房間
+      const brokerTrouble = err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error' || err.type === 'socket-closed';
+      if (this.registered && brokerTrouble) {
+        // 手機切到別的 App（例如去 LINE 分享連結）時常見：已連線的玩家不受影響，背景重連即可
+        window.setTimeout(() => {
+          if (!peer.destroyed && peer.disconnected) peer.reconnect();
+        }, 2000);
+        return;
+      }
       this.fail(describeError(err));
     });
     peer.on('disconnected', () => {
-      // 與 broker 斷線不影響已建立的 P2P 連線；嘗試重連以便新玩家加入
-      if (!peer.destroyed) peer.reconnect();
+      // 與 broker 斷線不影響已建立的 P2P 連線；用同一個代碼重連，讓新玩家仍能用原連結加入
+      window.setTimeout(() => {
+        if (!peer.destroyed && peer.disconnected) peer.reconnect();
+      }, 1000);
+    });
+    // 從背景回到前景時檢查一次
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !peer.destroyed && peer.disconnected) peer.reconnect();
     });
   }
 
@@ -168,8 +224,12 @@ export class NetSession {
   }
 
   private openGuest(): void {
-    const peer = new Peer({ debug: 0 });
+    const peer = new Peer(PEER_OPTIONS);
     this.peer = peer;
+    this.timeout = window.setTimeout(() => {
+      if (this.status === 'connecting')
+        this.fail('連線逾時：找得到房間但無法建立點對點連線，可能是網路防火牆擋住。請換網路（例如手機熱點）再試。');
+    }, CONNECT_TIMEOUT);
     peer.on('open', () => {
       const c = peer.connect(ID_PREFIX + this.code, { reliable: true, serialization: 'json' });
       this.links.set(0, { conn: c, rtt: 0, verified: false });
@@ -180,6 +240,10 @@ export class NetSession {
       c.on('data', (d) => this.onData(0, d as NetMsg));
       c.on('close', () => this.onLinkClosed(0));
       c.on('error', () => this.onLinkClosed(0));
+      c.on('iceStateChanged', (state: RTCIceConnectionState) => {
+        if (state === 'failed' && this.status === 'connecting')
+          this.fail('無法建立點對點連線（網路防火牆或 NAT 限制）。請換網路（例如手機熱點）再試。');
+      });
     });
     peer.on('error', (err: { type?: string; message?: string }) => this.fail(describeError(err)));
   }
@@ -196,9 +260,9 @@ export class NetSession {
     switch (m.type) {
       case 'hello':
         if (m.v !== this.version) {
-          if (this.role === 'guest') this.fail('與房主的遊戲版本不同，請兩人都重新整理網頁後再試。');
+          if (this.role === 'guest') this.fail('你和房主的遊戲版本不同。請兩人都重新整理網頁（手機請關掉分頁重開）後再試。');
           else {
-            link.conn.send({ type: 'reject', reason: '遊戲版本不同，請重新整理網頁後再試。' } satisfies NetMsg);
+            link.conn.send({ type: 'reject', reason: '你和房主的遊戲版本不同。請兩人都重新整理網頁（手機請關掉分頁重開）後再試。' } satisfies NetMsg);
             setTimeout(() => link.conn.close(), 300);
           }
           return;
@@ -213,6 +277,7 @@ export class NetSession {
         link.verified = true;
         this.mySlot = m.slot;
         this.status = 'open';
+        window.clearTimeout(this.timeout);
         return;
       case 'reject':
         this.fail(m.reason);

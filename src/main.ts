@@ -50,6 +50,23 @@ if (roomCode) {
 }
 if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;
 
+// 正式版：若瀏覽器快取到舊版網頁（和伺服器上的 version.json 不同），自動重新整理一次
+if (import.meta.env.PROD) {
+  fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((v: { build?: string } | null) => {
+      if (!v?.build || v.build === __BUILD_ID__) return;
+      try {
+        if (sessionStorage.getItem('reloadedFor') === v.build) return;
+        sessionStorage.setItem('reloadedFor', v.build);
+      } catch {
+        /* 私密模式等情況忽略 */
+      }
+      window.location.reload();
+    })
+    .catch(() => undefined);
+}
+
 // ---------- 畫布縮放 ----------
 // 桌機：16:9 等比放大，邊緣留黑。手機橫向：邏輯寬度加寬到螢幕比例，戰鬥畫面填滿整個螢幕（荒野亂鬥式）。
 const MAX_WIDE = 1040;

@@ -21,8 +21,16 @@ export function getGameData(): GameData {
   return cached;
 }
 
-/** 資料指紋：連線時比對，確保雙方跑同一份角色 / 場地資料 */
+/** 連線協定版本：改動網路訊息格式時遞增 */
+export const PROTOCOL_VERSION = 3;
+
+/** 連線時比對的版本：協定 + 建置代號 + 資料指紋，任一不同就拒絕連線並提示重新整理 */
 export function dataVersion(): string {
+  return `p${PROTOCOL_VERSION}-${__BUILD_ID__}-${dataHash()}`;
+}
+
+/** 資料指紋：確保雙方跑同一份角色 / 場地資料 */
+export function dataHash(): string {
   const d = getGameData();
   const s = JSON.stringify([d.characters, d.items, d.stages, d.campaign, d.campaignDifficulty]);
   let h = 0x811c9dc5;

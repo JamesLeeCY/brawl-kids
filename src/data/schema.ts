@@ -127,8 +127,11 @@ export const CharacterSchema = z.object({
   /** 外型特徵（程式繪圖用）：髮型、眼鏡、領帶 */
   look: z
     .object({
-      hair: z.enum(['short', 'sidepart', 'neat', 'receding', 'none']).default('short'),
+      hair: z.enum(['short', 'sidepart', 'neat', 'receding', 'cap', 'none']).default('short'),
       glasses: z.boolean().default(false),
+      beard: z.boolean().default(false),
+      /** 無袖（手臂畫成膚色） */
+      sleeveless: z.boolean().default(false),
       tie: Color.optional(),
       shirt: Color.default('#f5f5f5'),
     })

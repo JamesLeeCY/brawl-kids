@@ -67,7 +67,7 @@ export class BattleScene extends Scene {
       for (const h of inp.held) for (const k of ACTIONS) local[k] = local[k] || h[k];
     }
     const pkt = ls.produce(this.world.tick, local);
-    if (pkt) net.send({ type: 'in', e: net.epoch, t: pkt.t, b: pkt.b });
+    if (pkt) net.sendInput(pkt);
     let steps = 0;
     while (steps < 3) {
       const inputs = ls.take(this.world.tick);
@@ -79,20 +79,21 @@ export class BattleScene extends Scene {
       if (t % HASH_INTERVAL === 0) {
         const h = this.world.hash();
         this.myHashes.set(t, h);
-        net.send({ type: 'hash', e: net.epoch, t, h });
+        net.broadcast({ type: 'hash', e: net.epoch, s: net.mySlot, t, h });
       }
     }
     this.stall = steps ? 0 : this.stall + 1;
-    for (const [t, h] of net.remoteHashes) {
+    for (const [key, h] of net.remoteHashes) {
+      const t = Number(key.split(':')[1]);
       const mine = this.myHashes.get(t);
       if (mine === undefined) continue;
       if (mine !== h && !this.desync) {
         this.desync = true;
-        console.warn(`[連線] tick ${t} 世界狀態不同步`);
+        console.warn(`[連線] ${key} 世界狀態不同步`);
       }
-      net.remoteHashes.delete(t);
-      this.myHashes.delete(t);
+      net.remoteHashes.delete(key);
     }
+    for (const t of this.myHashes.keys()) if (t < this.world.tick - HASH_INTERVAL * 4) this.myHashes.delete(t);
   }
 
   /** 前進一個 tick；若場景已切換回傳 true */
@@ -130,8 +131,8 @@ export class BattleScene extends Scene {
     this.renderer = new BattleRenderer(this.world);
     this.intro = 90;
     if (this.net?.lockstep) {
-      // 兩端在同一個世界 tick 過關，各自切到下一段 lockstep
-      this.net.beginMatch(this.net.epoch + 1, this.net.lockstep.delay);
+      // 各端在同一個世界 tick 過關，各自切到下一段 lockstep
+      this.net.nextSegment();
       this.myHashes.clear();
     }
   }
@@ -236,6 +237,8 @@ export class BattleScene extends Scene {
     const ping = `${net.role === 'host' ? '房主' : '加入者'}　${Math.round(net.rtt)} ms`;
     text(ctx, ping, 8, 444, 11, net.rtt > 150 ? '#fca5a5' : '#86efac', 'left', false, true);
     if (this.desync) text(ctx, '⚠ 畫面可能不同步', VW - 8, 444, 11, '#fca5a5', 'right', false, true);
+    const gone = net.lockstep?.humanSlots.filter((s) => net.lockstep!.isDropped(s)) ?? [];
+    if (gone.length) text(ctx, `${gone.map((s) => `${s + 1}P`).join('、')} 已離線`, VW / 2, 444, 11, '#fca5a5', 'center', false, true);
     if (net.status !== 'open') {
       overlay(ctx, 0.65);
       text(ctx, net.error || '對手已離線', VW / 2, 200, 22, '#ff8a8a', 'center', true, true);
@@ -260,7 +263,8 @@ export class BattleScene extends Scene {
       '必殺技：按住「防禦＋方向」再按攻擊/跳躍；或依序按 防禦 → 方向 → 攻擊/跳躍',
     ];
     lines.forEach((l, i) => text(ctx, l, VW / 2, 254 + i * 20, 12, '#fff', 'center', false));
-    this.app.data.selectable.forEach((id, r) => {
+    const inMatch = [...new Set(this.world.chars().filter((c) => c.slot >= 0).map((c) => c.charId))];
+    inMatch.forEach((id, r) => {
       const d = this.app.data.characters[id];
       const mv = d.moves.map((m) => `${moveLabel(m.command)}${m.name}`).join('  ');
       text(ctx, `${d.name}：${mv}`, VW / 2, 348 + r * 17, 10, '#cbd5e1', 'center', false);

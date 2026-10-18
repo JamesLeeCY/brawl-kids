@@ -1,0 +1,319 @@
+{
+  "id": "adi",
+  "name": "阿低",
+  "title": "英文老師",
+  "accessory": "book",
+  "quote": "今天的單字：K.O.！",
+  "stats": {
+    "hp": 470,
+    "walkSpeed": 2.7,
+    "runSpeed": 6.0,
+    "jumpPower": 9.4,
+    "weight": 0.95
+  },
+  "palette": {
+    "skin": "#f3c9a3",
+    "main": "#0284c7",
+    "accent": "#f59e0b",
+    "hair": "#1a1a1a"
+  },
+  "look": {
+    "hair": "short",
+    "glasses": true
+  },
+  "frames": {
+    "card_1": {
+      "duration": 4,
+      "pose": "cast_ready",
+      "next": "card_2",
+      "sound": "special"
+    },
+    "card_2": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "card_3",
+      "spawn": [
+        {
+          "id": "abc",
+          "x": 22,
+          "y": 38,
+          "vx": 9
+        }
+      ]
+    },
+    "card_3": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "card_4",
+      "spawn": [
+        {
+          "id": "abc",
+          "x": 22,
+          "y": 38,
+          "vx": 9,
+          "dz": -8
+        }
+      ]
+    },
+    "card_4": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "card_rec",
+      "spawn": [
+        {
+          "id": "abc",
+          "x": 22,
+          "y": 38,
+          "vx": 9,
+          "dz": 8
+        }
+      ]
+    },
+    "card_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "vortex_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "vortex_2",
+      "sound": "special"
+    },
+    "vortex_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "vortex_rec",
+      "spawn": [
+        {
+          "id": "vortex",
+          "x": 40,
+          "y": 30,
+          "vx": 2.2
+        }
+      ]
+    },
+    "vortex_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "fullmark_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "blockProjectile",
+        "value": 1,
+        "duration": 240
+      }
+    },
+    "bell_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "bell_2",
+      "sound": "special"
+    },
+    "bell_2": {
+      "duration": 16,
+      "pose": "dash",
+      "next": "bell_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 32,
+          "h": 44,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "bell_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "skip_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "skip_2",
+      "sound": "special"
+    },
+    "skip_2": {
+      "duration": 12,
+      "pose": "jet_up",
+      "hover": true,
+      "selfVel": {
+        "vx": 0,
+        "vy": 7
+      },
+      "buff": {
+        "type": "hover",
+        "value": 1,
+        "duration": 84
+      }
+    },
+    "quiz_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "quiz_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "bookdrop",
+          "at": "random",
+          "count": 5,
+          "y": 0
+        }
+      ]
+    },
+    "quiz_rec": {
+      "duration": 10,
+      "pose": "victory"
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "單字卡連發",
+      "mp": 60,
+      "startFrame": "card_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "文法漩渦",
+      "mp": 110,
+      "startFrame": "vortex_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "滿分護盾",
+      "mp": 100,
+      "startFrame": "fullmark_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "下課衝刺",
+      "mp": 80,
+      "startFrame": "bell_1",
+      "role": "rush"
+    },
+    {
+      "command": "D^J",
+      "name": "跳級",
+      "mp": 60,
+      "startFrame": "skip_1",
+      "role": "buff"
+    },
+    {
+      "command": "DvJ",
+      "name": "隨堂考",
+      "mp": 150,
+      "startFrame": "quiz_1",
+      "role": "area"
+    }
+  ],
+  "projectiles": {
+    "abc": {
+      "life": 55,
+      "size": 10,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "abc",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -7.0,
+              "y": -6.0,
+              "w": 14,
+              "h": 12,
+              "damage": 18,
+              "fall": 14,
+              "dvx": 3,
+              "dvy": 0,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "vortex": {
+      "life": 120,
+      "size": 22,
+      "pull": 1.6,
+      "pullRadius": 140,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "spin",
+      "frames": {
+        "spin": {
+          "duration": 1,
+          "pose": "vortex",
+          "next": "spin",
+          "itr": [
+            {
+              "x": -20,
+              "y": -26,
+              "w": 40,
+              "h": 52,
+              "damage": 8,
+              "fall": 6,
+              "dvx": 0,
+              "hitstop": 2,
+              "rehit": 15,
+              "zRange": 20
+            }
+          ]
+        }
+      }
+    },
+    "bookdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "bookdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 40,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

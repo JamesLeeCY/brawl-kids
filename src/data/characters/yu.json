@@ -1,0 +1,306 @@
+{
+  "id": "yu",
+  "name": "遊挺好",
+  "title": "財經評論員",
+  "accessory": "chart",
+  "quote": "投資一定有風險！",
+  "stats": {
+    "hp": 480,
+    "walkSpeed": 2.5,
+    "runSpeed": 5.6,
+    "jumpPower": 9.0,
+    "weight": 1.0
+  },
+  "palette": {
+    "skin": "#f2c6a0",
+    "main": "#334155",
+    "accent": "#ef4444",
+    "hair": "#222222"
+  },
+  "look": {
+    "hair": "neat",
+    "glasses": true,
+    "tie": "#dc2626"
+  },
+  "frames": {
+    "kline_1": {
+      "duration": 4,
+      "pose": "cast_ready",
+      "next": "kline_2",
+      "sound": "special"
+    },
+    "kline_2": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "kline_3",
+      "spawn": [
+        {
+          "id": "candle",
+          "x": 22,
+          "y": 38,
+          "vx": 9
+        }
+      ]
+    },
+    "kline_3": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "kline_4",
+      "spawn": [
+        {
+          "id": "candle",
+          "x": 22,
+          "y": 38,
+          "vx": 9,
+          "dz": -8
+        }
+      ]
+    },
+    "kline_4": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "kline_rec",
+      "spawn": [
+        {
+          "id": "candle",
+          "x": 22,
+          "y": 38,
+          "vx": 9,
+          "dz": 8
+        }
+      ]
+    },
+    "kline_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "limitup_1": {
+      "duration": 6,
+      "pose": "crouch",
+      "next": "limitup_2",
+      "sound": "special"
+    },
+    "limitup_2": {
+      "duration": 14,
+      "pose": "cast_up",
+      "next": "idle",
+      "selfVel": {
+        "vx": 2,
+        "vy": 7
+      },
+      "itr": [
+        {
+          "x": 0,
+          "y": 20,
+          "w": 30,
+          "h": 50,
+          "damage": 45,
+          "fall": 85,
+          "dvx": 2,
+          "dvy": 11,
+          "hitstop": 6
+        }
+      ]
+    },
+    "limitdown_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "limitdown_2",
+      "sound": "special"
+    },
+    "limitdown_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "limitdown_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -60,
+          "y": 0,
+          "w": 120,
+          "h": 34,
+          "damage": 50,
+          "fall": 80,
+          "dvx": 5,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 40,
+          "radial": true
+        }
+      ]
+    },
+    "limitdown_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "chase_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "chase_2",
+      "sound": "special"
+    },
+    "chase_2": {
+      "duration": 16,
+      "pose": "dash",
+      "next": "chase_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 32,
+          "h": 44,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "chase_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "crash_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "crash_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "candledrop",
+          "at": "random",
+          "count": 6,
+          "y": 0
+        }
+      ]
+    },
+    "crash_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "stoploss_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "dmgReduce",
+        "value": 0.5,
+        "duration": 180
+      }
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "K 線飛彈",
+      "mp": 60,
+      "startFrame": "kline_1",
+      "role": "ranged"
+    },
+    {
+      "command": "D^A",
+      "name": "漲停板",
+      "mp": 80,
+      "startFrame": "limitup_1",
+      "role": "burst"
+    },
+    {
+      "command": "DvA",
+      "name": "跌停震地",
+      "mp": 100,
+      "startFrame": "limitdown_1",
+      "role": "burst"
+    },
+    {
+      "command": "D>J",
+      "name": "追高衝刺",
+      "mp": 80,
+      "startFrame": "chase_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "股災落雷",
+      "mp": 170,
+      "startFrame": "crash_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "停損護盾",
+      "mp": 130,
+      "startFrame": "stoploss_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "candle": {
+      "life": 55,
+      "size": 10,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "candle",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -7.0,
+              "y": -6.0,
+              "w": 14,
+              "h": 12,
+              "damage": 18,
+              "fall": 14,
+              "dvx": 3,
+              "dvy": 0,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "candledrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "candledrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 40,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

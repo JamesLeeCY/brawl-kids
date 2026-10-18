@@ -1,0 +1,233 @@
+{
+  "id": "gym",
+  "name": "管長",
+  "title": "健身館主",
+  "accessory": "none",
+  "quote": "來，練起來！",
+  "stats": {
+    "hp": 650,
+    "walkSpeed": 2.2,
+    "runSpeed": 5.0,
+    "jumpPower": 8.0,
+    "weight": 1.4
+  },
+  "palette": {
+    "skin": "#d9a27a",
+    "main": "#111111",
+    "accent": "#ef4444",
+    "hair": "#1a1a1a"
+  },
+  "look": {
+    "hair": "none",
+    "beard": true,
+    "sleeveless": true
+  },
+  "frames": {
+    "dumbbell_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "dumbbell_2",
+      "sound": "special"
+    },
+    "dumbbell_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "dumbbell_rec",
+      "spawn": [
+        {
+          "id": "dumbbell",
+          "x": 22,
+          "y": 44,
+          "vx": 7,
+          "vy": 4
+        }
+      ]
+    },
+    "dumbbell_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "squat_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "squat_2",
+      "sound": "special"
+    },
+    "squat_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "squat_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -60,
+          "y": 0,
+          "w": 120,
+          "h": 34,
+          "damage": 56,
+          "fall": 85,
+          "dvx": 5,
+          "dvy": 8,
+          "hitstop": 6,
+          "zRange": 40,
+          "radial": true
+        }
+      ]
+    },
+    "squat_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "pump_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "dmgReduce",
+        "value": 0.5,
+        "duration": 180
+      }
+    },
+    "bulldoze_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "bulldoze_2",
+      "sound": "special"
+    },
+    "bulldoze_2": {
+      "duration": 16,
+      "pose": "run_attack",
+      "next": "bulldoze_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 10
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 32,
+          "h": 44,
+          "damage": 48,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "bulldoze_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "gymkick_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "gymkick_2",
+      "sound": "special"
+    },
+    "gymkick_2": {
+      "duration": 18,
+      "pose": "flykick",
+      "next": "idle",
+      "selfVel": {
+        "vx": 6,
+        "vy": 8
+      },
+      "itr": [
+        {
+          "x": 2,
+          "y": 8,
+          "w": 34,
+          "h": 30,
+          "damage": 44,
+          "fall": 80,
+          "dvx": 6,
+          "dvy": 6,
+          "hitstop": 6
+        }
+      ]
+    },
+    "protein_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "sound": "special",
+      "heal": 120
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "啞鈴投擲",
+      "mp": 80,
+      "startFrame": "dumbbell_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "深蹲震地",
+      "mp": 100,
+      "startFrame": "squat_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "肌肉充血",
+      "mp": 140,
+      "startFrame": "pump_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "猛男衝撞",
+      "mp": 80,
+      "startFrame": "bulldoze_1",
+      "role": "rush"
+    },
+    {
+      "command": "D^J",
+      "name": "健身飛踢",
+      "mp": 60,
+      "startFrame": "gymkick_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "蛋白粉補給",
+      "mp": 150,
+      "startFrame": "protein_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "dumbbell": {
+      "life": 70,
+      "size": 14,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "dumbbell",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -10.0,
+              "y": -7.0,
+              "w": 20,
+              "h": 14,
+              "damage": 50,
+              "fall": 75,
+              "dvx": 3,
+              "dvy": 4,
+              "hitstop": 5
+            }
+          ]
+        }
+      },
+      "gravity": 0.3
+    }
+  }
+}

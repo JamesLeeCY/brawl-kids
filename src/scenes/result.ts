@@ -7,6 +7,7 @@ import type { Entity } from '../sim/entity';
 import { CAMPAIGN_PLAYER_TEAM, type MatchResult, type MatchSetup, type World } from '../sim/world';
 import type { NetSession } from '../net/session';
 import { BattleScene, backToSelect, backToTitle } from './battle';
+import { startOnlineMatch } from './online';
 import { Scene, type App, type MenuInput } from './scene';
 import { hint, menuBackground } from './ui';
 
@@ -26,6 +27,7 @@ export class ResultScene extends Scene {
     private net: NetSession | null = null,
   ) {
     super(app);
+    if (net) net.inMatch = false;
     const chars = world.chars();
     this.players = chars.filter((c) => c.slot >= 0).sort((a, b) => a.slot - b.slot);
     if (setup.mode === 'campaign') {
@@ -56,7 +58,7 @@ export class ResultScene extends Scene {
 
   private updateNet(inp: MenuInput): void {
     const net = this.net!;
-    for (const m of net.drain()) {
+    for (const { msg: m } of net.drain()) {
       if (m.type === 'rematch') {
         this.app.scenes.replace(new BattleScene(this.app, m.setup, net));
         return;
@@ -80,13 +82,9 @@ export class ResultScene extends Scene {
         s.campaignIndex = 0;
         s.stageId = this.app.data.campaign[0].stage;
       }
-      const epoch = net.epoch + 1;
-      const delay = net.suggestDelay();
-      net.beginMatch(epoch, delay);
-      net.send({ type: 'rematch', setup: s, epoch, delay });
-      this.app.scenes.replace(new BattleScene(this.app, s, net));
-    } else if (d) {
-      net.send({ type: 'lobby' });
+      startOnlineMatch(this.app, net, s, 'rematch');
+    } else if (d && net.role === 'host') {
+      net.broadcast({ type: 'lobby' });
       this.toOnlineSelect();
     }
   }
@@ -144,6 +142,6 @@ export class ResultScene extends Scene {
     if (!this.net) hint(ctx, '攻擊 / Enter：再來一場　防禦 / Esc：回選角');
     else if (this.net.status !== 'open') hint(ctx, '對手已離線　·　按 攻擊 回到標題');
     else if (this.net.role === 'host') hint(ctx, '攻擊 / Enter：再來一場　防禦：回連線選角　Esc：離開連線');
-    else hint(ctx, '等待房主決定是否再來一場…　防禦：回連線選角　Esc：離開連線');
+    else hint(ctx, '等待房主決定：再來一場或回連線選角…　Esc：離開連線');
   }
 }

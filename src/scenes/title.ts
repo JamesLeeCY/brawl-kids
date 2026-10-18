@@ -43,11 +43,16 @@ export class TitleScene extends Scene {
   render(ctx: CanvasRenderingContext2D): void {
     menuBackground(ctx, this.t);
     const ids = this.app.data.selectable;
+    // 角色分左右兩群站在標題兩側
+    const half = Math.ceil(ids.length / 2);
     ids.forEach((id, i) => {
       const def = this.app.data.characters[id];
-      const x = 130 + i * (540 / Math.max(1, ids.length - 1));
+      const left = i < half;
+      const k = left ? i : i - half;
+      const x = left ? 40 + k * 46 : VW - 40 - k * 46;
+      const y = 250 + (k % 2) * 26;
       const pose = getPose(Math.floor(this.t / 40 + i) % 3 === 0 ? 'victory' : `idle_${Math.floor(this.t / 30) % 2}`);
-      drawFigure(ctx, def, { pose, x, y: 270, facing: i < ids.length / 2 ? 1 : -1, scale: 1.6, tick: this.t });
+      drawFigure(ctx, def, { pose, x, y, facing: left ? 1 : -1, scale: 1.15, tick: this.t });
     });
     text(ctx, '混戰小英雄', VW / 2, 110, 64, '#ffd23f', 'center', true, true);
     text(ctx, 'BRAWL KIDS', VW / 2, 145, 22, '#ffffff', 'center', true, true);

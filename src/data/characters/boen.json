@@ -1,0 +1,294 @@
+{
+  "id": "boen",
+  "name": "搏恩",
+  "title": "脫口秀之王",
+  "accessory": "mic",
+  "quote": "謝謝大家，晚安！",
+  "stats": {
+    "hp": 500,
+    "walkSpeed": 2.6,
+    "runSpeed": 5.7,
+    "jumpPower": 9.0,
+    "weight": 1.0
+  },
+  "palette": {
+    "skin": "#f0c4a0",
+    "main": "#111827",
+    "accent": "#a855f7",
+    "hair": "#1a1a1a"
+  },
+  "look": {
+    "hair": "sidepart",
+    "tie": "#a855f7"
+  },
+  "frames": {
+    "laugh_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "laugh_2",
+      "sound": "special"
+    },
+    "laugh_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "laugh_rec",
+      "spawn": [
+        {
+          "id": "laugh",
+          "x": 26,
+          "y": 36,
+          "vx": 6.5
+        }
+      ]
+    },
+    "laugh_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "canned_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "canned_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "laughdrop",
+          "at": "random",
+          "count": 6,
+          "y": 0
+        }
+      ]
+    },
+    "canned_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "coldjoke_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "coldjoke_2",
+      "sound": "special"
+    },
+    "coldjoke_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "coldjoke_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -60,
+          "y": 0,
+          "w": 120,
+          "h": 34,
+          "damage": 30,
+          "fall": 45,
+          "dvx": 5,
+          "dvy": 0,
+          "hitstop": 6,
+          "zRange": 40,
+          "radial": true
+        }
+      ]
+    },
+    "coldjoke_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "punchline_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "punchline_2",
+      "sound": "special"
+    },
+    "punchline_2": {
+      "duration": 16,
+      "pose": "dash",
+      "next": "punchline_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 32,
+          "h": 44,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "punchline_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "ovation_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "sound": "special",
+      "heal": 100
+    },
+    "micthrow_1": {
+      "duration": 5,
+      "pose": "cast_ready",
+      "next": "micthrow_2",
+      "sound": "special"
+    },
+    "micthrow_2": {
+      "duration": 10,
+      "pose": "cast",
+      "next": "micthrow_rec",
+      "spawn": [
+        {
+          "id": "mic",
+          "x": 22,
+          "y": 38,
+          "vx": 10
+        }
+      ]
+    },
+    "micthrow_rec": {
+      "duration": 8,
+      "pose": "cast"
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "脫口秀衝擊",
+      "mp": 75,
+      "startFrame": "laugh_1",
+      "role": "ranged"
+    },
+    {
+      "command": "D^A",
+      "name": "罐頭笑聲",
+      "mp": 170,
+      "startFrame": "canned_1",
+      "role": "area"
+    },
+    {
+      "command": "DvA",
+      "name": "冷笑話",
+      "mp": 90,
+      "startFrame": "coldjoke_1",
+      "role": "burst"
+    },
+    {
+      "command": "D>J",
+      "name": "爆笑衝刺",
+      "mp": 80,
+      "startFrame": "punchline_1",
+      "role": "rush"
+    },
+    {
+      "command": "D^J",
+      "name": "起立鼓掌",
+      "mp": 140,
+      "startFrame": "ovation_1",
+      "role": "buff"
+    },
+    {
+      "command": "DvJ",
+      "name": "麥克風丟擲",
+      "mp": 60,
+      "startFrame": "micthrow_1",
+      "role": "ranged"
+    }
+  ],
+  "projectiles": {
+    "laugh": {
+      "life": 70,
+      "size": 18,
+      "hitLimit": 3,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "laugh",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -13.0,
+              "y": -16.0,
+              "w": 26,
+              "h": 32,
+              "damage": 42,
+              "fall": 45,
+              "dvx": 3,
+              "dvy": 0,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "laughdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "laughdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 36,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    },
+    "mic": {
+      "life": 50,
+      "size": 10,
+      "hitLimit": 2,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "mic",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -7.0,
+              "y": -6.0,
+              "w": 14,
+              "h": 12,
+              "damage": 30,
+              "fall": 40,
+              "dvx": 3,
+              "dvy": 0,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    }
+  }
+}

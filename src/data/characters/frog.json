@@ -1,0 +1,310 @@
+{
+  "id": "frog",
+  "name": "呱雞",
+  "title": "呱呱議員",
+  "accessory": "frog",
+  "quote": "呱！今天也很好笑。",
+  "stats": {
+    "hp": 490,
+    "walkSpeed": 2.7,
+    "runSpeed": 5.8,
+    "jumpPower": 11,
+    "weight": 0.95
+  },
+  "palette": {
+    "skin": "#f1c8a0",
+    "main": "#15803d",
+    "accent": "#4ade80",
+    "hair": "#1a1a1a"
+  },
+  "look": {
+    "hair": "none",
+    "glasses": true
+  },
+  "frames": {
+    "frogshot_1": {
+      "duration": 5,
+      "pose": "cast_ready",
+      "next": "frogshot_2",
+      "sound": "special"
+    },
+    "frogshot_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "frogshot_rec",
+      "spawn": [
+        {
+          "id": "frog",
+          "x": 22,
+          "y": 30,
+          "vx": 6,
+          "vy": 5
+        }
+      ]
+    },
+    "frogshot_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "leap_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "leap_2",
+      "sound": "special"
+    },
+    "leap_2": {
+      "duration": 12,
+      "pose": "jet_up",
+      "hover": true,
+      "selfVel": {
+        "vx": 0,
+        "vy": 7
+      },
+      "buff": {
+        "type": "hover",
+        "value": 1,
+        "duration": 84
+      }
+    },
+    "croak_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "croak_2",
+      "sound": "special"
+    },
+    "croak_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "croak_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -60,
+          "y": 0,
+          "w": 120,
+          "h": 34,
+          "damage": 50,
+          "fall": 80,
+          "dvx": 5,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 40,
+          "radial": true
+        }
+      ]
+    },
+    "croak_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "swim_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "swim_2",
+      "sound": "special"
+    },
+    "swim_2": {
+      "duration": 16,
+      "pose": "dash",
+      "next": "swim_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 32,
+          "h": 44,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "swim_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "question_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "question_2",
+      "sound": "special"
+    },
+    "question_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "question_rec",
+      "spawn": [
+        {
+          "id": "talk",
+          "x": 26,
+          "y": 36,
+          "vx": 6.5
+        }
+      ]
+    },
+    "question_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "frograin_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "frograin_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "frogdrop",
+          "at": "random",
+          "count": 5,
+          "y": 0
+        }
+      ]
+    },
+    "frograin_rec": {
+      "duration": 10,
+      "pose": "victory"
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "青蛙跳彈",
+      "mp": 60,
+      "startFrame": "frogshot_1",
+      "role": "ranged"
+    },
+    {
+      "command": "D^J",
+      "name": "蛙跳",
+      "mp": 60,
+      "startFrame": "leap_1",
+      "role": "buff"
+    },
+    {
+      "command": "DvA",
+      "name": "呱呱震波",
+      "mp": 100,
+      "startFrame": "croak_1",
+      "role": "burst"
+    },
+    {
+      "command": "D>J",
+      "name": "蛙泳衝刺",
+      "mp": 80,
+      "startFrame": "swim_1",
+      "role": "rush"
+    },
+    {
+      "command": "D^A",
+      "name": "議會質詢",
+      "mp": 80,
+      "startFrame": "question_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvJ",
+      "name": "青蛙雨",
+      "mp": 150,
+      "startFrame": "frograin_1",
+      "role": "area"
+    }
+  ],
+  "projectiles": {
+    "frog": {
+      "life": 70,
+      "size": 12,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "frog",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -9.0,
+              "y": -8.0,
+              "w": 18,
+              "h": 16,
+              "damage": 28,
+              "fall": 45,
+              "dvx": 3,
+              "dvy": 0,
+              "hitstop": 3
+            }
+          ]
+        }
+      },
+      "gravity": 0.3
+    },
+    "talk": {
+      "life": 70,
+      "size": 18,
+      "hitLimit": 3,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "talk",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -13.0,
+              "y": -16.0,
+              "w": 26,
+              "h": 32,
+              "damage": 42,
+              "fall": 45,
+              "dvx": 3,
+              "dvy": 0,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "frogdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "frogdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 40,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

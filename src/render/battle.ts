@@ -573,6 +573,57 @@ export class BattleRenderer {
         }
         break;
       }
+      case 'laugh':
+      case 'zan':
+      case 'talk': {
+        // 文字聲波：哈哈 / 讚啦 / 質詢
+        const word = pose === 'laugh' ? '哈哈' : pose === 'zan' ? '讚啦' : '質詢！';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        for (let i = 0; i < 2; i++) {
+          ctx.globalAlpha = 0.8 - i * 0.3;
+          ctx.beginPath();
+          ctx.arc(x - p.facing * (6 + i * 8), y, 16 - i * 3, p.facing > 0 ? -1 : Math.PI - 1, p.facing > 0 ? 1 : Math.PI + 1);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.font = `bold 15px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#000';
+        ctx.strokeText(word, x + p.facing * 4, y + 5);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(word, x + p.facing * 4, y + 5);
+        ctx.textAlign = 'left';
+        break;
+      }
+      case 'abc':
+      case 'slipper':
+      case 'frog':
+      case 'dumbbell':
+      case 'mic':
+      case 'candle':
+        ctx.shadowBlur = 4;
+        drawIcon(ctx, pose, x, y, 1, p.facing, color, w.tick, p.id);
+        break;
+      case 'bookdrop':
+      case 'slipperdrop':
+      case 'laughdrop':
+      case 'frogdrop':
+      case 'candledrop': {
+        const k = f ? p.frameTime / f.duration : 1;
+        const by = HZ + p.z - Math.max(0, 1 - k * 2.2) * 260;
+        ctx.shadowBlur = 0;
+        drawIcon(ctx, pose.replace('drop', ''), x, by - 16, 1.8, 1, color, w.tick, p.id);
+        if (k > 0.45) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(x, HZ + p.z, 24 * k, 8 * k, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        break;
+      }
       default:
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -692,4 +743,100 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, co
     else ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
   }
   ctx.fill();
+}
+
+/** 飛行物與天降攻擊共用的小圖示，(x,y) 為中心 */
+function drawIcon(ctx: CanvasRenderingContext2D, kind: string, x: number, y: number, sc: number, facing: number, color: string, tick: number, seed: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(sc * facing, sc);
+  switch (kind) {
+    case 'abc': {
+      ctx.rotate(Math.sin(tick * 0.3 + seed) * 0.3);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-8, -6, 16, 12);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-8, -6, 16, 12);
+      ctx.fillStyle = '#1e3a8a';
+      ctx.font = `bold 8px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('ABC'.charAt(seed % 3), 0, 3);
+      break;
+    }
+    case 'book':
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillRect(-8, -10, 16, 20);
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(6, -9, 2, 18);
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold 6px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('ABC', -1, 2);
+      break;
+    case 'slipper':
+      ctx.rotate(tick * 0.4);
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2563eb';
+      ctx.fillRect(-3, -5, 4, 10);
+      break;
+    case 'laugh':
+      ctx.font = `bold 20px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#000';
+      ctx.strokeText('哈', 0, 7);
+      ctx.fillStyle = color;
+      ctx.fillText('哈', 0, 7);
+      break;
+    case 'frog':
+      ctx.fillStyle = '#16a34a';
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 9, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      for (const ex of [-4, 4]) {
+        ctx.fillStyle = '#16a34a';
+        ctx.beginPath();
+        ctx.arc(ex, -4, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(ex + 0.6, -4.4, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.fillRect(ex + 0.6, -5, 1, 1.2);
+      }
+      ctx.fillStyle = '#86efac';
+      ctx.fillRect(-4, 4, 8, 1.5);
+      break;
+    case 'dumbbell':
+      ctx.rotate(tick * 0.25);
+      ctx.fillStyle = '#9ca3af';
+      ctx.fillRect(-7, -1.5, 14, 3);
+      ctx.fillStyle = '#374151';
+      ctx.fillRect(-11, -6, 5, 12);
+      ctx.fillRect(6, -6, 5, 12);
+      break;
+    case 'mic':
+      ctx.rotate(tick * 0.35);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(-1.5, -2, 3, 10);
+      ctx.fillStyle = '#9ca3af';
+      ctx.beginPath();
+      ctx.arc(0, -4, 4, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case 'candle': {
+      const up = seed % 2 === 0;
+      const c = up ? '#ef4444' : '#22c55e';
+      ctx.fillStyle = c;
+      ctx.fillRect(-0.8, -10, 1.6, 20);
+      ctx.fillRect(-4, -6, 8, 12);
+      break;
+    }
+  }
+  ctx.restore();
 }

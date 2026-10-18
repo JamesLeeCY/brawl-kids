@@ -1,0 +1,309 @@
+{
+  "id": "aga",
+  "name": "菜阿嘎",
+  "title": "台語網紅",
+  "accessory": "slipper",
+  "quote": "讚啦！",
+  "stats": {
+    "hp": 520,
+    "walkSpeed": 2.6,
+    "runSpeed": 5.8,
+    "jumpPower": 9.0,
+    "weight": 1.05
+  },
+  "palette": {
+    "skin": "#e9b48a",
+    "main": "#dc2626",
+    "accent": "#fbbf24",
+    "hair": "#1d4ed8"
+  },
+  "look": {
+    "hair": "cap"
+  },
+  "frames": {
+    "slipper_1": {
+      "duration": 5,
+      "pose": "cast_ready",
+      "next": "slipper_2",
+      "sound": "special"
+    },
+    "slipper_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "slipper_rec",
+      "spawn": [
+        {
+          "id": "slipper",
+          "x": 22,
+          "y": 40,
+          "vx": 8,
+          "vy": 3
+        }
+      ]
+    },
+    "slipper_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "zan_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "zan_2",
+      "sound": "special"
+    },
+    "zan_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "zan_rec",
+      "spawn": [
+        {
+          "id": "zan",
+          "x": 26,
+          "y": 36,
+          "vx": 6.5
+        }
+      ]
+    },
+    "zan_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "market_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "market_2",
+      "sound": "special"
+    },
+    "market_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "market_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -60,
+          "y": 0,
+          "w": 120,
+          "h": 34,
+          "damage": 50,
+          "fall": 80,
+          "dvx": 5,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 40,
+          "radial": true
+        }
+      ]
+    },
+    "market_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "scooter_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "scooter_2",
+      "sound": "special"
+    },
+    "scooter_2": {
+      "duration": 16,
+      "pose": "run_attack",
+      "next": "scooter_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11.5
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 32,
+          "h": 44,
+          "damage": 42,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "scooter_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "agajump_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "agajump_2",
+      "sound": "special"
+    },
+    "agajump_2": {
+      "duration": 12,
+      "pose": "jet_up",
+      "hover": true,
+      "selfVel": {
+        "vx": 0,
+        "vy": 7
+      },
+      "buff": {
+        "type": "hover",
+        "value": 1,
+        "duration": 84
+      }
+    },
+    "slipperrain_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "slipperrain_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "slipperdrop",
+          "at": "random",
+          "count": 5,
+          "y": 0
+        }
+      ]
+    },
+    "slipperrain_rec": {
+      "duration": 10,
+      "pose": "victory"
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "藍白拖飛射",
+      "mp": 60,
+      "startFrame": "slipper_1",
+      "role": "ranged"
+    },
+    {
+      "command": "D^A",
+      "name": "台語嗆聲",
+      "mp": 80,
+      "startFrame": "zan_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "夜市震地",
+      "mp": 100,
+      "startFrame": "market_1",
+      "role": "burst"
+    },
+    {
+      "command": "D>J",
+      "name": "機車衝刺",
+      "mp": 80,
+      "startFrame": "scooter_1",
+      "role": "rush"
+    },
+    {
+      "command": "D^J",
+      "name": "阿嘎跳",
+      "mp": 60,
+      "startFrame": "agajump_1",
+      "role": "buff"
+    },
+    {
+      "command": "DvJ",
+      "name": "拖鞋雨",
+      "mp": 150,
+      "startFrame": "slipperrain_1",
+      "role": "area"
+    }
+  ],
+  "projectiles": {
+    "slipper": {
+      "life": 60,
+      "size": 10,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "slipper",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -7.0,
+              "y": -6.0,
+              "w": 14,
+              "h": 12,
+              "damage": 30,
+              "fall": 50,
+              "dvx": 3,
+              "dvy": 4,
+              "hitstop": 5
+            }
+          ]
+        }
+      },
+      "gravity": 0.25
+    },
+    "zan": {
+      "life": 70,
+      "size": 18,
+      "hitLimit": 3,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "zan",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -13.0,
+              "y": -16.0,
+              "w": 26,
+              "h": 32,
+              "damage": 42,
+              "fall": 45,
+              "dvx": 3,
+              "dvy": 0,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "slipperdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "slipperdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 40,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

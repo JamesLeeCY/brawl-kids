@@ -1,14 +1,73 @@
 {
   "items": [
-    { "id": "crate", "name": "木箱", "kind": "heavy", "color": "#a0652d", "size": 26,
-      "throwDamage": 60, "throwFall": 80, "breakOnLand": true, "weight": 1 },
-    { "id": "stone", "name": "石頭", "kind": "light", "color": "#8a8f98", "size": 12,
-      "throwDamage": 40, "throwFall": 60, "bounces": 1, "swingFrame": "swing_light", "weight": 1 },
-    { "id": "bat", "name": "球棒", "kind": "weapon", "color": "#c8964f", "size": 30,
-      "throwDamage": 35, "throwFall": 60, "swingFrame": "swing", "uses": 15, "weight": 1 },
-    { "id": "bubbletea", "name": "珍珠奶茶", "kind": "consumable", "color": "#d6b48a", "size": 14,
-      "heal": { "mp": 200 }, "weight": 1 },
-    { "id": "bento", "name": "便當", "kind": "consumable", "color": "#e9e2d0", "size": 16,
-      "heal": { "hp": 100 }, "weight": 1 }
+    {
+      "id": "crate",
+      "name": "木箱",
+      "kind": "heavy",
+      "color": "#a0652d",
+      "size": 26,
+      "throwDamage": 60,
+      "throwFall": 80,
+      "breakOnLand": true,
+      "weight": 1
+    },
+    {
+      "id": "stone",
+      "name": "石頭",
+      "kind": "light",
+      "color": "#8a8f98",
+      "size": 12,
+      "throwDamage": 40,
+      "throwFall": 60,
+      "bounces": 1,
+      "swingFrame": "swing_light",
+      "weight": 1
+    },
+    {
+      "id": "bat",
+      "name": "球棒",
+      "kind": "weapon",
+      "color": "#c8964f",
+      "size": 30,
+      "throwDamage": 35,
+      "throwFall": 60,
+      "swingFrame": "swing",
+      "uses": 15,
+      "weight": 1
+    },
+    {
+      "id": "bubbletea",
+      "name": "珍珠奶茶",
+      "kind": "consumable",
+      "color": "#d6b48a",
+      "size": 14,
+      "heal": {
+        "mp": 200
+      },
+      "weight": 1
+    },
+    {
+      "id": "bento",
+      "name": "便當",
+      "kind": "consumable",
+      "color": "#e9e2d0",
+      "size": 16,
+      "heal": {
+        "hp": 100
+      },
+      "weight": 1
+    },
+    {
+      "id": "tea",
+      "name": "高山茶",
+      "kind": "consumable",
+      "color": "#8bc34a",
+      "size": 14,
+      "heal": {
+        "hp": 30,
+        "mp": 150
+      },
+      "weight": 0
+    }
   ]
 }

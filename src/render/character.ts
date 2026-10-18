@@ -41,15 +41,24 @@ export function shade(hex: string, amt: number): string {
   return `rgb(${r | 0},${g | 0},${b | 0})`;
 }
 
+/** 荒野亂鬥式粗描邊顏色 */
+export const OUTLINE = '#1a1530';
+/** 頭部放大倍率（Q 版大頭） */
+const HEAD_SCALE = 1.2;
+
+/** 肢體：先畫較粗的深色描邊再畫本色 */
 function limb(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, w: number, color: string) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = w;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(x0, y0);
   ctx.lineTo(x1, y1);
   ctx.lineTo(x2, y2);
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = w + 3.2;
+  ctx.stroke();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = w;
   ctx.stroke();
 }
 
@@ -58,6 +67,16 @@ function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, 
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
+}
+
+function circleOl(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, lw = 1.6) {
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = lw;
+  ctx.stroke();
 }
 
 export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: FigureOpts): void {
@@ -96,7 +115,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   const neck = { x: hip.x + u.x * 18, y: hip.y + u.y * 18 };
   const sh = { x: hip.x + u.x * 15, y: hip.y + u.y * 15 };
   const hu = up(p.t + (p.h ?? 0));
-  const head = { x: neck.x + hu.x * 10, y: neck.y + hu.y * 10 };
+  const headPos = { x: neck.x + hu.x * 12, y: neck.y + hu.y * 12 };
   const arm = (ua: number, fa: number) => {
     const e = dir(ua);
     const f = dir(fa);
@@ -125,21 +144,29 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   const armBack = look.sleeveless ? W ?? shade(pal.skin, -0.12) : backMain;
   const armFront = look.sleeveless ? skin : main;
   limb(ctx, sh.x, sh.y, bArm.el.x, bArm.el.y, bArm.hand.x, bArm.hand.y, 6, armBack);
-  circle(ctx, bArm.hand.x, bArm.hand.y, 3, skin);
+  circleOl(ctx, bArm.hand.x, bArm.hand.y, 3.2, skin);
   if (!W && !o.held) drawBackHandProp(ctx, acc, bArm.hand.x, bArm.hand.y, pal.accent);
   limb(ctx, bLeg.h0.x, bLeg.h0.y, bLeg.kn.x, bLeg.kn.y, bLeg.ft.x, bLeg.ft.y, 7, W ?? shade(pal.main, -0.45));
-  circle(ctx, bLeg.ft.x + 1.5, bLeg.ft.y, 3.5, shoe);
+  circleOl(ctx, bLeg.ft.x + 1.5, bLeg.ft.y, 3.8, shoe);
   limb(ctx, fLeg.h0.x, fLeg.h0.y, fLeg.kn.x, fLeg.kn.y, fLeg.ft.x, fLeg.ft.y, 7, pants);
-  circle(ctx, fLeg.ft.x + 1.5, fLeg.ft.y, 3.5, shoe);
+  circleOl(ctx, fLeg.ft.x + 1.5, fLeg.ft.y, 3.8, shoe);
 
   // ---- 軀幹 ----
   ctx.save();
   ctx.translate(hip.x, hip.y);
   ctx.rotate(p.t * D2R);
   ctx.fillStyle = main;
-  roundRect(ctx, -9, -20, 18, 22, 5);
+  roundRect(ctx, -9.5, -20.5, 19, 23, 6);
   ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
   if (!W) {
+    // 簡單的明暗：左側亮面、下方暗面
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(-7.5, -18, 3.5, 15);
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    ctx.fillRect(-8.5, -5, 17, 5);
     if (look.tie) {
       // 襯衫 V 領 + 領帶（面向右，偏前側）
       ctx.fillStyle = look.shirt;
@@ -202,7 +229,12 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   }
   ctx.restore();
 
-  // ---- 頭 ----
+  // ---- 頭（放大的 Q 版大頭） ----
+  ctx.save();
+  ctx.translate(headPos.x, headPos.y);
+  ctx.scale(HEAD_SCALE, HEAD_SCALE);
+  {
+  const head = { x: 0, y: 0 };
   if (isRobot) {
     ctx.fillStyle = skin;
     roundRect(ctx, head.x - 10, head.y - 10, 20, 19, 5);
@@ -219,16 +251,23 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
       circle(ctx, head.x - 5, head.y - 18, 2.5, '#ef4444');
     }
   } else {
-    circle(ctx, head.x, head.y, 11, skin);
+    circleOl(ctx, head.x, head.y, 11, skin, 2);
     if (!W) {
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.beginPath();
+      ctx.arc(head.x - 1, head.y + 2, 10, Math.PI * 0.1, Math.PI * 0.9);
+      ctx.fill();
       drawHair(ctx, head.x, head.y, look.hair, hair);
       if (acc === 'frog') drawFrogHood(ctx, head.x, head.y, pal.accent);
       // 耳朵
       circle(ctx, head.x - 3, head.y + 1, 2.4, shade(pal.skin, -0.08));
       // 臉
-      ctx.fillStyle = '#1b1b1b';
-      ctx.fillRect(head.x + 4, head.y, 2, 3);
-      ctx.fillRect(head.x + 8.5, head.y, 2, 3);
+      // 大眼睛：白眼 + 黑瞳 + 反光
+      for (const ex of [5, 9.6]) {
+        circle(ctx, head.x + ex, head.y + 1, 2.3, '#ffffff');
+        circle(ctx, head.x + ex + 0.5, head.y + 1.2, 1.4, '#1b1b1b');
+        circle(ctx, head.x + ex + 0.9, head.y + 0.5, 0.5, '#ffffff');
+      }
       ctx.fillStyle = '#d0706a';
       ctx.fillRect(head.x + 6, head.y + 6, 4, 1.5);
       if (look.beard) {
@@ -264,10 +303,18 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
       }
     }
   }
+  if (isRobot) {
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2;
+    roundRect(ctx, head.x - 10, head.y - 10, 20, 19, 5);
+    ctx.stroke();
+  }
+  }
+  ctx.restore();
 
   // ---- 前側手臂 ----
   limb(ctx, sh.x, sh.y, fArm.el.x, fArm.el.y, fArm.hand.x, fArm.hand.y, 6, armFront);
-  circle(ctx, fArm.hand.x, fArm.hand.y, 3.2, skin);
+  circleOl(ctx, fArm.hand.x, fArm.hand.y, 3.4, skin);
 
   // ---- 手持物 ----
   if (o.held) {
@@ -305,6 +352,9 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
 /** 髮型：面向右，(x,y) 為頭中心、半徑 11 */
 function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: string, color: string): void {
   ctx.fillStyle = color;
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 1.6;
+  ctx.lineJoin = 'round';
   switch (style) {
     case 'none':
       return;
@@ -315,6 +365,7 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
       ctx.lineTo(x - 2, y - 3);
       ctx.closePath();
       ctx.fill();
+      ctx.stroke();
       ctx.fillRect(x - 12, y - 3, 5, 7);
       return;
     case 'sidepart':
@@ -322,6 +373,7 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
       ctx.beginPath();
       ctx.arc(x - 1, y - 2, 12, Math.PI * 0.95, Math.PI * 2.0);
       ctx.fill();
+      ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(x + 1, y - 13);
       ctx.quadraticCurveTo(x + 12, y - 13, x + 11, y - 5);
@@ -340,7 +392,9 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
       // 棒球帽（帽子顏色 = hair）
       ctx.beginPath();
       ctx.arc(x - 1, y - 2, 12, Math.PI * 1.0, Math.PI * 2.0);
+      ctx.closePath();
       ctx.fill();
+      ctx.stroke();
       ctx.fillRect(x - 1, y - 4, 16, 3);
       ctx.fillStyle = 'rgba(255,255,255,0.35)';
       ctx.fillRect(x - 6, y - 9, 6, 3);
@@ -352,12 +406,14 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
       ctx.beginPath();
       ctx.arc(x - 1, y - 1, 11.3, Math.PI * 1.0, Math.PI * 1.95);
       ctx.fill();
+      ctx.stroke();
       ctx.fillRect(x - 12, y - 3, 5, 6);
       return;
     default:
       ctx.beginPath();
       ctx.arc(x - 1, y - 1, 11.5, Math.PI * 0.95, Math.PI * 2.05);
       ctx.fill();
+      ctx.stroke();
       ctx.fillRect(x - 12, y - 3, 6, 7);
   }
 }
@@ -368,8 +424,11 @@ function drawFrogHood(ctx: CanvasRenderingContext2D, x: number, y: number, color
   ctx.beginPath();
   ctx.arc(x - 1, y - 1, 12.5, Math.PI * 0.85, Math.PI * 2.15);
   ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
   for (const ex of [-5, 5]) {
-    circle(ctx, x + ex, y - 12, 4.5, color);
+    circleOl(ctx, x + ex, y - 12, 4.5, color);
     circle(ctx, x + ex + 0.8, y - 12.5, 2.6, '#ffffff');
     circle(ctx, x + ex + 1.4, y - 12.5, 1.3, '#111');
   }
@@ -520,6 +579,31 @@ export function drawItemShape(
         ctx.fillRect(1, -9, s / 2 - 1, 3);
         ctx.fillStyle = '#27ae60';
         ctx.fillRect(1, -6, s / 2 - 1, 4);
+      }
+      break;
+    case 'tea':
+      // 高山茶：茶杯 + 熱氣
+      ctx.fillStyle = white ? c : '#f5f0e6';
+      ctx.beginPath();
+      ctx.moveTo(-7, -11);
+      ctx.lineTo(7, -11);
+      ctx.lineTo(5, 0);
+      ctx.lineTo(-5, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#1a1530';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      if (!white) {
+        ctx.fillStyle = def.color;
+        ctx.fillRect(-6, -10, 12, 3);
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.beginPath();
+        ctx.moveTo(-2, -13);
+        ctx.quadraticCurveTo(-5, -17, -2, -20);
+        ctx.moveTo(3, -13);
+        ctx.quadraticCurveTo(0, -17, 3, -20);
+        ctx.stroke();
       }
       break;
     default:

@@ -1,67 +1,355 @@
 {
   "stages": [
     {
-      "id": "ntu", "name": "台灣大學・椰林大道", "width": 1500, "theme": "ntu",
-      "palette": { "skyTop": "#7cc4ff", "skyBottom": "#e0f2fe", "far": "#c9a27e", "near": "#5b8c5a",
-                   "ground": "#b5654a", "groundAlt": "#a5573d", "accent": "#b45309" },
+      "id": "ntu",
+      "name": "台灣大學・椰林大道",
+      "width": 1500,
+      "theme": "ntu",
+      "palette": {
+        "skyTop": "#7cc4ff",
+        "skyBottom": "#e0f2fe",
+        "far": "#c9a27e",
+        "near": "#5b8c5a",
+        "ground": "#b5654a",
+        "groundAlt": "#a5573d",
+        "accent": "#b45309"
+      },
       "features": {}
     },
     {
-      "id": "ximending", "name": "台北西門町", "width": 1400, "theme": "ximending",
-      "palette": { "skyTop": "#120a2a", "skyBottom": "#3b1d5a", "far": "#9c3b2b", "near": "#2a2140",
-                   "ground": "#c9a27a", "groundAlt": "#b0496b", "accent": "#ff3fa4" },
-      "features": { "neon": { "interval": 120 }, "pedestrians": { "count": 7 } }
+      "id": "ximending",
+      "name": "台北西門町",
+      "width": 1400,
+      "theme": "ximending",
+      "palette": {
+        "skyTop": "#120a2a",
+        "skyBottom": "#3b1d5a",
+        "far": "#9c3b2b",
+        "near": "#2a2140",
+        "ground": "#c9a27a",
+        "groundAlt": "#b0496b",
+        "accent": "#ff3fa4"
+      },
+      "features": {
+        "neon": {
+          "interval": 120
+        },
+        "pedestrians": {
+          "count": 7
+        }
+      }
     },
     {
-      "id": "dome", "name": "東區・台北大巨蛋", "width": 1500, "theme": "dome",
-      "palette": { "skyTop": "#3b2a6b", "skyBottom": "#f59e7b", "far": "#cbd5e1", "near": "#6b4f3a",
-                   "ground": "#a85a43", "groundAlt": "#94503b", "accent": "#fde68a" },
-      "features": { "foodSpawn": { "interval": 1800, "item": "bubbletea", "x": [300, 750, 1200], "max": 2 } }
+      "id": "dome",
+      "name": "東區・台北大巨蛋",
+      "width": 1500,
+      "theme": "dome",
+      "palette": {
+        "skyTop": "#3b2a6b",
+        "skyBottom": "#f59e7b",
+        "far": "#cbd5e1",
+        "near": "#6b4f3a",
+        "ground": "#a85a43",
+        "groundAlt": "#94503b",
+        "accent": "#fde68a"
+      },
+      "features": {
+        "foodSpawn": {
+          "interval": 1800,
+          "item": "bubbletea",
+          "x": [
+            300,
+            750,
+            1200
+          ],
+          "max": 2
+        }
+      }
     },
     {
-      "id": "xinyi", "name": "台北信義區・101", "width": 1500, "theme": "xinyi",
-      "palette": { "skyTop": "#020617", "skyBottom": "#1e3a5f", "far": "#5f9e96", "near": "#1e293b",
-                   "ground": "#8b93a1", "groundAlt": "#7a8290", "accent": "#7dd3fc" },
-      "features": { "neon": { "interval": 90 }, "foodSpawn": { "interval": 2400, "item": "bento", "x": [400, 1100], "max": 1 } }
+      "id": "xinyi",
+      "name": "台北信義區・101",
+      "width": 1500,
+      "theme": "xinyi",
+      "palette": {
+        "skyTop": "#020617",
+        "skyBottom": "#1e3a5f",
+        "far": "#5f9e96",
+        "near": "#1e293b",
+        "ground": "#8b93a1",
+        "groundAlt": "#7a8290",
+        "accent": "#7dd3fc"
+      },
+      "features": {
+        "neon": {
+          "interval": 90
+        },
+        "foodSpawn": {
+          "interval": 2400,
+          "item": "bento",
+          "x": [
+            400,
+            1100
+          ],
+          "max": 1
+        }
+      }
+    },
+    {
+      "id": "zoo",
+      "name": "木柵動物園",
+      "width": 1500,
+      "theme": "zoo",
+      "palette": {
+        "skyTop": "#4fc3ff",
+        "skyBottom": "#c6f1ff",
+        "far": "#5cbf4a",
+        "near": "#8a5a3b",
+        "ground": "#e2b872",
+        "groundAlt": "#d4a85f",
+        "accent": "#ff9f1c"
+      },
+      "features": {}
+    },
+    {
+      "id": "maokong",
+      "name": "貓空纜車・泡茶",
+      "width": 1500,
+      "theme": "maokong",
+      "palette": {
+        "skyTop": "#62c6ff",
+        "skyBottom": "#e2f9ff",
+        "far": "#2f9e44",
+        "near": "#8d5a3b",
+        "ground": "#b9825a",
+        "groundAlt": "#a8734d",
+        "accent": "#ffcf33"
+      },
+      "features": {
+        "foodSpawn": {
+          "interval": 1500,
+          "item": "tea",
+          "x": [
+            350,
+            800,
+            1200
+          ],
+          "max": 2
+        }
+      }
+    },
+    {
+      "id": "expo",
+      "name": "圓山花博",
+      "width": 1500,
+      "theme": "expo",
+      "palette": {
+        "skyTop": "#5ab8ff",
+        "skyBottom": "#fff1d6",
+        "far": "#d7263d",
+        "near": "#f4f7fb",
+        "ground": "#ead7b3",
+        "groundAlt": "#dcc59b",
+        "accent": "#ff4f9a"
+      },
+      "features": {}
+    },
+    {
+      "id": "chifeng",
+      "name": "中山赤峰街",
+      "width": 1400,
+      "theme": "chifeng",
+      "palette": {
+        "skyTop": "#ff9a62",
+        "skyBottom": "#ffe1b3",
+        "far": "#a1785d",
+        "near": "#5b3d2e",
+        "ground": "#8f949c",
+        "groundAlt": "#80858d",
+        "accent": "#4fe0ff"
+      },
+      "features": {
+        "neon": {
+          "interval": 150
+        },
+        "pedestrians": {
+          "count": 4
+        }
+      }
+    },
+    {
+      "id": "government",
+      "name": "總統府前・凱達格蘭大道",
+      "width": 1600,
+      "theme": "government",
+      "palette": {
+        "skyTop": "#4daaf5",
+        "skyBottom": "#e3f2fd",
+        "far": "#c7432f",
+        "near": "#f7f4ec",
+        "ground": "#8e939b",
+        "groundAlt": "#7f848c",
+        "accent": "#ffd54f"
+      },
+      "features": {}
     }
   ],
   "campaignDifficulty": {
-    "easy":   { "label": "簡單", "aiShift": -1, "extraEnemies": 0, "enemyHpMul": 0.8, "bossHpMul": 1.1 },
-    "normal": { "label": "普通", "aiShift": 0,  "extraEnemies": 0, "enemyHpMul": 1.0, "bossHpMul": 1.3 },
-    "hard":   { "label": "困難", "aiShift": 1,  "extraEnemies": 1, "enemyHpMul": 1.3, "bossHpMul": 1.8 }
+    "easy": {
+      "label": "簡單",
+      "aiShift": -1,
+      "extraEnemies": 0,
+      "enemyHpMul": 0.8,
+      "bossHpMul": 1.1
+    },
+    "normal": {
+      "label": "普通",
+      "aiShift": 0,
+      "extraEnemies": 0,
+      "enemyHpMul": 1.0,
+      "bossHpMul": 1.3
+    },
+    "hard": {
+      "label": "困難",
+      "aiShift": 1,
+      "extraEnemies": 1,
+      "enemyHpMul": 1.3,
+      "bossHpMul": 1.8
+    }
   },
   "campaign": [
     {
       "stage": "ntu",
       "waves": [
-        { "enemies": [{ "char": "guardbot", "count": 2, "difficulty": "easy" }] },
-        { "enemies": [{ "char": "guardbot", "count": 3, "difficulty": "easy" }] },
-        { "enemies": [{ "char": "guardbot", "count": 3, "difficulty": "easy" }] }
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 2,
+              "difficulty": "easy"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "easy"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "easy"
+            }
+          ]
+        }
       ]
     },
     {
       "stage": "ximending",
       "waves": [
-        { "enemies": [{ "char": "guardbot", "count": 3, "difficulty": "easy" }] },
-        { "enemies": [{ "char": "guardbot", "count": 3, "difficulty": "normal" }] },
-        { "enemies": [{ "char": "guardbot", "count": 3, "difficulty": "normal" }] }
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "easy"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        }
       ]
     },
     {
       "stage": "dome",
       "waves": [
-        { "enemies": [{ "char": "guardbot", "count": 3, "difficulty": "normal" }] },
-        { "enemies": [{ "char": "guardbot", "count": 3, "difficulty": "normal" }] },
-        { "enemies": [{ "char": "guardbot", "count": 4, "difficulty": "normal" }] }
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 4,
+              "difficulty": "normal"
+            }
+          ]
+        }
       ]
     },
     {
       "stage": "xinyi",
       "waves": [
-        { "enemies": [{ "char": "guardbot", "count": 3, "difficulty": "normal" }] },
-        { "enemies": [{ "char": "guardbot", "count": 4, "difficulty": "normal" }] },
-        { "enemies": [{ "char": "random_main", "count": 1, "difficulty": "easy", "boss": true },
-                      { "char": "guardbot", "count": 1, "difficulty": "easy" }] }
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 4,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "random_main",
+              "count": 1,
+              "difficulty": "easy",
+              "boss": true
+            },
+            {
+              "char": "guardbot",
+              "count": 1,
+              "difficulty": "easy"
+            }
+          ]
+        }
       ]
     }
   ]

@@ -39,6 +39,21 @@ export function drawStage(ctx: Ctx, w: World, camX: number): void {
     case 'ntu':
       ntu(ctx, st, camX, w.tick);
       break;
+    case 'zoo':
+      zoo(ctx, st, camX, w.tick);
+      break;
+    case 'maokong':
+      maokong(ctx, st, camX, w.tick);
+      break;
+    case 'expo':
+      expo(ctx, st, camX, w.tick);
+      break;
+    case 'chifeng':
+      chifeng(ctx, st, camX, w.tick);
+      break;
+    case 'government':
+      government(ctx, st, camX, w.tick);
+      break;
     default:
       generic(ctx, st, camX);
   }
@@ -519,6 +534,487 @@ function ntu(ctx: Ctx, st: StageDef, camX: number, tick: number) {
   ctx.stroke();
   ctx.setLineDash([]);
   frontEdge(ctx, '#57534e');
+}
+
+// ================= 荒野亂鬥式粗描邊小工具 =================
+const OL = '#1a1530';
+
+function rr(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** 填色後加深色粗描邊 */
+function ol(ctx: Ctx, fill: string, path: () => void, lw = 2.5) {
+  ctx.beginPath();
+  path();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = lw;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+}
+
+function box(ctx: Ctx, x: number, y: number, w: number, h: number, fill: string, r = 4, lw = 2.5) {
+  ol(ctx, fill, () => rr(ctx, x, y, w, h, r), lw);
+}
+
+function blob(ctx: Ctx, x: number, y: number, rx: number, ry: number, fill: string, lw = 2.5) {
+  ol(ctx, fill, () => ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2), lw);
+}
+
+function cloudsOl(ctx: Ctx, camX: number, tick: number) {
+  for (let i = 0; i < 5; i++) {
+    const x = ((hr(i + 3) * 1400 - camX * 0.08 + tick * 0.06) % (VW + 220)) - 110;
+    const y = 30 + hr(i + 8) * 55;
+    ol(ctx, '#ffffff', () => {
+      ctx.ellipse(x, y, 34, 13, 0, 0, Math.PI * 2);
+      ctx.moveTo(x + 46, y - 4);
+      ctx.ellipse(x + 22, y - 4, 24, 14, 0, 0, Math.PI * 2);
+    }, 2);
+  }
+}
+
+/** 粗描邊的行道樹 */
+function treeOl(ctx: Ctx, x: number, baseY: number, h: number, leaf = '#3fb34f') {
+  box(ctx, x - 4, baseY - h * 0.45, 8, h * 0.45, '#8a5a3b', 2, 2);
+  blob(ctx, x, baseY - h * 0.6, h * 0.32, h * 0.3, leaf, 2.5);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(x - h * 0.1, baseY - h * 0.7, h * 0.12, h * 0.08, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+/** 粗描邊地磚 + 前緣 */
+function groundOl(ctx: Ctx, camX: number, tw: number, th: number, colors: string[], edge: string) {
+  groundTiles(ctx, camX, tw, th, colors, 'rgba(26,21,48,0.22)');
+  ctx.fillStyle = OL;
+  ctx.fillRect(0, GROUND_TOP - 2, VW, 3);
+  frontEdge(ctx, edge);
+}
+
+// ---------------- 木柵動物園 ----------------
+function zoo(ctx: Ctx, st: StageDef, camX: number, tick: number) {
+  cloudsOl(ctx, camX, tick);
+  const fx = camX * 0.2;
+  // 遠景：層層山丘
+  for (let layer = 0; layer < 2; layer++) {
+    const col = layer ? st.palette.far : shade(st.palette.far, -0.25);
+    for (let i = -1; i < 12; i++) {
+      const x = i * 170 - (fx * (layer + 1)) % 170;
+      blob(ctx, x, GROUND_TOP - 40 + layer * 18, 130, 70 - layer * 15, col, 2.5);
+    }
+  }
+  const nx = camX * NEAR;
+  // 動物園大門
+  const gx = 260 - nx;
+  if (gx > -160 && gx < VW + 160) {
+    box(ctx, gx - 90, GROUND_TOP - 120, 22, 120, '#e07a3c', 3);
+    box(ctx, gx + 68, GROUND_TOP - 120, 22, 120, '#e07a3c', 3);
+    box(ctx, gx - 104, GROUND_TOP - 140, 208, 34, '#ffcf33', 10);
+    ctx.font = `900 18px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = OL;
+    ctx.strokeText('動物園', gx, GROUND_TOP - 116);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('動物園', gx, GROUND_TOP - 116);
+    ctx.textAlign = 'left';
+  }
+  // 圍欄
+  for (let i = 0; i < 26; i++) {
+    const x = i * 60 - (nx % 60);
+    box(ctx, x, GROUND_TOP - 30, 7, 30, '#b07a4f', 2, 2);
+  }
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  ctx.fillStyle = '#c8935e';
+  for (const y of [GROUND_TOP - 24, GROUND_TOP - 12]) {
+    ctx.fillRect(0, y, VW, 4);
+    ctx.strokeRect(-2, y, VW + 4, 4);
+  }
+  // 動物們
+  const bob = (k: number) => Math.sin(tick * 0.05 + k) * 2;
+  const ax = (wx: number) => wx - nx;
+  // 長頸鹿
+  const g = ax(620);
+  if (g > -80 && g < VW + 80) {
+    const by = GROUND_TOP - 30 + bob(1);
+    box(ctx, g - 6, by - 105, 12, 70, '#f6c343', 6);
+    blob(ctx, g + 4, by - 108, 13, 9, '#f6c343');
+    box(ctx, g - 30, by - 46, 56, 28, '#f6c343', 12);
+    for (const [sx, sy] of [[-18, -38], [0, -32], [12, -40], [-2, -80], [-1, -62]]) {
+      ctx.fillStyle = '#b5651d';
+      ctx.beginPath();
+      ctx.arc(g + sx, by + sy, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    for (const lx of [-24, -12, 8, 18]) box(ctx, g + lx, by - 20, 6, 22, '#f6c343', 2, 2);
+    ctx.fillStyle = OL;
+    ctx.beginPath();
+    ctx.arc(g + 10, by - 110, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 大象
+  const e = ax(900);
+  if (e > -90 && e < VW + 90) {
+    const by = GROUND_TOP - 30 + bob(2);
+    blob(ctx, e, by - 30, 38, 26, '#9aa7b8');
+    blob(ctx, e + 34, by - 38, 18, 16, '#9aa7b8');
+    blob(ctx, e + 22, by - 40, 12, 14, '#b9c3d1', 2);
+    box(ctx, e + 44, by - 36, 7, 30, '#9aa7b8', 3, 2);
+    for (const lx of [-28, -12, 8, 22]) box(ctx, e + lx, by - 12, 11, 14, '#9aa7b8', 3, 2);
+    ctx.fillStyle = OL;
+    ctx.beginPath();
+    ctx.arc(e + 38, by - 42, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // 熊貓
+  const p = ax(1150);
+  if (p > -60 && p < VW + 60) {
+    const by = GROUND_TOP - 28 + bob(3);
+    blob(ctx, p, by - 16, 22, 18, '#ffffff');
+    blob(ctx, p, by - 42, 16, 14, '#ffffff');
+    for (const ex of [-11, 11]) blob(ctx, p + ex, by - 54, 6, 6, '#1f1f1f', 2);
+    for (const ex of [-6, 6]) {
+      ctx.fillStyle = '#1f1f1f';
+      ctx.beginPath();
+      ctx.ellipse(p + ex, by - 43, 4, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    box(ctx, p - 24, by - 26, 10, 18, '#1f1f1f', 4, 2);
+    box(ctx, p + 14, by - 26, 10, 18, '#1f1f1f', 4, 2);
+  }
+  for (let i = 0; i < 9; i++) {
+    const x = i * 210 + 80 - nx * 1.05;
+    if (x > -60 && x < VW + 60) treeOl(ctx, x, GROUND_TOP - 2, 70 + hr(i) * 30);
+  }
+  groundOl(ctx, camX, 44, 18, [st.palette.ground, st.palette.groundAlt], '#4f9b3a');
+}
+
+// ---------------- 貓空纜車・泡茶 ----------------
+function maokong(ctx: Ctx, st: StageDef, camX: number, tick: number) {
+  cloudsOl(ctx, camX, tick);
+  const fx = camX * 0.18;
+  // 茶園山坡（梯田線）
+  for (let layer = 0; layer < 3; layer++) {
+    const col = shade(st.palette.far, -0.3 + layer * 0.15);
+    ol(ctx, col, () => {
+      ctx.moveTo(0, GROUND_TOP);
+      for (let x = 0; x <= VW + 20; x += 20) {
+        const wx = (x + fx * (layer + 1)) / 60;
+        ctx.lineTo(x, GROUND_TOP - 70 - layer * -18 - 60 * (0.6 + 0.4 * Math.sin(wx + layer * 2)));
+      }
+      ctx.lineTo(VW, GROUND_TOP);
+      ctx.closePath();
+    }, 2.5);
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 2;
+    for (let r = 1; r < 4; r++) {
+      ctx.beginPath();
+      for (let x = 0; x <= VW; x += 20) {
+        const wx = (x + fx * (layer + 1)) / 60;
+        const y = GROUND_TOP - 70 - layer * -18 - 60 * (0.6 + 0.4 * Math.sin(wx + layer * 2)) + r * 14;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+  // 纜車：斜纜線 + 移動車廂
+  const cx = camX * 0.4;
+  const y0 = 150;
+  const slope = -0.12;
+  ctx.strokeStyle = OL;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, y0 + slope * (0 + cx));
+  ctx.lineTo(VW, y0 + slope * (VW + cx) );
+  ctx.stroke();
+  const colors = ['#ff5a5f', '#ffcf33', '#4fc3ff', '#7ed957'];
+  for (let i = 0; i < 6; i++) {
+    const span = VW + 400;
+    const wx = ((i * 260 + tick * 0.6) % span) - 200;
+    const y = y0 + slope * (wx + cx);
+    ctx.strokeStyle = OL;
+    ctx.beginPath();
+    ctx.moveTo(wx, y);
+    ctx.lineTo(wx, y + 12);
+    ctx.stroke();
+    box(ctx, wx - 16, y + 12, 32, 26, colors[i % colors.length], 8);
+    box(ctx, wx - 11, y + 17, 22, 10, '#d9f6ff', 3, 1.5);
+  }
+  // 近景：茶坊
+  const nx = camX * NEAR;
+  for (let i = 0; i < 8; i++) {
+    const x = i * 230 + 40 - nx;
+    if (x < -220 || x > VW + 20) continue;
+    box(ctx, x, GROUND_TOP - 70, 190, 70, '#c98f5c', 4);
+    ol(ctx, '#7a3b2e', () => {
+      ctx.moveTo(x - 14, GROUND_TOP - 68);
+      ctx.lineTo(x + 95, GROUND_TOP - 106);
+      ctx.lineTo(x + 204, GROUND_TOP - 68);
+      ctx.closePath();
+    });
+    box(ctx, x + 64, GROUND_TOP - 64, 62, 18, '#fff3d6', 4, 2);
+    ctx.font = `900 12px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
+    ctx.fillStyle = '#7a3b2e';
+    ctx.textAlign = 'center';
+    ctx.fillText(['貓空茶坊', '山頂茶屋', '雲霧茶舖'][i % 3], x + 95, GROUND_TOP - 51);
+    ctx.textAlign = 'left';
+    for (let k = 0; k < 3; k++) {
+      const lx = x + 22 + k * 70;
+      const sw = Math.sin(tick * 0.06 + k + i) * 2;
+      ctx.strokeStyle = OL;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(lx, GROUND_TOP - 70);
+      ctx.lineTo(lx + sw, GROUND_TOP - 60);
+      ctx.stroke();
+      blob(ctx, lx + sw, GROUND_TOP - 52, 7, 9, '#ff4d4d', 2);
+    }
+    // 茶桌與茶壺
+    box(ctx, x + 20, GROUND_TOP - 30, 60, 8, '#8d5a3b', 2, 2);
+    blob(ctx, x + 50, GROUND_TOP - 36, 8, 6, '#6d8b74', 2);
+    box(ctx, x + 120, GROUND_TOP - 30, 60, 8, '#8d5a3b', 2, 2);
+  }
+  // 地面：木棧平台
+  groundOl(ctx, camX, 80, 12, [st.palette.ground, st.palette.groundAlt, shade(st.palette.ground, -0.08)], '#3d6b2e');
+}
+
+// ---------------- 圓山花博 ----------------
+function expo(ctx: Ctx, st: StageDef, camX: number, tick: number) {
+  cloudsOl(ctx, camX, tick);
+  const fx = camX * FAR;
+  // 遠景：山丘上的紅色宮殿式大飯店
+  const hx = 420 - fx;
+  blob(ctx, hx, GROUND_TOP - 20, 260, 90, '#4caf50');
+  if (hx > -260 && hx < VW + 260) {
+    const by = GROUND_TOP - 92;
+    box(ctx, hx - 110, by - 46, 220, 46, st.palette.far, 2);
+    for (let k = 0; k < 9; k++) box(ctx, hx - 100 + k * 23, by - 38, 10, 14, '#ffe08a', 1, 1.5);
+    for (let tier = 0; tier < 3; tier++) {
+      const w = 250 - tier * 60;
+      const y = by - 46 - tier * 26;
+      ol(ctx, '#ffb300', () => {
+        ctx.moveTo(hx - w / 2 - 12, y);
+        ctx.quadraticCurveTo(hx - w / 2, y - 6, hx - w / 2 + 14, y - 14);
+        ctx.lineTo(hx + w / 2 - 14, y - 14);
+        ctx.quadraticCurveTo(hx + w / 2, y - 6, hx + w / 2 + 12, y);
+        ctx.closePath();
+      });
+      if (tier < 2) box(ctx, hx - w / 2 + 34, y - 26, w - 68, 12, st.palette.far, 1, 2);
+    }
+  }
+  // 近景：花博爭艷館風格的白色穹頂展館
+  const nx = camX * NEAR;
+  const dx = 760 - nx;
+  if (dx > -200 && dx < VW + 200) {
+    ol(ctx, st.palette.near, () => {
+      ctx.moveTo(dx - 150, GROUND_TOP - 4);
+      ctx.quadraticCurveTo(dx - 140, GROUND_TOP - 110, dx, GROUND_TOP - 118);
+      ctx.quadraticCurveTo(dx + 140, GROUND_TOP - 110, dx + 150, GROUND_TOP - 4);
+      ctx.closePath();
+    }, 3);
+    ctx.strokeStyle = 'rgba(26,21,48,0.35)';
+    ctx.lineWidth = 2;
+    for (let k = -3; k <= 3; k++) {
+      ctx.beginPath();
+      ctx.moveTo(dx + k * 40, GROUND_TOP - 4);
+      ctx.quadraticCurveTo(dx + k * 30, GROUND_TOP - 90, dx, GROUND_TOP - 116);
+      ctx.stroke();
+    }
+    box(ctx, dx - 40, GROUND_TOP - 40, 80, 36, '#9fd8ff', 6);
+  }
+  // 花圃（彩色圓點排）
+  const flower = ['#ff4f9a', '#ffcf33', '#b46cff', '#ff7043', '#ffffff'];
+  for (let i = 0; i < 70; i++) {
+    const x = ((i * 26 - nx) % (VW + 40) + VW + 40) % (VW + 40) - 20;
+    const y = GROUND_TOP - 10 - (i % 2) * 8;
+    blob(ctx, x, y, 7, 7, flower[i % flower.length], 1.8);
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(x, y, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  groundOl(ctx, camX, 40, 20, [st.palette.ground, st.palette.groundAlt, '#f3e3c3'], '#5cbf4a');
+  // 前緣花帶
+  for (let i = 0; i < 40; i++) {
+    const x = ((i * 22 - camX * 1.1) % (VW + 30) + VW + 30) % (VW + 30) - 15;
+    blob(ctx, x, GROUND_BOTTOM + 10, 6, 6, flower[(i + 2) % flower.length], 1.6);
+  }
+}
+
+// ---------------- 中山赤峰街 ----------------
+const CF_SIGNS = ['鐵件五金', '老宅咖啡', '選物小店', '機車行', '手作甜點', '二手唱片', '花藝工作室', '螺絲專賣'];
+
+function chifeng(ctx: Ctx, st: StageDef, camX: number, tick: number) {
+  const fx = camX * FAR;
+  // 遠景：老公寓與陽台
+  for (let i = 0; i < 16; i++) {
+    const x = i * 100 - fx;
+    if (x < -110 || x > VW + 10) continue;
+    const h = 120 + hr(i + 4) * 60;
+    box(ctx, x, GROUND_TOP - 40 - h, 92, h + 40, shade(st.palette.far, -0.15 + hr(i) * 0.25), 2);
+    for (let f = 0; f < 4; f++) {
+      const y = GROUND_TOP - 40 - h + 14 + f * 30;
+      if (y > GROUND_TOP - 50) break;
+      box(ctx, x + 8, y, 30, 18, '#ffe7a3', 2, 1.5);
+      box(ctx, x + 52, y, 30, 18, hr(i * 7 + f) > 0.5 ? '#ffe7a3' : '#5a6a7a', 2, 1.5);
+      box(ctx, x + 4, y + 18, 84, 4, '#6b4f3a', 1, 1.5);
+      if (hr(i + f * 3) > 0.6) blob(ctx, x + 20, y + 14, 6, 5, '#4caf50', 1.5);
+    }
+  }
+  // 近景：一樓店面
+  const nx = camX * NEAR;
+  const blink = Math.floor(tick / (st.features.neon?.interval ?? 150));
+  for (let i = 0; i < 14; i++) {
+    const x = i * 120 - nx;
+    if (x < -130 || x > VW + 10) continue;
+    box(ctx, x, GROUND_TOP - 70, 114, 70, shade(st.palette.near, hr(i + 2) * 0.3), 3);
+    // 鐵捲門或玻璃店面
+    if (i % 3 === 0) {
+      box(ctx, x + 8, GROUND_TOP - 46, 98, 46, '#b0b7c0', 2, 2);
+      ctx.strokeStyle = 'rgba(26,21,48,0.3)';
+      ctx.lineWidth = 1;
+      for (let y = GROUND_TOP - 42; y < GROUND_TOP; y += 5) {
+        ctx.beginPath();
+        ctx.moveTo(x + 9, y);
+        ctx.lineTo(x + 105, y);
+        ctx.stroke();
+      }
+    } else {
+      box(ctx, x + 8, GROUND_TOP - 46, 98, 46, 'rgba(255,224,150,0.85)', 2, 2);
+      box(ctx, x + 14, GROUND_TOP - 22, 18, 22, '#6d4c41', 2, 1.5);
+      blob(ctx, x + 92, GROUND_TOP - 10, 9, 10, '#43a047', 1.8);
+    }
+    const on = (blink + i) % 3 !== 0;
+    sign(ctx, x + 18, GROUND_TOP - 66, CF_SIGNS[i % CF_SIGNS.length], on ? st.palette.accent : '#ffcf33', true);
+  }
+  // 串燈
+  for (let i = 0; i < 40; i++) {
+    const x = ((i * 34 - nx) % (VW + 34) + VW + 34) % (VW + 34) - 17;
+    const y = GROUND_TOP - 82 + Math.sin(i * 0.8) * 4;
+    ctx.fillStyle = (i + Math.floor(tick / 20)) % 3 ? '#ffe082' : '#ff8a65';
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // 停放的機車
+  for (let i = 0; i < 6; i++) {
+    const x = i * 280 + 140 - nx * 1.02;
+    if (x < -40 || x > VW + 40) continue;
+    blob(ctx, x - 12, GROUND_TOP - 6, 6, 6, '#333', 2);
+    blob(ctx, x + 12, GROUND_TOP - 6, 6, 6, '#333', 2);
+    box(ctx, x - 14, GROUND_TOP - 22, 28, 12, ['#ff5a5f', '#4fc3ff', '#ffcf33'][i % 3], 5, 2);
+  }
+  groundOl(ctx, camX, 60, 16, [st.palette.ground, st.palette.groundAlt], '#4a4f57');
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx.setLineDash([26, 18]);
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-((camX % 44) + 44), HZ + 66);
+  ctx.lineTo(VW, HZ + 66);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+// ---------------- 總統府前（北一女、臺大醫院） ----------------
+function government(ctx: Ctx, st: StageDef, camX: number, tick: number) {
+  cloudsOl(ctx, camX, tick);
+  const fx = camX * FAR;
+  const by = GROUND_TOP - 26;
+  // 北一女：紅磚校舍、綠色窗框
+  const sx = 120 - fx;
+  if (sx > -220 && sx < VW + 40) {
+    box(ctx, sx - 100, by - 70, 200, 70, '#c0563f', 2);
+    for (let r = 0; r < 2; r++)
+      for (let k = 0; k < 7; k++) box(ctx, sx - 90 + k * 27, by - 62 + r * 30, 14, 18, '#2e7d32', 1, 1.5);
+    box(ctx, sx - 104, by - 78, 208, 10, '#f3efe6', 1, 2);
+    box(ctx, sx - 40, by - 100, 80, 24, '#f3efe6', 3, 2);
+    ctx.font = `900 12px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
+    ctx.fillStyle = '#2e7d32';
+    ctx.textAlign = 'center';
+    ctx.fillText('北一女中', sx, by - 83);
+    ctx.textAlign = 'left';
+  }
+  // 總統府：紅磚白帶，中央高塔
+  const gx = 560 - fx;
+  if (gx > -320 && gx < VW + 320) {
+    box(ctx, gx - 230, by - 80, 460, 80, st.palette.far, 2, 3);
+    for (const y of [by - 80, by - 44]) box(ctx, gx - 232, y, 464, 7, '#f7f4ec', 1, 2);
+    for (let r = 0; r < 2; r++)
+      for (let k = 0; k < 14; k++) {
+        if (k === 6 || k === 7) continue;
+        box(ctx, gx - 218 + k * 32, by - 70 + r * 34, 14, 20, '#f7f4ec', 6, 1.5);
+      }
+    // 中央塔
+    box(ctx, gx - 34, by - 190, 68, 190, st.palette.far, 2, 3);
+    for (let y = by - 180; y < by - 20; y += 26) box(ctx, gx - 36, y, 72, 5, '#f7f4ec', 1, 1.5);
+    box(ctx, gx - 44, by - 206, 88, 18, '#f7f4ec', 3, 2.5);
+    ol(ctx, st.palette.far, () => {
+      ctx.moveTo(gx - 28, by - 206);
+      ctx.lineTo(gx, by - 236);
+      ctx.lineTo(gx + 28, by - 206);
+      ctx.closePath();
+    });
+    box(ctx, gx - 14, by - 60, 28, 60, '#5a3a2a', 10, 2);
+    // 旗桿
+    ctx.strokeStyle = OL;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(gx, by - 236);
+    ctx.lineTo(gx, by - 262);
+    ctx.stroke();
+  }
+  // 臺大醫院舊館：白色古典建築、圓頂與廊柱
+  const hx = 1000 - fx;
+  if (hx > -220 && hx < VW + 220) {
+    box(ctx, hx - 130, by - 66, 260, 66, st.palette.near, 2, 3);
+    for (let k = 0; k < 8; k++) box(ctx, hx - 112 + k * 30, by - 56, 12, 50, '#e8e2d2', 2, 1.5);
+    box(ctx, hx - 50, by - 92, 100, 28, st.palette.near, 2, 2.5);
+    ol(ctx, '#e0d6bd', () => ctx.arc(hx, by - 92, 34, Math.PI, 0), 2.5);
+    ol(ctx, st.palette.near, () => {
+      ctx.moveTo(hx - 60, by - 66);
+      ctx.lineTo(hx, by - 84);
+      ctx.lineTo(hx + 60, by - 66);
+      ctx.closePath();
+    }, 2);
+    ctx.font = `900 11px "Noto Sans TC","Microsoft JhengHei",sans-serif`;
+    ctx.fillStyle = '#8d6e63';
+    ctx.textAlign = 'center';
+    ctx.fillText('臺大醫院', hx, by - 70);
+    ctx.textAlign = 'left';
+  }
+  // 近景：大道行道樹與路燈
+  const nx = camX * NEAR;
+  for (let i = 0; i < 16; i++) {
+    const x = i * 140 + 60 - nx;
+    if (x < -60 || x > VW + 60) continue;
+    if (i % 2) treeOl(ctx, x, GROUND_TOP - 2, 84, '#2f9e44');
+    else {
+      box(ctx, x - 2, GROUND_TOP - 74, 4, 72, '#455a64', 1, 1.5);
+      blob(ctx, x, GROUND_TOP - 78, 8, 6, '#fff59d', 2);
+    }
+  }
+  // 地面：凱達格蘭大道（車道線 + 斑馬線）
+  groundOl(ctx, camX, 80, 20, [st.palette.ground, st.palette.groundAlt], '#5b6068');
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  for (let i = 0; i < 30; i++) {
+    const x = i * 80 - (camX % 80);
+    ctx.fillRect(x, HZ + 58, 40, 4);
+  }
+  const zx = 560 - camX;
+  if (zx > -120 && zx < VW + 120) for (let k = 0; k < 7; k++) ctx.fillRect(zx - 60 + k * 18, GROUND_TOP + 6, 10, 110);
 }
 
 function generic(ctx: Ctx, st: StageDef, camX: number) {

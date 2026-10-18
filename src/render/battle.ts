@@ -3,10 +3,10 @@ import { CONFIG } from '../config';
 import type { CharacterDef } from '../data/load';
 import { hasBuff, type Entity } from '../sim/entity';
 import { ENEMY_TEAM, type GameEvent, type World } from '../sim/world';
-import { drawFigure, drawItemShape, roundRect, shade } from './character';
+import { OUTLINE, drawFigure, drawItemShape, roundRect, shade } from './character';
 import { getPose, withCarryArms } from './poses';
 import { drawStage } from './stage';
-import { FONT } from './text';
+import { FONT, text } from './text';
 
 import { VW, viewOffset } from './view';
 const HZ = CONFIG.view.horizon;
@@ -699,39 +699,62 @@ export class BattleRenderer {
 export const SLOT_COLORS = ['#ff5a5a', '#4da6ff', '#5ae07a', '#ffc94d'];
 
 export function drawPanel(ctx: CanvasRenderingContext2D, def: CharacterDef, c: Entity, x: number, y: number, lag: number, tick: number): void {
-  ctx.fillStyle = 'rgba(8,10,20,0.72)';
-  roundRect(ctx, x, y, 192, 46, 6);
+  const col = SLOT_COLORS[c.slot] ?? '#fff';
+  // 底板：深色 + 隊伍色上緣 + 粗描邊（荒野亂鬥式）
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  roundRect(ctx, x, y + 3, 192, 46, 9);
   ctx.fill();
-  ctx.strokeStyle = SLOT_COLORS[c.slot] ?? '#fff';
-  ctx.lineWidth = 2;
+  ctx.fillStyle = 'rgba(16,14,40,0.88)';
+  roundRect(ctx, x, y, 192, 46, 9);
+  ctx.fill();
+  ctx.fillStyle = col;
+  roundRect(ctx, x + 2, y + 2, 188, 6, 4);
+  ctx.fill();
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 3;
+  roundRect(ctx, x, y, 192, 46, 9);
   ctx.stroke();
   // 頭像
   ctx.save();
   ctx.beginPath();
-  ctx.rect(x + 4, y + 4, 38, 38);
+  ctx.rect(x + 5, y + 6, 37, 36);
   ctx.clip();
-  ctx.fillStyle = shade(def.palette.accent, -0.55);
-  ctx.fillRect(x + 4, y + 4, 38, 38);
-  drawFigure(ctx, def, { pose: getPose(c.hp > 0 ? 'idle_0' : 'hurt'), x: x + 22, y: y + 78, facing: 1, scale: 1.05, tick, upperOnly: true, alpha: c.hp > 0 ? 1 : 0.5 });
+  ctx.fillStyle = shade(def.palette.accent, -0.45);
+  ctx.fillRect(x + 5, y + 6, 37, 36);
+  drawFigure(ctx, def, { pose: getPose(c.hp > 0 ? 'idle_0' : 'hurt'), x: x + 23, y: y + 82, facing: 1, scale: 1, tick, upperOnly: true, alpha: c.hp > 0 ? 1 : 0.5 });
   ctx.restore();
-  ctx.font = `bold 11px ${FONT}`;
-  ctx.fillStyle = '#fff';
-  ctx.fillText(`${c.ai ? 'COM' : `${c.slot + 1}P`} ${def.name}`, x + 48, y + 14);
-  ctx.textAlign = 'right';
-  ctx.fillStyle = '#cbd5e1';
-  ctx.fillText(`${Math.ceil(c.hp)}`, x + 186, y + 14);
-  ctx.textAlign = 'left';
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 5, y + 6, 37, 36);
+  text(ctx, `${c.ai ? 'COM' : `${c.slot + 1}P`} ${def.name}`, x + 48, y + 21, 12, '#ffffff', 'left', true, true);
+  text(ctx, `${Math.ceil(c.hp)}`, x + 186, y + 21, 11, '#e2e8f0', 'right', true, true);
   const bw = 136;
-  ctx.fillStyle = '#1f2937';
-  ctx.fillRect(x + 48, y + 20, bw, 9);
-  ctx.fillStyle = '#e04848';
-  ctx.fillRect(x + 48, y + 20, (bw * Math.max(0, lag)) / c.maxHp, 9);
-  ctx.fillStyle = '#42d35a';
-  ctx.fillRect(x + 48, y + 20, (bw * Math.max(0, c.hp)) / c.maxHp, 9);
-  ctx.fillStyle = '#1f2937';
-  ctx.fillRect(x + 48, y + 33, bw, 6);
-  ctx.fillStyle = '#3b82f6';
-  ctx.fillRect(x + 48, y + 33, (bw * c.mp) / CONFIG.combat.mpMax, 6);
+  // HP 條（含殘影與每 100 HP 一格的分隔線）
+  const hx = x + 48;
+  const hy = y + 25;
+  ctx.fillStyle = '#2b2440';
+  ctx.fillRect(hx, hy, bw, 9);
+  ctx.fillStyle = '#ff5a5a';
+  ctx.fillRect(hx, hy, (bw * Math.max(0, lag)) / c.maxHp, 9);
+  const hpG = ctx.createLinearGradient(0, hy, 0, hy + 9);
+  hpG.addColorStop(0, '#8dff6a');
+  hpG.addColorStop(1, '#2fbf3a');
+  ctx.fillStyle = hpG;
+  ctx.fillRect(hx, hy, (bw * Math.max(0, c.hp)) / c.maxHp, 9);
+  ctx.fillStyle = 'rgba(16,14,40,0.7)';
+  for (let v = 100; v < c.maxHp; v += 100) ctx.fillRect(hx + (bw * v) / c.maxHp - 0.5, hy, 1.5, 9);
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(hx, hy, bw, 9);
+  // MP 條
+  const my = y + 37;
+  ctx.fillStyle = '#2b2440';
+  ctx.fillRect(hx, my, bw, 5);
+  ctx.fillStyle = c.mp >= CONFIG.combat.mpMax ? '#7dd3fc' : '#3b82f6';
+  ctx.fillRect(hx, my, (bw * c.mp) / CONFIG.combat.mpMax, 5);
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(hx, my, bw, 5);
 }
 
 function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string): void {

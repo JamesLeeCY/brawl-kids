@@ -11,12 +11,12 @@ export function text(
   bold = true,
   outline = false,
 ): void {
-  ctx.font = `${bold ? 'bold ' : ''}${size}px ${FONT}`;
+  ctx.font = `${bold ? '900 ' : ''}${size}px ${FONT}`;
   ctx.textAlign = align;
   ctx.textBaseline = 'alphabetic';
   if (outline) {
-    ctx.lineWidth = Math.max(3, size / 6);
-    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = Math.max(3, size / 5);
+    ctx.strokeStyle = '#1a1530';
     ctx.lineJoin = 'round';
     ctx.strokeText(s, x, y);
   }

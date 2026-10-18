@@ -14,6 +14,11 @@ export const DIFF_LABEL: Record<Difficulty, string> = { easy: '簡單', normal: 
 export const TEAM_LABEL = ['獨立', '1 隊', '2 隊', '3 隊', '4 隊'];
 const COUNTDOWN = 60;
 
+/** "D>A" → "D→A" */
+export function moveLabel(cmd: string): string {
+  return cmd.replace('>', '→').replace('^', '↑').replace('v', '↓');
+}
+
 export function defaultSlots(): SlotConfig[] {
   return [0, 1, 2, 3].map((i) => ({ kind: 'empty', ready: false, charIdx: i, team: 0, difficulty: 'normal' }));
 }
@@ -169,8 +174,8 @@ export class SelectScene extends Scene {
       text(ctx, def.name, x + 94, y + 212, 20, '#fff', 'center');
       text(ctx, def.title, x + 94, y + 232, 13, def.palette.accent, 'center');
       text(ctx, `隊伍：${TEAM_LABEL[s.team]}`, x + 94, y + 258, 14, '#fff', 'center');
-      const moves = def.moves.map((m) => `${m.command.replace('>', '→').replace('^', '↑').replace('v', '↓')} ${m.name}`);
-      moves.forEach((m, i) => text(ctx, m, x + 94, y + 280 + i * 15, 11, 'rgba(255,255,255,0.75)', 'center', false));
+      const moves = def.moves.map((m) => `${moveLabel(m.command)} ${m.name}`);
+      moves.forEach((m, i) => text(ctx, m, x + 8 + (i % 2) * 90, y + 278 + Math.floor(i / 2) * 14, 9.5, 'rgba(255,255,255,0.8)', 'left', false));
       if (s.ready) text(ctx, '準備完成！', x + 94, y + 326, 15, '#ffd23f', 'center');
       if (editing) text(ctx, '上下換角 跳躍換隊 攻擊改難度', x + 94, y + 326, 11, '#fff', 'center');
     }

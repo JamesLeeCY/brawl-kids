@@ -92,6 +92,14 @@ describe('戰鬥', () => {
     expect(b.state).toBe('dizzy');
   });
 
+  it('按住防禦＋前再按攻擊即可放出必殺技', () => {
+    const { w, a } = duel('puma');
+    const mp = a.mp;
+    play(w, [snapshotFrom({ D: true }), snapshotFrom({ D: true, right: true }), snapshotFrom({ D: true, right: true, A: true })]);
+    expect(a.mp).toBeLessThan(mp - 70);
+    expect(a.state).toBe('attack');
+  });
+
   it('指令技消耗 MP 並產生飛行物', () => {
     const { w, a } = duel('puma');
     const mp = a.mp;

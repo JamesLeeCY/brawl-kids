@@ -135,7 +135,7 @@ export const CharacterSchema = z.object({
     .default({}),
   body: BoxSchema.optional(),
   frames: z.record(FrameSchema).default({}),
-  moves: z.array(MoveSchema).max(4).default([]),
+  moves: z.array(MoveSchema).max(6).default([]),
   projectiles: z.record(ProjectileSchema).default({}),
 });
 export type CharacterRaw = z.infer<typeof CharacterSchema>;

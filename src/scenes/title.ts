@@ -53,6 +53,6 @@ export class TitleScene extends Scene {
     text(ctx, 'BRAWL KIDS', VW / 2, 145, 22, '#ffffff', 'center', true, true);
     this.options.forEach((o, i) => button(ctx, o, VW / 2, 290 + i * 40, 200, this.sel === i));
     if ((this.t >> 5) % 2 === 0) text(ctx, '按任一玩家的攻擊鍵開始', VW / 2, 420, 15, '#fff', 'center');
-    hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵移動、數字鍵 1 攻擊 2 跳 3 防禦　·　F3 顯示 FPS');
+    hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵、數字鍵 1/2/3　·　必殺技：按住防禦＋方向，再按攻擊或跳躍');
   }
 }

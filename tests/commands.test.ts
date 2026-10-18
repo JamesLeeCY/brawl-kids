@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchCommand, recordPresses } from '../src/sim/commands';
+import { matchCommand, matchHeld, recordPresses } from '../src/sim/commands';
 import type { CmdEvent } from '../src/sim/entity';
 import { snapshotFrom } from '../src/sim/snapshot';
 import type { MoveDef } from '../src/data/schema';
@@ -39,14 +39,32 @@ describe('指令解析', () => {
     expect(matchCommand(feed([['D', 1], ['>', 2], ['J', 3]]), 3, moves)?.move.name).toBe('dash');
   });
 
-  it('超過 20 tick 逾時不觸發', () => {
-    const buf = feed([['D', 10], ['>', 20], ['A', 31]]);
-    expect(matchCommand(buf, 31, moves)).toBeNull();
+  it('超過 30 tick 逾時不觸發', () => {
+    const buf = feed([['D', 10], ['>', 20], ['A', 41]]);
+    expect(matchCommand(buf, 41, moves)).toBeNull();
   });
 
-  it('剛好 20 tick 內觸發', () => {
-    const buf = feed([['D', 10], ['>', 20], ['A', 30]]);
-    expect(matchCommand(buf, 30, moves)).not.toBeNull();
+  it('30 tick 內觸發', () => {
+    const buf = feed([['D', 10], ['>', 20], ['A', 40]]);
+    expect(matchCommand(buf, 40, moves)).not.toBeNull();
+  });
+
+  it('中間夾雜其他按鍵仍可觸發', () => {
+    const buf = feed([['D', 1], ['J', 3], ['>', 5], ['^', 6], ['A', 8]]);
+    // 最靠近攻擊鍵的方向是 ↑，因此成立的是 D↑A
+    expect(matchCommand(buf, 8, moves)?.move.name).toBe('up');
+    const buf2 = feed([['D', 1], ['J', 3], ['>', 5], ['A', 8]]);
+    expect(matchCommand(buf2, 8, moves)?.move.name).toBe('fwd');
+  });
+
+  it('按住防禦＋方向再按攻擊 / 跳躍', () => {
+    const held = (k: Record<string, boolean>) => ({ ...snapshotFrom({}), ...k });
+    expect(matchHeld(held({ D: true, left: true }), snapshotFrom({ A: true }), moves)).toEqual({ move: moves[0], facing: -1 });
+    expect(matchHeld(held({ D: true, down: true }), snapshotFrom({ A: true }), moves)?.move.name).toBe('down');
+    expect(matchHeld(held({ D: true, right: true }), snapshotFrom({ J: true }), moves)?.move.name).toBe('dash');
+    // 沒按方向、或沒按住防禦都不成立
+    expect(matchHeld(held({ D: true }), snapshotFrom({ A: true }), moves)).toBeNull();
+    expect(matchHeld(held({ right: true }), snapshotFrom({ A: true }), moves)).toBeNull();
   });
 
   it('順序錯誤不觸發', () => {
@@ -59,8 +77,8 @@ describe('指令解析', () => {
     expect(matchCommand(buf, 4, moves)).toBeNull();
   });
 
-  it('緩衝只保留最近 30 tick', () => {
-    const buf = feed([['D', 1], ['>', 2], ['A', 40]]);
+  it('緩衝只保留最近 40 tick', () => {
+    const buf = feed([['D', 1], ['>', 2], ['A', 50]]);
     expect(buf.length).toBe(1);
   });
 });

@@ -2,7 +2,7 @@
 import { CONFIG } from '../config';
 import type { CharacterDef } from '../data/load';
 import type { BuffDef } from '../data/schema';
-import { matchCommand, recordPresses } from './commands';
+import { matchCommand, matchHeld, recordPresses } from './commands';
 import { hasBuff, type CharState, type Entity } from './entity';
 import { findNearbyItem, heldItemDef, pickUp, throwHeldItem } from './items';
 import { spawnFromFrame } from './projectiles';
@@ -101,7 +101,7 @@ export function updateChar(w: World, e: Entity, cur: Snapshot): void {
 
   // ---- 指令技 ----
   if (canCommand(w, e) && (pressed.A || pressed.J)) {
-    const m = matchCommand(e.cmdBuf, w.tick, def.moves);
+    const m = matchCommand(e.cmdBuf, w.tick, def.moves) ?? matchHeld(cur, pressed, def.moves);
     if (m && e.mp >= m.move.mp && (isGrounded(e) || m.move.air)) {
       e.mp -= m.move.mp;
       e.cmdBuf.length = 0;

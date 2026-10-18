@@ -7,6 +7,7 @@ import type { NetSession } from '../net/session';
 import { ACTIONS, emptySnapshot, type Snapshot } from '../sim/snapshot';
 import { World, type CarryOver, type MatchSetup } from '../sim/world';
 import { ResultScene } from './result';
+import { moveLabel } from './select';
 import { Scene, type App, type MenuInput } from './scene';
 import { hint, overlay } from './ui';
 
@@ -256,20 +257,14 @@ export class BattleScene extends Scene {
       '連擊：攻擊 ×3（第 3 段擊倒）　跑步：前方向連按兩次　跑步中：攻擊=衝撞、跳躍=衝刺跳、防禦=翻滾',
       '跳躍中攻擊=飛踢　按住防禦減傷 90%　靠近道具按攻擊撿起，持有時攻擊揮擊 / 跑跳中投出',
       '走向暈眩的敵人自動抓住：攻擊=揍打、方向+攻擊=摔出',
-      '必殺技：防禦 → 方向 → 攻擊/跳躍（20 tick 內），→ 為面向的前方',
+      '必殺技：按住「防禦＋方向」再按攻擊/跳躍；或依序按 防禦 → 方向 → 攻擊/跳躍',
     ];
-    lines.forEach((l, i) => text(ctx, l, VW / 2, 270 + i * 26, 13, '#fff', 'center', false));
-    const ids = this.app.data.selectable;
-    const mv = ids
-      .map((id) => {
-        const d = this.app.data.characters[id];
-        return `${d.name}：${d.moves.map((m) => `${m.command.replace('>', '→').replace('^', '↑').replace('v', '↓')}${m.name}`).join(' ')}`;
-      })
-      .join('　');
-    const half = Math.ceil(mv.length / 2);
-    const cut = mv.indexOf('　', half - 20);
-    text(ctx, mv.slice(0, cut), VW / 2, 385, 11, '#cbd5e1', 'center', false);
-    text(ctx, mv.slice(cut + 1), VW / 2, 402, 11, '#cbd5e1', 'center', false);
+    lines.forEach((l, i) => text(ctx, l, VW / 2, 254 + i * 20, 12, '#fff', 'center', false));
+    this.app.data.selectable.forEach((id, r) => {
+      const d = this.app.data.characters[id];
+      const mv = d.moves.map((m) => `${moveLabel(m.command)}${m.name}`).join('  ');
+      text(ctx, `${d.name}：${mv}`, VW / 2, 348 + r * 17, 10, '#cbd5e1', 'center', false);
+    });
     hint(ctx, '按攻擊 / Esc 返回');
   }
 }

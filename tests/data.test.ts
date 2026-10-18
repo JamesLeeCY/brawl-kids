@@ -30,11 +30,11 @@ describe('資料', () => {
     }
   });
 
-  it('每名主角色有 3–4 招', () => {
+  it('每名主角色有 3–6 招', () => {
     for (const id of data.selectable) {
       const n = data.characters[id].moves.length;
       expect(n).toBeGreaterThanOrEqual(3);
-      expect(n).toBeLessThanOrEqual(4);
+      expect(n).toBeLessThanOrEqual(6);
     }
   });
 

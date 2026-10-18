@@ -485,6 +485,94 @@ export class BattleRenderer {
         ctx.stroke();
         break;
       }
+      case 'truck': {
+        // 垃圾車：黃色車身 + 音符
+        ctx.shadowBlur = 0;
+        const f = p.facing;
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(x - 20, y - 14, 30, 22);
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillRect(x + (f > 0 ? 10 : -26), y - 6, 16, 14);
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fillRect(x + (f > 0 ? 14 : -24), y - 3, 8, 6);
+        ctx.fillStyle = '#16a34a';
+        ctx.fillRect(x - 20, y - 2, 30, 3);
+        ctx.fillStyle = '#111';
+        const wheel = (wx: number) => {
+          ctx.beginPath();
+          ctx.arc(wx, y + 9, 4, 0, Math.PI * 2);
+          ctx.fill();
+        };
+        wheel(x - 13);
+        wheel(x + 4);
+        wheel(x + 18 * f);
+        ctx.fillStyle = color;
+        ctx.font = `bold 12px ${FONT}`;
+        const bob = Math.sin(w.tick * 0.3) * 3;
+        ctx.fillText('♪', x - 14, y - 20 + bob);
+        ctx.fillText('♫', x + 2, y - 24 - bob);
+        break;
+      }
+      case 'scalpel':
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(p.facing, 1);
+        ctx.fillStyle = '#6b7280';
+        ctx.fillRect(-9, -1.5, 9, 3);
+        ctx.fillStyle = '#e5e7eb';
+        ctx.beginPath();
+        ctx.moveTo(0, -3);
+        ctx.lineTo(9, 0);
+        ctx.lineTo(0, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        break;
+      case 'syringe':
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(p.facing, 1);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillRect(-10, -4, 14, 8);
+        ctx.fillStyle = color;
+        ctx.fillRect(-8, -2.5, 9, 5);
+        ctx.fillStyle = '#9ca3af';
+        ctx.fillRect(-14, -1, 4, 2);
+        ctx.fillRect(-15, -4, 2, 8);
+        ctx.fillRect(4, -0.8, 8, 1.6);
+        ctx.restore();
+        break;
+      case 'beardrop': {
+        // 從天而降的黑熊
+        const k = f ? p.frameTime / f.duration : 1;
+        const by = HZ + p.z - Math.max(0, 1 - k * 2.2) * 260;
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#141414';
+        ctx.beginPath();
+        ctx.ellipse(x, by - 14, 13, 14, 0, 0, Math.PI * 2);
+        ctx.arc(x, by - 32, 10, 0, Math.PI * 2);
+        ctx.arc(x - 8, by - 40, 4, 0, Math.PI * 2);
+        ctx.arc(x + 8, by - 40, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f5f5f5';
+        ctx.beginPath();
+        ctx.moveTo(x - 7, by - 22);
+        ctx.lineTo(x + 7, by - 22);
+        ctx.lineTo(x, by - 16);
+        ctx.fill();
+        ctx.fillStyle = '#c8a27a';
+        ctx.beginPath();
+        ctx.arc(x, by - 30, 4, 0, Math.PI * 2);
+        ctx.fill();
+        if (k > 0.45) {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(x, HZ + p.z, 24 * k, 8 * k, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        break;
+      }
       default:
         ctx.fillStyle = color;
         ctx.beginPath();

@@ -4,64 +4,336 @@
   "title": "白袍狂人",
   "accessory": "headmirror",
   "quote": "數據會說話！",
-  "stats": { "hp": 520, "walkSpeed": 2.4, "runSpeed": 5.4, "jumpPower": 8.8, "weight": 1.1 },
-  "palette": { "skin": "#f2c9a1", "main": "#f1f5f9", "accent": "#06b6d4", "hair": "#3a3a3a" },
-  "look": { "hair": "receding", "glasses": false, "tie": "#0891b2", "shirt": "#e0f2fe" },
+  "stats": {
+    "hp": 520,
+    "walkSpeed": 2.4,
+    "runSpeed": 5.4,
+    "jumpPower": 8.8,
+    "weight": 1.1
+  },
+  "palette": {
+    "skin": "#f2c9a1",
+    "main": "#f1f5f9",
+    "accent": "#06b6d4",
+    "hair": "#3a3a3a"
+  },
+  "look": {
+    "hair": "receding",
+    "glasses": false,
+    "tie": "#0891b2",
+    "shirt": "#e0f2fe"
+  },
   "frames": {
-    "ecmo_1": { "duration": 6, "pose": "cast_ready", "next": "ecmo_2", "sound": "special" },
+    "ecmo_1": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "ecmo_2",
+      "sound": "special"
+    },
     "ecmo_2": {
-      "duration": 12, "pose": "cast", "next": "ecmo_rec",
-      "spawn": [{ "id": "shock", "x": 24, "y": 38, "vx": 6.5 }]
+      "duration": 12,
+      "pose": "cast",
+      "next": "ecmo_rec",
+      "spawn": [
+        {
+          "id": "shock",
+          "x": 24,
+          "y": 38,
+          "vx": 6.5
+        }
+      ]
     },
-    "ecmo_rec": { "duration": 8, "pose": "cast" },
-
+    "ecmo_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
     "white_1": {
-      "duration": 24, "pose": "cast_up", "next": "white_rec", "sound": "special",
-      "spawn": [{ "id": "bolt", "at": "random", "count": 6, "y": 0 }]
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "white_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "bolt",
+          "at": "random",
+          "count": 6,
+          "y": 0
+        }
+      ]
     },
-    "white_rec": { "duration": 10, "pose": "victory" },
-
-    "er_1": { "duration": 5, "pose": "crouch", "next": "er_2", "sound": "special" },
+    "white_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "er_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "er_2",
+      "sound": "special"
+    },
     "er_2": {
-      "duration": 16, "pose": "dash", "next": "er_rec", "friction": 1, "invuln": true,
-      "selfVel": { "vx": 10.5 },
-      "itr": [{ "x": -4, "y": 10, "w": 32, "h": 44, "damage": 42, "fall": 75, "dvx": 6, "dvy": 5, "hitstop": 6 }]
+      "duration": 16,
+      "pose": "dash",
+      "next": "er_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 10.5
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 32,
+          "h": 44,
+          "damage": 42,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
     },
-    "er_rec": { "duration": 10, "pose": "punch_ready", "friction": 0.7 }
+    "er_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "scalpel_1": {
+      "duration": 5,
+      "pose": "cast_ready",
+      "next": "scalpel_2",
+      "sound": "special"
+    },
+    "scalpel_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "scalpel_rec",
+      "spawn": [
+        {
+          "id": "scalpel",
+          "x": 22,
+          "y": 38,
+          "vx": 9,
+          "dz": -10
+        },
+        {
+          "id": "scalpel",
+          "x": 22,
+          "y": 38,
+          "vx": 9.5
+        },
+        {
+          "id": "scalpel",
+          "x": 22,
+          "y": 38,
+          "vx": 9,
+          "dz": 10
+        }
+      ]
+    },
+    "scalpel_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "coatkick_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "coatkick_2",
+      "sound": "special"
+    },
+    "coatkick_2": {
+      "duration": 18,
+      "pose": "flykick",
+      "next": "idle",
+      "selfVel": {
+        "vx": 7,
+        "vy": 8
+      },
+      "itr": [
+        {
+          "x": 2,
+          "y": 8,
+          "w": 34,
+          "h": 30,
+          "damage": 40,
+          "fall": 80,
+          "dvx": 6,
+          "dvy": 6,
+          "hitstop": 6
+        }
+      ]
+    },
+    "datashield_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "blockProjectile",
+        "value": 1,
+        "duration": 240
+      }
+    }
   },
   "moves": [
-    { "command": "D>A", "name": "ECMO 電擊", "mp": 90, "startFrame": "ecmo_1", "air": true, "role": "ranged" },
-    { "command": "D^A", "name": "白色力量", "mp": 180, "startFrame": "white_1", "role": "area" },
-    { "command": "D>J", "name": "急診衝刺", "mp": 80, "startFrame": "er_1", "role": "rush" }
+    {
+      "command": "D>A",
+      "name": "ECMO 電擊",
+      "mp": 90,
+      "startFrame": "ecmo_1",
+      "air": true,
+      "role": "ranged"
+    },
+    {
+      "command": "D^A",
+      "name": "白色力量",
+      "mp": 180,
+      "startFrame": "white_1",
+      "role": "area"
+    },
+    {
+      "command": "D>J",
+      "name": "急診衝刺",
+      "mp": 80,
+      "startFrame": "er_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvA",
+      "name": "手術刀陣",
+      "mp": 70,
+      "startFrame": "scalpel_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^J",
+      "name": "白袍飛踢",
+      "mp": 60,
+      "startFrame": "coatkick_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "數據護盾",
+      "mp": 100,
+      "startFrame": "datashield_1",
+      "role": "buff"
+    }
   ],
   "projectiles": {
     "shock": {
-      "life": 80, "size": 10, "onHit": "boom", "onExpire": "boom", "startFrame": "fly",
+      "life": 80,
+      "size": 10,
+      "onHit": "boom",
+      "onExpire": "boom",
+      "startFrame": "fly",
       "frames": {
         "fly": {
-          "duration": 1, "pose": "shock", "next": "fly",
-          "itr": [{ "x": -8, "y": -8, "w": 16, "h": 16, "damage": 15, "fall": 10, "dvx": 1, "hitstop": 2 }]
+          "duration": 1,
+          "pose": "shock",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -8,
+              "y": -8,
+              "w": 16,
+              "h": 16,
+              "damage": 15,
+              "fall": 10,
+              "dvx": 1,
+              "hitstop": 2
+            }
+          ]
         }
       }
     },
     "boom": {
-      "life": 30, "size": 34, "hitLimit": 99, "blockable": false, "startFrame": "boom",
+      "life": 30,
+      "size": 34,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "boom",
       "frames": {
         "boom": {
-          "duration": 16, "pose": "spark_burst", "next": "expire", "sound": "hit_heavy",
-          "itr": [{ "x": -32, "y": -32, "w": 64, "h": 64, "damage": 45, "fall": 80, "dvx": 5, "dvy": 7,
-                    "hitstop": 6, "radial": true, "zRange": 30 }]
+          "duration": 16,
+          "pose": "spark_burst",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -32,
+              "y": -32,
+              "w": 64,
+              "h": 64,
+              "damage": 45,
+              "fall": 80,
+              "dvx": 5,
+              "dvy": 7,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 30
+            }
+          ]
         }
       }
     },
     "bolt": {
-      "life": 60, "size": 16, "hitLimit": 99, "blockable": false, "startFrame": "warn",
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
       "frames": {
-        "warn": { "duration": 34, "pose": "bolt_warn", "next": "strike" },
+        "warn": {
+          "duration": 34,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
         "strike": {
-          "duration": 14, "pose": "bolt", "next": "expire", "sound": "hit_heavy",
-          "itr": [{ "x": -16, "y": 0, "w": 32, "h": 140, "damage": 50, "fall": 80, "dvx": 2, "dvy": 6,
-                    "hitstop": 6, "radial": true, "zRange": 18 }]
+          "duration": 14,
+          "pose": "bolt",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -16,
+              "y": 0,
+              "w": 32,
+              "h": 140,
+              "damage": 50,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    },
+    "scalpel": {
+      "life": 45,
+      "size": 8,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "scalpel",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -7,
+              "y": -5,
+              "w": 14,
+              "h": 10,
+              "damage": 20,
+              "fall": 16,
+              "dvx": 2,
+              "hitstop": 3
+            }
+          ]
         }
       }
     }

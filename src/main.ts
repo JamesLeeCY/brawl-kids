@@ -10,6 +10,7 @@ import { SceneManager, unionPressed, type App, type MenuInput } from './scenes/s
 import { defaultSlots } from './scenes/select';
 import { JoinScene, OnlineMenuScene } from './scenes/online';
 import { TitleScene } from './scenes/title';
+import { updateIfStale } from './version';
 import { loadSettings } from './settings';
 import { emptySnapshot, pressedEdges, type Snapshot } from './sim/snapshot';
 import type { World } from './sim/world';
@@ -50,22 +51,12 @@ if (roomCode) {
 }
 if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;
 
-// 正式版：若瀏覽器快取到舊版網頁（和伺服器上的 version.json 不同），自動重新整理一次
-if (import.meta.env.PROD) {
-  fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' })
-    .then((r) => (r.ok ? r.json() : null))
-    .then((v: { build?: string } | null) => {
-      if (!v?.build || v.build === __BUILD_ID__) return;
-      try {
-        if (sessionStorage.getItem('reloadedFor') === v.build) return;
-        sessionStorage.setItem('reloadedFor', v.build);
-      } catch {
-        /* 私密模式等情況忽略 */
-      }
-      window.location.reload();
-    })
-    .catch(() => undefined);
-}
+// 正式版：若瀏覽器快取到舊版網頁（和伺服器上的 version.json 不同），自動換到新版
+void updateIfStale();
+// 網頁開著放在背景很久（手機常見），回到前景且還在標題畫面時再檢查一次
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && app.scenes.top instanceof TitleScene) void updateIfStale();
+});
 
 // ---------- 畫布縮放 ----------
 // 桌機：16:9 等比放大，邊緣留黑。手機橫向：邏輯寬度加寬到螢幕比例，戰鬥畫面填滿整個螢幕（荒野亂鬥式）。

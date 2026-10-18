@@ -8,6 +8,7 @@ import type { Difficulty } from '../config';
 import type { MatchSetup } from '../sim/world';
 import { Lockstep, MAX_SLOTS, type InputPacket } from './lockstep';
 import { MiniMqtt } from './mqtt';
+import { fetchLatestBuild, reloadToBuild } from '../version';
 
 export interface LobbySlot {
   kind: 'empty' | 'human' | 'ai';
@@ -20,7 +21,7 @@ export interface LobbySlot {
 export type NetMsg =
   | { type: 'hello'; v: string }
   | { type: 'welcome'; slot: number }
-  | { type: 'reject'; reason: string }
+  | { type: 'reject'; reason: string; stale?: boolean }
   | { type: 'lobbystate'; slots: LobbySlot[]; opt: number }
   | { type: 'sel'; charIdx: number; team: number; ready: boolean }
   | { type: 'start'; setup: MatchSetup; epoch: number; delay: number }
@@ -265,6 +266,8 @@ export class NetSession {
   /** 房主：中繼加入者 id → 欄位 */
   private relaySlots = new Map<string, number>();
   private relayStarted = false;
+  /** 加入者只處理一次版本不同 */
+  private versionChecked = false;
   private roomMissing = false;
   private readonly myId = randomCode(10);
 
@@ -566,12 +569,7 @@ export class NetSession {
     switch (m.type) {
       case 'hello':
         if (m.v !== this.version) {
-          const why = '你和房主的遊戲版本不同。請兩人都重新整理網頁（手機請關掉分頁重開）後再試。';
-          if (this.role === 'guest') this.fail(why);
-          else {
-            link.conn.send({ type: 'reject', reason: why });
-            setTimeout(() => link.conn.close(), 300);
-          }
+          this.onVersionMismatch(link.conn);
           return;
         }
         if (this.role === 'host' && !link.verified) {
@@ -588,7 +586,8 @@ export class NetSession {
         window.clearTimeout(this.timeout);
         return;
       case 'reject':
-        this.fail(m.reason);
+        if (m.stale) this.onVersionMismatch(null);
+        else this.fail(m.reason);
         return;
       case 'ping':
         link.conn.send({ type: 'pong', ts: m.ts });
@@ -726,6 +725,37 @@ export class NetSession {
     const q = this.inbox;
     this.inbox = [];
     return q;
+  }
+
+  /**
+   * 雙方版本不同：先問伺服器誰才是最新版。
+   * 自己是舊版 → 自動換到新版（加入者會帶著房間代碼回來）；對方是舊版 → 告訴大家是誰要重開網頁。
+   */
+  private onVersionMismatch(conn: Channel | null): void {
+    if (this.versionChecked) return;
+    this.versionChecked = this.role === 'guest';
+    const reject = (reason: string) => {
+      if (!conn) return;
+      conn.send({ type: 'reject', reason, stale: true });
+      setTimeout(() => conn.close(), 300);
+    };
+    const generic = '你和房主的遊戲版本不同。請兩人都關掉分頁、重新打開網頁後再試。';
+    fetchLatestBuild().then((latest) => {
+      const meStale = !!latest && latest !== __BUILD_ID__;
+      if (this.role === 'guest') {
+        if (meStale) {
+          this.fail('發現新版本，正在自動更新，更新後會自動回到這個房間…');
+          if (!reloadToBuild(latest, { room: this.code })) this.fail('你的網頁是舊版，自動更新沒成功。請關掉分頁、重新打開分享連結。');
+        } else this.fail(latest ? '房主的網頁是舊版。請房主關掉分頁、重新打開網頁再建立房間（會有新的房間代碼）。' : generic);
+        return;
+      }
+      // 房主
+      if (meStale) {
+        reject('房主的網頁是舊版，正在更新。請等房主傳新的分享連結。');
+        this.fail('你的網頁是舊版，朋友連不進來。正在自動更新，更新後請重新建立房間並分享新連結…');
+        reloadToBuild(latest);
+      } else reject(latest ? '你的網頁是舊版。請關掉分頁、重新打開分享連結（手機也一樣）。' : generic);
+    });
   }
 
   private fail(msg: string): void {

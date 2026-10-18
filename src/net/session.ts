@@ -35,6 +35,8 @@ export type NetMsg =
   /** 世界卡在第 t tick 等按鍵：請對方從 t 起補送（中繼掉包或重連後的缺口） */
   | { type: 'need'; e: number; t: number }
   | { type: 'ping'; ts: number }
+  /** 房主每 3 秒在各中繼 broker 廣播「我在這裡」，附上版本：加入者據此判斷房主在不在、版本是否相同 */
+  | { type: 'beacon'; v: string }
   | { type: 'pong'; ts: number }
   | { type: 'bye' }
   /** 本機事件（不經網路）：加入者連上 / 離開房主 */
@@ -59,6 +61,8 @@ export interface JoinDiag {
   /** 已連上的中繼伺服器數 / 失敗數 */
   relay: number;
   relayFail: number;
+  /** 在中繼伺服器上看到房主（收到房主的廣播） */
+  hostSeen: boolean;
   /** 收到房主的回應 */
   host: boolean;
 }
@@ -85,7 +89,8 @@ const TOPIC_BASE = 'brawlkids-tw/v3';
 const HOST_TIMEOUT = 12000;
 /** 直連多久沒成功就改走中繼 */
 const P2P_GRACE = 6000;
-const CONNECT_TIMEOUT = 25000;
+/** 加入的總時限：期間持續向房主打招呼，房主從別的 App 回來時也能自動接上 */
+const CONNECT_TIMEOUT = 60000;
 /** 中繼通道多久沒收到任何訊息視為斷線（每秒都有 ping） */
 const RELAY_SILENCE = 10000;
 /** 中繼訊息合併送出的間隔：EMQX 公用 broker 每個連線約限 10 則 / 秒（實測超過就丟包），用 8 則 / 秒保留餘裕 */
@@ -324,10 +329,12 @@ export class NetSession {
   reconnecting = false;
   private reconnectTimer = 0;
   private reconnectRelay = false;
+  private beaconTimer = 0;
+  private greetTimer = 0;
   /** 房主：最近一次認回某欄位的時間（同一批重連招呼可能從多個 broker 進來，只採用第一個） */
   private resumedAt = new Map<number, number>();
   /** 加入者的連線步驟（畫面顯示用） */
-  diag: JoinDiag = { peer: 'wait', p2p: 'wait', relay: 0, relayFail: 0, host: false };
+  diag: JoinDiag = { peer: 'wait', p2p: 'wait', relay: 0, relayFail: 0, hostSeen: false, host: false };
   /** 各段比賽的按鍵 / 斷線紀錄（重連時補送） */
   private inLog = new Map<number, Map<string, NetMsg>>();
   /** 房主最近一次送出的開賽訊息（重連的加入者若錯過可補送） */
@@ -383,10 +390,15 @@ export class NetSession {
     else s.openGuest();
     s.timeout = window.setTimeout(() => {
       if (s.status !== 'connecting') return;
+      const d = s.diag;
       s.fail(
-        s.roomMissing
-          ? '找不到這個房間代碼，請確認代碼或請房主重新建立房間。'
-          : '連線逾時：直連與中繼都沒有成功。請確認房主還在房間裡，或換個網路（例如手機熱點）再試。',
+        d.hostSeen
+          ? '房主在線但沒有回應。請房主關掉分頁、重新打開網頁並建立新房間後再試。'
+          : d.relay > 0
+            ? s.roomMissing
+              ? '找不到這個房間：房主可能已離開。請確認代碼，或請房主重新建立房間。'
+              : '房主沒有出現在中繼伺服器上：請房主回到遊戲畫面（停在 LINE 等 App 時無法接受加入）。若仍不行，請房主關掉分頁重開、重新建立房間。'
+            : '連線逾時：直連與中繼伺服器都連不上。請換個網路（例如手機熱點）再試。',
       );
     }, CONNECT_TIMEOUT);
     return s;
@@ -478,9 +490,20 @@ export class NetSession {
     this.startPing();
   }
 
+  /** 房主：每 3 秒在各中繼 broker 廣播自己在線（含版本），也順便讓閒置的連線保持有流量、死掉時能被發現 */
+  private startBeacon(): void {
+    window.clearInterval(this.beaconTimer);
+    const beat = () => {
+      if (this.status === 'closed') return;
+      for (const h of this.hubs) if (h.connected) h.send('*', { type: 'beacon', v: this.version });
+    };
+    this.beaconTimer = window.setInterval(beat, 3000);
+  }
+
   /** 房主在所有中繼 broker 上等待加入者 */
   private listenRelay(): void {
     this.relayStarted = true;
+    this.startBeacon();
     const topic = `${TOPIC_BASE}/${this.code}/r`;
     RELAY_BROKERS.forEach((url, i) => {
       const hub = new RelayHub(url, `bkh${i}-${this.myId}`, topic, 'h');
@@ -744,7 +767,14 @@ export class NetSession {
             this.fail('直連失敗，中繼伺服器也全部連不上。可能是網路擋住了，請換個網路（例如手機熱點）再試。');
         });
     });
-    [800, 2000, 4000, 7000, 11000, 16000, 22000].forEach((ms) => window.setTimeout(() => this.greetAll(), ms));
+    // 等待期間每 2.5 秒打一次招呼，直到房主回應（訂閱生效需要時間，房主也可能晚點才回到畫面）
+    [800, 2000].forEach((ms) => window.setTimeout(() => this.greetAll(), ms));
+    window.clearInterval(this.greetTimer);
+    this.greetTimer = window.setInterval(() => {
+      const waiting = (this.status === 'connecting' || this.reconnecting) && !this.links.get(0)?.verified;
+      if (waiting) this.greetAll();
+      else window.clearInterval(this.greetTimer);
+    }, 2500);
   }
 
   /** 在每個已連上的 broker 向房主打招呼（直到房主回應為止） */
@@ -810,6 +840,12 @@ export class NetSession {
     if (env.f === 'h') {
       const items = env.b.filter((it) => it.to === this.myId || it.to === '*');
       if (!items.length) return;
+      const beacon = items.find((it) => it.m.type === 'beacon')?.m;
+      if (beacon?.type === 'beacon') {
+        this.diag.hostSeen = true;
+        // 版本不同：自動判斷誰是舊版（加入者舊 → 自動更新後回到房間；房主舊 → 提示房主重開）
+        if (beacon.v !== this.version && this.status === 'connecting') this.onVersionMismatch(null);
+      }
       if (!onThisHub) {
         // 還沒有通道（或直連還沒成功）時，房主第一個「回覆給我」的 broker 就成為通道
         const waiting = this.status === 'connecting' || this.reconnecting;
@@ -867,6 +903,8 @@ export class NetSession {
       case 'reject':
         if (m.stale) this.onVersionMismatch(null);
         else this.fail(m.reason);
+        return;
+      case 'beacon':
         return;
       case 'ping':
         link.conn.send({ type: 'pong', ts: m.ts });
@@ -1104,6 +1142,8 @@ export class NetSession {
     window.clearInterval(this.pingTimer);
     window.clearInterval(this.watchTimer);
     window.clearTimeout(this.reconnectTimer);
+    window.clearInterval(this.beaconTimer);
+    window.clearInterval(this.greetTimer);
     this.reconnecting = false;
     this.status = 'closed';
     setTimeout(() => {

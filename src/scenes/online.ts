@@ -6,6 +6,7 @@ import { drawFigure, roundRect, shade } from '../render/character';
 import { getPose } from '../render/poses';
 import { text } from '../render/text';
 import { CODE_LENGTH, MAX_SLOTS, NetSession, isValidCodeChar, shareUrl, type LobbySlot, type Step } from '../net/session';
+import { ensureLatest, isStale } from '../version';
 import { emptySnapshot, type Snapshot } from '../sim/snapshot';
 import type { MatchSetup } from '../sim/world';
 import { BattleScene } from './battle';
@@ -60,28 +61,34 @@ export class OnlineMenuScene extends Scene {
 
 // ---------------- 建立房間 ----------------
 export class HostScene extends Scene {
-  private net: NetSession;
+  net: NetSession | null = null;
   private t = 0;
+  private cancelled = false;
 
   constructor(app: App) {
     super(app);
-    this.net = NetSession.host(dataVersion());
+    // 先確認是最新版（舊版房間朋友連不進來），再建立房間
+    void ensureLatest().then((reloading) => {
+      if (!reloading && !this.cancelled) this.net = NetSession.host(dataVersion());
+    });
   }
 
   update(): void {
     this.t++;
-    if (this.net.status === 'open') this.app.scenes.replace(new OnlineSelectScene(this.app, this.net));
+    if (this.net?.status === 'open') this.app.scenes.replace(new OnlineSelectScene(this.app, this.net));
   }
 
   onEscape(): void {
-    this.net.close();
+    this.cancelled = true;
+    this.net?.close();
     this.app.scenes.pop();
   }
 
   render(ctx: CanvasRenderingContext2D): void {
     menuBackground(ctx, this.t, '#0b2545', '#13315c');
     text(ctx, '建立房間', VW / 2, 70, 30, '#ffd23f', 'center', true, true);
-    if (this.net.status === 'error') {
+    if (!this.net) text(ctx, '檢查遊戲版本…', VW / 2, 200, 18, '#fff', 'center');
+    else if (this.net.status === 'error') {
       text(ctx, this.net.error, VW / 2, 200, 16, '#ff8a8a', 'center');
       text(ctx, '按 Esc 返回', VW / 2, 240, 14, '#fff', 'center', false);
     } else text(ctx, '正在向配對伺服器登記房間…', VW / 2, 200, 18, '#fff', 'center');
@@ -101,8 +108,17 @@ export class JoinScene extends Scene {
     if (this.code.length === CODE_LENGTH) this.connect();
   }
 
+  private checking = false;
+
   private connect(): void {
-    this.net = NetSession.join(this.code, dataVersion());
+    if (this.checking) return;
+    this.checking = true;
+    const code = this.code;
+    // 先確認是最新版；若是舊版會自動更新並帶著房間代碼回來
+    void ensureLatest({ room: code }).then((reloading) => {
+      this.checking = false;
+      if (!reloading && this.app.scenes.top === this && this.code === code) this.net = NetSession.join(code, dataVersion());
+    });
   }
 
   update(inp: MenuInput): void {
@@ -158,7 +174,9 @@ export class JoinScene extends Scene {
       text(ctx, this.code[i] ?? '', x + 24, 195, 36, '#fff', 'center');
     }
     const n = this.net;
-    if (!n) {
+    if (!n && this.checking) {
+      text(ctx, '檢查遊戲版本…', VW / 2, 270, 18, '#fff', 'center');
+    } else if (!n) {
       text(ctx, this.code.length === CODE_LENGTH ? '按 Enter 連線' : '直接用鍵盤輸入英文字母與數字，Backspace 刪除', VW / 2, 260, 15, '#fff', 'center', false);
       text(ctx, '手機 / 平板：點一下畫面輸入代碼', VW / 2, 286, 13, '#cbd5e1', 'center', false);
     } else if (n.status === 'error' || n.status === 'closed') {
@@ -168,7 +186,12 @@ export class JoinScene extends Scene {
     } else {
       const dots = '.'.repeat(1 + ((this.t >> 4) % 3));
       text(ctx, `連線中${dots}`, VW / 2, 270, 20, '#ffd23f', 'center');
-      if (this.t > 360) text(ctx, '直連較慢，正在改用中繼伺服器…', VW / 2, 298, 13, '#cbd5e1', 'center', false);
+      const d = n.diag;
+      let sub = '';
+      if (d.hostSeen) sub = '找到房主了，正在建立連線…';
+      else if (d.relay > 0 && this.t > 600) sub = '已連上中繼伺服器，等待房主回應…（請房主回到遊戲畫面）';
+      else if (this.t > 360) sub = '直連較慢，正在改用中繼伺服器…';
+      if (sub) text(ctx, sub, VW / 2, 298, 13, '#cbd5e1', 'center', false);
       this.renderDiag(ctx, n);
     }
     hint(ctx, 'Esc 返回');
@@ -179,7 +202,7 @@ export class JoinScene extends Scene {
     const d = n.diag;
     const mark = (s: Step) => (s === 'ok' ? '✓' : s === 'fail' ? '✗' : s === 'skip' ? '略過' : '…');
     const relay = d.relay ? `${d.relay} 個 ✓` : d.relayFail ? '✗' : '…';
-    const line = `配對伺服器 ${mark(d.peer)}　·　直連 ${mark(d.p2p)}　·　中繼伺服器 ${relay}　·　房主回應 ${d.host ? '✓' : '…'}`;
+    const line = `配對伺服器 ${mark(d.peer)}　·　直連 ${mark(d.p2p)}　·　中繼伺服器 ${relay}　·　房主在線 ${d.hostSeen || d.host ? '✓' : '…'}　·　房主回應 ${d.host ? '✓' : '…'}`;
     text(ctx, line, VW / 2, 330, 12, '#94a3b8', 'center', false);
   }
 }
@@ -212,6 +235,8 @@ export class OnlineSelectScene extends Scene {
   private aiCursor = -1;
   private warn = 0;
   private copied = 0;
+  /** 房主等人時發現網站有新版本（舊版房間新版的朋友連不進來） */
+  private newVersion = false;
   private dirty = true;
 
   constructor(
@@ -257,6 +282,7 @@ export class OnlineSelectScene extends Scene {
     this.t++;
     if (this.warn > 0) this.warn--;
     if (this.copied > 0) this.copied--;
+    if (this.isHost && this.t % 3600 === 1800) void isStale().then((v) => (this.newVersion = v));
     this.handleMessages();
     if (this.net.status !== 'open') return;
     const k = localPressed(inp);
@@ -482,7 +508,8 @@ export class OnlineSelectScene extends Scene {
     else if (this.isHost && this.me.ready) h1 = '已確定：← / → 設定電腦　攻擊 複製分享連結　防禦 取消';
     else h1 = '←→ 選角　↑↓ 選隊伍　跳躍 確定　防禦 取消' + (this.isHost ? '　攻擊 切換模式' : '');
     text(ctx, h1, VW / 2, 404, 12, n.status !== 'open' || n.reconnecting || lost.length || this.warn > 0 ? '#ff8a8a' : '#fff', 'center', false);
-    if (this.isHost && n.guestSlots().length === 0) hint(ctx, '分享連結後請回到這個畫面等朋友加入（停在別的 App 時朋友連不進來）　·　Esc 離開連線');
+    if (this.isHost && this.newVersion) hint(ctx, '網站已更新：請按 Esc 離開，重新整理網頁後再建立房間（舊版房間朋友連不進來）');
+    else if (this.isHost && n.guestSlots().length === 0) hint(ctx, '分享連結後請回到這個畫面等朋友加入（停在別的 App 時朋友連不進來）　·　Esc 離開連線');
     else hint(ctx, '所有玩家都確定後由房主開始　·　Esc 離開連線');
   }
 }

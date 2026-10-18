@@ -33,6 +33,15 @@ export function reloadToBuild(build: string, params: Record<string, string> = {}
   return true;
 }
 
+/**
+ * 建立 / 加入房間前呼叫：若是舊版就先更新（最多等 2.5 秒讀取版本，讀不到就照常繼續）。
+ * 回傳 true 表示正在重新載入，呼叫端不要再建立連線。
+ */
+export function ensureLatest(params: Record<string, string> = {}): Promise<boolean> {
+  const timeout = new Promise<null>((r) => window.setTimeout(() => r(null), 2500));
+  return Promise.race([fetchLatestBuild(), timeout]).then((b) => (b && b !== __BUILD_ID__ ? reloadToBuild(b, params) : false));
+}
+
 /** 若是舊版就自動更新；回傳是否已開始重新載入 */
 export function updateIfStale(params: Record<string, string> = {}): Promise<boolean> {
   return fetchLatestBuild().then((b) => (b && b !== __BUILD_ID__ ? reloadToBuild(b, params) : false));

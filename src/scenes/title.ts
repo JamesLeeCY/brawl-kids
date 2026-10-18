@@ -6,6 +6,7 @@ import { Scene, type MenuInput } from './scene';
 import { SelectScene } from './select';
 import { OnlineMenuScene } from './online';
 import { SettingsScene } from './settings';
+import { touchMode } from './select';
 import { button, hint, menuBackground } from './ui';
 
 const VW = CONFIG.view.width;
@@ -57,7 +58,8 @@ export class TitleScene extends Scene {
     text(ctx, '混戰小英雄', VW / 2, 110, 64, '#ffd23f', 'center', true, true);
     text(ctx, 'BRAWL KIDS', VW / 2, 145, 22, '#ffffff', 'center', true, true);
     this.options.forEach((o, i) => button(ctx, o, VW / 2, 290 + i * 40, 200, this.sel === i));
-    if ((this.t >> 5) % 2 === 0) text(ctx, '按任一玩家的攻擊鍵開始', VW / 2, 420, 15, '#fff', 'center');
-    hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵、數字鍵 1/2/3　·　必殺技：按住防禦＋方向，再按攻擊或跳躍');
+    if ((this.t >> 5) % 2 === 0) text(ctx, touchMode() ? '點選單或「攻擊」開始' : '按任一玩家的攻擊鍵開始', VW / 2, 420, 15, '#fff', 'center');
+    if (touchMode()) hint(ctx, '點「攻擊」或選單開始　·　左半邊按住＝搖桿　·　推搖桿方向再點「必殺」放必殺技');
+    else hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵、數字鍵 1/2/3　·　必殺技：按住防禦＋方向，再按攻擊或跳躍');
   }
 }

@@ -7,7 +7,7 @@ import type { NetSession } from '../net/session';
 import { ACTIONS, emptySnapshot, type Snapshot } from '../sim/snapshot';
 import { World, type CarryOver, type MatchSetup } from '../sim/world';
 import { ResultScene } from './result';
-import { moveLabel } from './select';
+import { moveLabel, touchMode } from './select';
 import { Scene, type App, type MenuInput } from './scene';
 import { hint, overlay } from './ui';
 
@@ -259,12 +259,19 @@ export class BattleScene extends Scene {
       for (let p = 0; p < HUMAN_PLAYERS; p++) text(ctx, keyName(b[p][a]), 360 + p * 160, 90 + r * 22, 14, '#e2e8f0', 'center');
     });
     for (let p = 0; p < HUMAN_PLAYERS; p++) text(ctx, `${p + 1}P`, 360 + p * 160, 70, 13, '#ffd23f', 'center');
-    const lines = [
+    const lines = touchMode()
+      ? [
+          '左半邊任意處按住＝搖桿移動　同方向快推兩下＝跑步　跑步中：攻擊=衝撞、跳躍=衝刺跳、防禦=翻滾',
+          '攻擊連按 3 下＝三段連擊　空中攻擊＝飛踢　按住防禦減傷 90%　靠近道具按攻擊撿起',
+          '走向暈眩的敵人自動抓住：攻擊=揍打、推搖桿+攻擊=摔出',
+          '必殺：推搖桿方向再點「必殺 / 必殺跳」（不推＝朝前方）；黃色外圈＝MP',
+        ]
+      : [
       '連擊：攻擊 ×3（第 3 段擊倒）　跑步：前方向連按兩次　跑步中：攻擊=衝撞、跳躍=衝刺跳、防禦=翻滾',
       '跳躍中攻擊=飛踢　按住防禦減傷 90%　靠近道具按攻擊撿起，持有時攻擊揮擊 / 跑跳中投出',
       '走向暈眩的敵人自動抓住：攻擊=揍打、方向+攻擊=摔出',
       '必殺技：按住「防禦＋方向」再按攻擊/跳躍；或依序按 防禦 → 方向 → 攻擊/跳躍',
-    ];
+      ];
     lines.forEach((l, i) => text(ctx, l, 400, 254 + i * 20, 12, '#fff', 'center', false));
     const inMatch = [...new Set(this.world.chars().filter((c) => c.slot >= 0).map((c) => c.charId))];
     inMatch.forEach((id, r) => {

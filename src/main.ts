@@ -130,6 +130,7 @@ function frame(now: number): void {
   app.scenes.top?.render(ctx);
   if (off) ctx.setTransform(scale, 0, 0, scale, 0, 0);
   touchUi.setCharge(superCharge());
+  document.body.classList.toggle('in-battle', !!app.scenes.top?.wide);
   frames++;
   if (now - fpsTimer >= 500) {
     fps = (frames * 1000) / (now - fpsTimer);

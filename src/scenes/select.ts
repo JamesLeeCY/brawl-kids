@@ -12,11 +12,21 @@ const VW = CONFIG.view.width;
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
 export const DIFF_LABEL: Record<Difficulty, string> = { easy: '簡單', normal: '普通', hard: '困難' };
 export const TEAM_LABEL = ['獨立', '1 隊', '2 隊', '3 隊', '4 隊'];
-const COUNTDOWN = 60;
+const COUNTDOWN = 90;
 
-/** "D>A" → "D→A" */
-export function moveLabel(cmd: string): string {
-  return cmd.replace('>', '→').replace('^', '↑').replace('v', '↓');
+/** 觸控介面是否顯示中 */
+export function touchMode(): boolean {
+  return typeof document !== 'undefined' && document.body.classList.contains('touch-mode');
+}
+
+/**
+ * 招式按法說明。鍵盤："D>A" → "D→A"；
+ * 觸控："D>A" → "必殺"、"D^A" → "↑必殺"、"DvJ" → "↓必跳"（必跳＝必殺跳鈕；→ 為預設面向，可不推搖桿）
+ */
+export function moveLabel(cmd: string, touch = touchMode()): string {
+  if (!touch) return cmd.replace('>', '→').replace('^', '↑').replace('v', '↓');
+  const dir = cmd[1] === '^' ? '↑' : cmd[1] === 'v' ? '↓' : '';
+  return `${dir}${cmd[2] === 'A' ? '必殺' : '必跳'}`;
 }
 
 export function defaultSlots(): SlotConfig[] {
@@ -69,6 +79,8 @@ export class SelectScene extends Scene {
         if (k.J || k.A) {
           s.ready = true;
           this.app.sfx.play('special');
+          // 1P 一個人確定時，直接進入「設定電腦」，不會被倒數帶走
+          if (p === 0 && this.participants() === 1) this.aiCursor = this.nextAiSlot(0, 1);
         }
         if (k.D) s.kind = 'empty';
       } else {
@@ -77,16 +89,26 @@ export class SelectScene extends Scene {
           const first = this.nextAiSlot(0, 1);
           if (first >= 0) this.aiCursor = first;
         }
+        // 1P 已確定時按攻擊：不等倒數直接開始
+        if (p === 0 && k.A && this.allHumansReady()) this.countdown = 1;
       }
     }
-    const humans = this.slots.filter((s) => s.kind === 'human');
-    const allReady = humans.length > 0 && humans.every((s) => s.ready) && this.aiCursor < 0;
+    const allReady = this.allHumansReady() && this.aiCursor < 0;
     if (!allReady) this.countdown = -1;
     else if (this.countdown < 0) this.countdown = COUNTDOWN;
     else if (--this.countdown === 0) {
       this.countdown = -1;
       this.app.scenes.push(new ModeScene(this.app));
     }
+  }
+
+  private participants(): number {
+    return this.slots.filter((s) => s.kind !== 'empty').length;
+  }
+
+  private allHumansReady(): boolean {
+    const humans = this.slots.filter((s) => s.kind === 'human');
+    return humans.length > 0 && humans.every((s) => s.ready);
   }
 
   private nextAiSlot(from: number, dir: 1 | -1): number {
@@ -152,9 +174,9 @@ export class SelectScene extends Scene {
       ctx.stroke();
       text(ctx, s.kind === 'ai' ? `COM（${DIFF_LABEL[s.difficulty]}）` : `${p + 1}P`, x + 94, y + 24, 16, col, 'center');
       if (s.kind === 'empty') {
-        text(ctx, p < HUMAN_PLAYERS ? '按攻擊鍵加入' : '電腦欄位', x + 94, y + 160, 15, 'rgba(255,255,255,0.7)', 'center');
+        text(ctx, p < HUMAN_PLAYERS ? (p === 0 && touchMode() ? '點「攻擊」加入' : '按攻擊鍵加入') : '電腦欄位', x + 94, y + 160, 15, 'rgba(255,255,255,0.7)', 'center');
         if (p > 0) text(ctx, p < HUMAN_PLAYERS ? '（或由 1P 設為電腦）' : '（由 1P 設為電腦）', x + 94, y + 184, 12, 'rgba(255,255,255,0.5)', 'center', false);
-        if (editing) text(ctx, '1P：攻擊鍵加入電腦', x + 94, y + 220, 13, '#fff', 'center');
+        if (editing) text(ctx, '1P：按攻擊加入電腦', x + 94, y + 220, 13, '#fff', 'center');
         continue;
       }
       const def = this.app.data.characters[ids[s.charIdx % ids.length]];
@@ -175,14 +197,18 @@ export class SelectScene extends Scene {
       text(ctx, def.title, x + 94, y + 232, 13, def.palette.accent, 'center');
       text(ctx, `隊伍：${TEAM_LABEL[s.team]}`, x + 94, y + 258, 14, '#fff', 'center');
       const moves = def.moves.map((m) => `${moveLabel(m.command)} ${m.name}`);
-      moves.forEach((m, i) => text(ctx, m, x + 8 + (i % 2) * 90, y + 278 + Math.floor(i / 2) * 14, 9.5, 'rgba(255,255,255,0.8)', 'left', false));
+      const fs = touchMode() ? 10.5 : 9.5;
+      moves.forEach((m, i) => text(ctx, m, x + 6 + (i % 2) * 91, y + 278 + Math.floor(i / 2) * 15, fs, 'rgba(255,255,255,0.85)', 'left', false));
       if (s.ready) text(ctx, '準備完成！', x + 94, y + 326, 15, '#ffd23f', 'center');
       if (editing) text(ctx, '上下換角 跳躍換隊 攻擊改難度', x + 94, y + 326, 11, '#fff', 'center');
     }
     if (this.countdown > 0) text(ctx, `即將開始…`, VW / 2, 400, 18, '#ffd23f', 'center', true, true);
     const p1 = this.slots[0];
-    if (this.aiCursor >= 0) hint(ctx, '1P 設定電腦：←→ 選欄位　攻擊 加入/改難度/移除　↑↓ 換角色　跳躍 換隊　防禦 完成', 414);
-    else if (p1.kind === 'human' && p1.ready) hint(ctx, '1P 已確定：按 ← / → 設定電腦對手　防禦 取消', 414);
-    hint(ctx, '攻擊加入　←→ 選角　↑↓ 選隊伍　跳躍 確定　防禦 退出　·　全員確定 1 秒後開始　·　Esc 返回');
+    const touch = touchMode();
+    const LR = touch ? '搖桿←→' : '←→';
+    const UD = touch ? '搖桿↑↓' : '↑↓';
+    if (this.aiCursor >= 0) hint(ctx, `設定電腦：${LR} 選欄位　攻擊 加入/改難度/移除　${UD} 換角色　跳躍 換隊　防禦 完成（可直接單人開始）`, 414);
+    else if (p1.kind === 'human' && p1.ready) hint(ctx, `1P 已確定：${LR} 設定電腦對手　攻擊 立即開始　防禦 取消`, 414);
+    hint(ctx, touch ? `攻擊 加入　${LR} 選角　${UD} 選隊伍　跳躍 確定　防禦 退出　·　右上Ⅱ 返回` : '攻擊加入　←→ 選角　↑↓ 選隊伍　跳躍 確定　防禦 退出　·　全員確定後 1.5 秒開始　·　Esc 返回');
   }
 }

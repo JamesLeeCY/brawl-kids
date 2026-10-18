@@ -94,6 +94,13 @@
         transform-origin: bottom right;
         opacity: 0.9;
       }
+      /* 選單畫面：按鈕更透明，避免擋住角色卡 */
+      body:not(.in-battle) .touch-pad {
+        opacity: 0.55;
+      }
+      body:not(.in-battle) .touch-stick.idle {
+        opacity: 0.18;
+      }
       .touch-btn {
         position: absolute;
         border-radius: 50%;

@@ -4,7 +4,7 @@ import type { StageDef } from '../data/schema';
 import type { World } from '../sim/world';
 import { shade } from './character';
 
-const VW = CONFIG.view.width;
+import { VW } from './view';
 const VH = CONFIG.view.height;
 const HZ = CONFIG.view.horizon;
 const GROUND_TOP = HZ - 10;

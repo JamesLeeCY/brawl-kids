@@ -3,6 +3,7 @@ import { Sfx } from './audio/sfx';
 import { CONFIG } from './config';
 import { getGameData } from './data';
 import { Keyboard } from './input/keyboard';
+import { setViewWidth } from './render/view';
 import { TouchControls } from './input/touch';
 import { text } from './render/text';
 import { SceneManager, unionPressed, type App, type MenuInput } from './scenes/scene';
@@ -11,6 +12,8 @@ import { JoinScene, OnlineMenuScene } from './scenes/online';
 import { TitleScene } from './scenes/title';
 import { loadSettings } from './settings';
 import { emptySnapshot, pressedEdges, type Snapshot } from './sim/snapshot';
+import type { World } from './sim/world';
+import type { NetSession } from './net/session';
 
 const VW = CONFIG.view.width;
 const VH = CONFIG.view.height;
@@ -25,7 +28,7 @@ kb.setBindings(settings.bindings);
 const sfx = new Sfx();
 sfx.setVolumes(settings.masterVolume, settings.sfxVolume);
 kb.onFirstInput = () => sfx.unlock();
-new TouchControls(kb, document.body);
+const touchUi = new TouchControls(kb, document.body);
 window.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('pointerdown', () => sfx.unlock());
 
@@ -47,25 +50,37 @@ if (roomCode) {
 }
 if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;
 
-// ---------- 畫布縮放：保持 16:9，等比放大，邊緣留黑 ----------
+// ---------- 畫布縮放 ----------
+// 桌機：16:9 等比放大，邊緣留黑。手機橫向：邏輯寬度加寬到螢幕比例，戰鬥畫面填滿整個螢幕（荒野亂鬥式）。
+const MAX_WIDE = 1040;
 let scale = 1;
+let logicalW: number = VW;
 function resize(): void {
-  const s = Math.min(window.innerWidth / VW, (window.innerHeight - (document.body.classList.contains('touch-mode') && window.innerHeight > window.innerWidth ? 8 : 0)) / VH);
-  const cssW = Math.floor(VW * s);
-  const cssH = Math.floor(VH * s);
-  canvas.style.width = `${cssW}px`;
-  canvas.style.height = `${cssH}px`;
+  const iw = window.innerWidth;
+  const ih = window.innerHeight;
+  const touch = document.body.classList.contains('touch-mode');
+  logicalW = touch && iw > ih ? Math.max(VW, Math.min(MAX_WIDE, Math.round((VH * iw) / ih))) : VW;
+  setViewWidth(logicalW);
+  const s = Math.min(iw / logicalW, ih / VH);
+  canvas.style.width = `${Math.floor(logicalW * s)}px`;
+  canvas.style.height = `${Math.floor(VH * s)}px`;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   scale = Math.max(1, Math.min(3, Math.ceil(s * dpr)));
-  canvas.width = VW * scale;
+  canvas.width = Math.round(logicalW * scale);
   canvas.height = VH * scale;
 }
 window.addEventListener('resize', resize);
 resize();
 
+/** 非加寬場景（選單）在加寬畫布中置中的偏移 */
+function sceneOffset(): number {
+  return app.scenes.top?.wide ? 0 : (logicalW - VW) / 2;
+}
+
 canvas.addEventListener('click', (e) => {
   const r = canvas.getBoundingClientRect();
-  app.scenes.top?.onClick(((e.clientX - r.left) / r.width) * VW, ((e.clientY - r.top) / r.height) * VH);
+  const x = ((e.clientX - r.left) / r.width) * logicalW - sceneOffset();
+  app.scenes.top?.onClick(x, ((e.clientY - r.top) / r.height) * VH);
 });
 
 // ---------- 主迴圈 ----------
@@ -109,15 +124,29 @@ function frame(now: number): void {
 
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, VW, VH);
+  ctx.fillRect(0, 0, logicalW, VH);
+  const off = sceneOffset();
+  if (off) ctx.translate(off, 0);
   app.scenes.top?.render(ctx);
+  if (off) ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  touchUi.setCharge(superCharge());
   frames++;
   if (now - fpsTimer >= 500) {
     fps = (frames * 1000) / (now - fpsTimer);
     frames = 0;
     fpsTimer = now;
   }
-  if (app.showFps) text(ctx, `${fps.toFixed(0)} FPS`, VW - 6, VH - 6, 11, '#0f0', 'right');
+  if (app.showFps) text(ctx, `${fps.toFixed(0)} FPS`, logicalW - 6, VH - 6, 11, "#0f0", "right");
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+/** 觸控「必殺」鈕的充能比例＝本機玩家目前 MP */
+function superCharge(): number {
+  const top = app.scenes.top as unknown as { world?: World; net?: NetSession | null } | undefined;
+  const w = top?.world;
+  if (!w) return 1;
+  const slot = top?.net ? top.net.mySlot : 0;
+  const me = w.chars().find((c) => c.slot === slot);
+  return me ? me.mp / CONFIG.combat.mpMax : 1;
+}

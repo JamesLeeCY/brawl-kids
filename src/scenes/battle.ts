@@ -11,12 +11,13 @@ import { moveLabel } from './select';
 import { Scene, type App, type MenuInput } from './scene';
 import { hint, overlay } from './ui';
 
-const VW = CONFIG.view.width;
+import { VW, viewOffset } from '../render/view';
 const PAUSE_ITEMS = ['繼續', '重新開始', '回選角', '按鍵說明'];
 const NET_MENU_ITEMS = ['繼續', '按鍵說明', '離開連線'];
 const HASH_INTERVAL = 120;
 
 export class BattleScene extends Scene {
+  readonly wide = true;
   world: World;
   renderer: BattleRenderer;
   private paused = false;
@@ -215,7 +216,7 @@ export class BattleScene extends Scene {
     }
     if (this.net) this.renderNetStatus(ctx);
     if (this.paused) {
-      overlay(ctx, 0.6);
+      overlay(ctx, 0.6, VW);
       if (this.showHelp) {
         this.renderHelp(ctx);
         return;
@@ -228,7 +229,7 @@ export class BattleScene extends Scene {
         ctx.fill();
         text(ctx, it, VW / 2, 175 + i * 46, 17, sel ? '#111' : '#fff', 'center');
       });
-      hint(ctx, '↑↓ 選擇　攻擊 / Enter 確定　Esc 繼續');
+      hint(ctx, '↑↓ 選擇　攻擊 / Enter 確定　Esc 繼續', undefined, VW / 2);
     }
   }
 
@@ -240,7 +241,7 @@ export class BattleScene extends Scene {
     const gone = net.lockstep?.humanSlots.filter((s) => net.lockstep!.isDropped(s)) ?? [];
     if (gone.length) text(ctx, `${gone.map((s) => `${s + 1}P`).join('、')} 已離線`, VW / 2, 444, 11, '#fca5a5', 'center', false, true);
     if (net.status !== 'open') {
-      overlay(ctx, 0.65);
+      overlay(ctx, 0.65, VW);
       text(ctx, net.error || '對手已離線', VW / 2, 200, 22, '#ff8a8a', 'center', true, true);
       text(ctx, '按 攻擊 / Enter 回到標題', VW / 2, 240, 15, '#fff', 'center');
     } else if (this.stall > 20) {
@@ -249,7 +250,9 @@ export class BattleScene extends Scene {
   }
 
   private renderHelp(ctx: CanvasRenderingContext2D): void {
-    text(ctx, '按鍵說明', VW / 2, 50, 26, '#ffd23f', 'center');
+    ctx.save();
+    ctx.translate(viewOffset(), 0);
+    text(ctx, '按鍵說明', 400, 50, 26, '#ffd23f', 'center');
     const b = this.app.settings.bindings;
     ACTIONS.forEach((a, r) => {
       text(ctx, ACTION_LABELS[a], 280, 90 + r * 22, 14, '#fff', 'right');
@@ -262,14 +265,15 @@ export class BattleScene extends Scene {
       '走向暈眩的敵人自動抓住：攻擊=揍打、方向+攻擊=摔出',
       '必殺技：按住「防禦＋方向」再按攻擊/跳躍；或依序按 防禦 → 方向 → 攻擊/跳躍',
     ];
-    lines.forEach((l, i) => text(ctx, l, VW / 2, 254 + i * 20, 12, '#fff', 'center', false));
+    lines.forEach((l, i) => text(ctx, l, 400, 254 + i * 20, 12, '#fff', 'center', false));
     const inMatch = [...new Set(this.world.chars().filter((c) => c.slot >= 0).map((c) => c.charId))];
     inMatch.forEach((id, r) => {
       const d = this.app.data.characters[id];
       const mv = d.moves.map((m) => `${moveLabel(m.command)}${m.name}`).join('  ');
-      text(ctx, `${d.name}：${mv}`, VW / 2, 348 + r * 17, 10, '#cbd5e1', 'center', false);
+      text(ctx, `${d.name}：${mv}`, 400, 348 + r * 17, 10, '#cbd5e1', 'center', false);
     });
-    hint(ctx, '按攻擊 / Esc 返回');
+    hint(ctx, '按攻擊 / Esc 返回', undefined, 400);
+    ctx.restore();
   }
 }
 

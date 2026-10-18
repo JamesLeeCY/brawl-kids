@@ -34,11 +34,11 @@ export function button(ctx: CanvasRenderingContext2D, label: string, cx: number,
   text(ctx, label, cx, y + 23, 17, selected ? '#1b1035' : '#fff', 'center');
 }
 
-export function hint(ctx: CanvasRenderingContext2D, s: string, y = VH - 14): void {
-  text(ctx, s, VW / 2, y, 12, 'rgba(255,255,255,0.75)', 'center', false);
+export function hint(ctx: CanvasRenderingContext2D, s: string, y: number = VH - 14, cx: number = VW / 2): void {
+  text(ctx, s, cx, y, 12, 'rgba(255,255,255,0.75)', 'center', false);
 }
 
-export function overlay(ctx: CanvasRenderingContext2D, alpha = 0.6): void {
+export function overlay(ctx: CanvasRenderingContext2D, alpha = 0.6, w: number = VW): void {
   ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-  ctx.fillRect(0, 0, VW, VH);
+  ctx.fillRect(0, 0, w, VH);
 }

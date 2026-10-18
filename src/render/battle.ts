@@ -8,7 +8,7 @@ import { getPose, withCarryArms } from './poses';
 import { drawStage } from './stage';
 import { FONT } from './text';
 
-const VW = CONFIG.view.width;
+import { VW, viewOffset } from './view';
 const HZ = CONFIG.view.horizon;
 const FX = CONFIG.fx;
 
@@ -656,8 +656,9 @@ export class BattleRenderer {
       .chars()
       .filter((c) => c.slot >= 0)
       .sort((a, b) => a.slot - b.slot);
+    const ox = viewOffset();
     players.forEach((c) => {
-      const px = c.slot * 200 + 4;
+      const px = ox + c.slot * 200 + 4;
       drawPanel(ctx, w.charDef(c), c, px, 4, this.hpLag.get(c.id) ?? c.hp, w.tick);
     });
     if (extra) {
@@ -673,12 +674,12 @@ export class BattleRenderer {
     const boss = w.chars().find((c) => c.boss && c.team === ENEMY_TEAM && c.hp > 0);
     if (boss) {
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(200, 420, 400, 14);
+      ctx.fillRect(ox + 200, 420, 400, 14);
       ctx.fillStyle = '#ff3b3b';
-      ctx.fillRect(202, 422, (396 * boss.hp) / boss.maxHp, 10);
+      ctx.fillRect(ox + 202, 422, (396 * boss.hp) / boss.maxHp, 10);
       ctx.font = `bold 11px ${FONT}`;
       ctx.fillStyle = '#fff';
-      ctx.fillText(`頭目 · 強化${w.charDef(boss).name}`, 206, 416);
+      ctx.fillText(`頭目 · 強化${w.charDef(boss).name}`, ox + 206, 416);
     }
     if (this.banner) {
       ctx.save();

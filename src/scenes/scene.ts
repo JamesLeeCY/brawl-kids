@@ -36,6 +36,8 @@ export interface App {
 
 export abstract class Scene {
   readonly tag: string = '';
+  /** true：使用加寬的戰鬥畫面；false：800 寬置中 */
+  readonly wide: boolean = false;
   constructor(protected app: App) {}
   abstract update(inp: MenuInput): void;
   abstract render(ctx: CanvasRenderingContext2D): void;

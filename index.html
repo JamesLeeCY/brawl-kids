@@ -33,133 +33,205 @@
       body.touch-mode {
         touch-action: none;
       }
-      /* 直向手機：遊戲畫面放上方，操作區在下方 */
-      @media (orientation: portrait) {
-        body.touch-mode {
-          align-items: flex-start;
-          padding-top: max(8px, env(safe-area-inset-top));
-          box-sizing: border-box;
-        }
-      }
 
-      /* ---------- 觸控介面 ---------- */
+      /* ---------- 觸控介面（荒野亂鬥式：直接疊在遊戲畫面上） ---------- */
       .touch-ui {
+        --k: 1;
         position: fixed;
         inset: 0;
         pointer-events: none;
         z-index: 5;
       }
-      .touch-stick,
+      .touch-zone,
       .touch-btn,
       .touch-top {
         pointer-events: auto;
         touch-action: none;
+      }
+      /* 浮動搖桿的感應區：左半邊、HUD 以下 */
+      .touch-zone {
         position: absolute;
+        left: 0;
+        top: 22%;
+        width: 50%;
+        bottom: 0;
       }
       .touch-stick {
-        left: max(16px, env(safe-area-inset-left));
-        bottom: max(16px, env(safe-area-inset-bottom));
-        width: min(36vmin, 170px);
-        height: min(36vmin, 170px);
+        position: absolute;
+        width: 124px;
+        height: 124px;
+        margin: -62px 0 0 -62px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.12);
-        border: 2px solid rgba(255, 255, 255, 0.35);
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.18));
+        border: 3px solid rgba(255, 255, 255, 0.55);
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+        transform: scale(var(--k));
+      }
+      /* 沒按時在預設位置顯示半透明提示 */
+      .touch-stick.idle {
+        left: max(110px, calc(env(safe-area-inset-left) + 90px));
+        top: calc(100% - 100px);
+        opacity: 0.35;
       }
       .touch-knob {
         position: absolute;
         left: 50%;
         top: 50%;
-        width: 44%;
-        height: 44%;
+        width: 54px;
+        height: 54px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.45);
+        background: rgba(255, 255, 255, 0.75);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
         transform: translate(-50%, -50%);
       }
       .touch-pad {
         position: absolute;
-        right: max(16px, env(safe-area-inset-right));
-        bottom: max(16px, env(safe-area-inset-bottom));
-        width: min(46vmin, 220px);
-        height: min(40vmin, 190px);
+        right: max(14px, env(safe-area-inset-right));
+        bottom: max(12px, env(safe-area-inset-bottom));
+        width: 250px;
+        height: 210px;
+        transform: scale(var(--k));
+        transform-origin: bottom right;
+        opacity: 0.9;
       }
       .touch-btn {
+        position: absolute;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #fff;
-        font-weight: bold;
-        font-size: min(3.6vmin, 16px);
-        text-shadow: 0 1px 2px #000;
-        border: 2px solid rgba(255, 255, 255, 0.5);
-        width: 30%;
-        aspect-ratio: 1;
+        font-weight: 900;
+        font-size: 15px;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        border: 3px solid rgba(255, 255, 255, 0.7);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+        transition: transform 0.05s;
       }
       .touch-btn.down {
-        filter: brightness(1.6);
-        transform: scale(0.94);
+        transform: scale(0.9);
+        filter: brightness(1.4);
       }
       .btn-a {
         right: 0;
         bottom: 0;
-        width: 36%;
-        background: rgba(239, 68, 68, 0.55);
+        width: 98px;
+        height: 98px;
+        font-size: 19px;
+        background: rgba(239, 68, 68, 0.62);
       }
       .btn-j {
-        right: 38%;
-        bottom: 0;
-        background: rgba(59, 130, 246, 0.55);
+        right: 112px;
+        bottom: 6px;
+        width: 64px;
+        height: 64px;
+        background: rgba(59, 130, 246, 0.6);
       }
       .btn-d {
-        right: 4%;
-        bottom: 44%;
-        background: rgba(34, 197, 94, 0.55);
+        right: 8px;
+        bottom: 114px;
+        width: 62px;
+        height: 62px;
+        background: rgba(34, 197, 94, 0.6);
+      }
+      /* 必殺鈕：外圈依 MP 充能（荒野亂鬥的大招鈕） */
+      .btn-sa,
+      .btn-sj {
+        --charge: 100%;
+        background: conic-gradient(#facc15 var(--charge), rgba(80, 60, 0, 0.55) 0);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+      .btn-sa span,
+      .btn-sj span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        inset: 6px;
+        border-radius: 50%;
+        background: rgba(161, 98, 7, 0.85);
+      }
+      .btn-sa.ready span {
+        background: rgba(234, 179, 8, 0.95);
+        color: #3b2a00;
+        text-shadow: none;
+      }
+      .btn-sj.ready span {
+        background: rgba(147, 51, 234, 0.9);
       }
       .btn-sa {
-        right: 40%;
-        bottom: 40%;
-        background: rgba(234, 179, 8, 0.6);
+        right: 92px;
+        bottom: 88px;
+        width: 76px;
+        height: 76px;
+        font-size: 17px;
       }
       .btn-sj {
-        right: 70%;
-        bottom: 12%;
-        width: 27%;
-        background: rgba(168, 85, 247, 0.55);
-        font-size: min(3vmin, 13px);
+        right: 182px;
+        bottom: 78px;
+        width: 58px;
+        height: 58px;
+        font-size: 12px;
       }
       .touch-top {
-        top: max(8px, env(safe-area-inset-top));
-        width: 40px;
-        height: 40px;
+        position: absolute;
+        top: max(6px, env(safe-area-inset-top));
+        width: 38px;
+        height: 38px;
         border-radius: 10px;
         background: rgba(0, 0, 0, 0.45);
-        border: 1px solid rgba(255, 255, 255, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.45);
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
-      }
-      .touch-rotate {
-        display: none;
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 45%;
-        text-align: center;
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 14px;
-      }
-      @media (orientation: portrait) {
-        .touch-rotate {
-          display: block;
-        }
+        font-size: 17px;
       }
       .touch-pause {
         right: max(8px, env(safe-area-inset-right));
       }
       .touch-full {
-        right: calc(max(8px, env(safe-area-inset-right)) + 48px);
+        right: calc(max(8px, env(safe-area-inset-right)) + 46px);
+      }
+      /* 直向：提示轉成橫向 */
+      .touch-rotate {
+        display: none;
+        position: absolute;
+        inset: 0;
+        pointer-events: auto;
+        background: rgba(5, 8, 20, 0.92);
+        color: #fff;
+        font-size: 20px;
+        font-weight: bold;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-align: center;
+      }
+      .touch-rotate small {
+        font-size: 13px;
+        font-weight: normal;
+        opacity: 0.75;
+      }
+      .rotate-icon {
+        font-size: 56px;
+        animation: tilt 1.6s ease-in-out infinite;
+      }
+      @keyframes tilt {
+        0%,
+        30% {
+          transform: rotate(0deg);
+        }
+        60%,
+        100% {
+          transform: rotate(-90deg);
+        }
+      }
+      @media (orientation: portrait) {
+        .touch-rotate {
+          display: flex;
+        }
       }
     </style>
   </head>

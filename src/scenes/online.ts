@@ -13,7 +13,7 @@ import { BattleScene } from './battle';
 import { Scene, type App, type MenuInput } from './scene';
 import { DIFF_LABEL, TEAM_LABEL, moveLabel } from './select';
 import { button, hint, menuBackground } from './ui';
-import { randomCampaignRoute } from './campaign';
+import { ROUTES, randomCampaignRoute } from './campaign';
 
 const VW = CONFIG.view.width;
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
@@ -214,17 +214,12 @@ interface OnlineOption {
   mode: 'versus' | 'campaign';
   stageId?: string;
   difficulty?: Difficulty;
-  /** 闖關場景：原本路線或隨機（房主開始時抽籤，結果隨開賽訊息送給大家） */
-  route?: 'fixed' | 'random';
 }
 
 export function onlineOptions(app: App): OnlineOption[] {
   const d = app.data;
   const out: OnlineOption[] = d.stageOrder.map((id) => ({ label: `對戰・${d.stages[id].name}`, mode: 'versus', stageId: id }));
-  for (const diff of DIFFS) {
-    out.push({ label: `合作闖關・${d.campaignDifficulty[diff].label}`, mode: 'campaign', difficulty: diff, route: 'fixed' });
-    out.push({ label: `合作闖關・${d.campaignDifficulty[diff].label}・隨機場景`, mode: 'campaign', difficulty: diff, route: 'random' });
-  }
+  for (const diff of DIFFS) out.push({ label: `合作闖關・${d.campaignDifficulty[diff].label}`, mode: 'campaign', difficulty: diff });
   return out;
 }
 
@@ -239,6 +234,11 @@ export class OnlineSelectScene extends Scene {
   private opt = 0;
   /** 房主設定電腦欄位時的游標；-1 表示未在編輯 */
   private aiCursor = -1;
+  /** 合作闖關的場景路線（ROUTES 的索引）與自選的各關場景（房主設定，同步給大家） */
+  private routeIdx = 0;
+  private stages: string[];
+  /** 房主設定闖關場景時的游標：0 = 路線，1… = 第幾關；-1 表示未在編輯 */
+  private routeCursor = -1;
   private warn = 0;
   private copied = 0;
   /** 房主等人時發現網站有新版本（舊版房間新版的朋友連不進來） */
@@ -250,6 +250,7 @@ export class OnlineSelectScene extends Scene {
     private net: NetSession,
   ) {
     super(app);
+    this.stages = app.data.campaign.map((c) => c.stage);
     this.slots = Array.from({ length: MAX_SLOTS }, (_, i) => emptySlot(i));
     const me = this.slots[net.mySlot];
     me.kind = 'human';
@@ -270,6 +271,7 @@ export class OnlineSelectScene extends Scene {
   reset(): void {
     for (const s of this.slots) s.ready = false;
     this.aiCursor = -1;
+    this.routeCursor = -1;
     this.dirty = true;
     if (!this.isHost) this.sendSel();
   }
@@ -292,12 +294,13 @@ export class OnlineSelectScene extends Scene {
     this.handleMessages();
     if (this.net.status !== 'open') return;
     const k = localPressed(inp);
-    if (this.isHost && this.aiCursor >= 0) this.updateAiEdit(k);
+    if (this.isHost && this.routeCursor >= 0) this.updateRouteEdit(k);
+    else if (this.isHost && this.aiCursor >= 0) this.updateAiEdit(k);
     else this.updateSelf(k);
     if (this.isHost) {
       if (this.dirty || this.t % 60 === 0) {
         this.dirty = false;
-        this.net.broadcast({ type: 'lobbystate', slots: this.slots, opt: this.opt });
+        this.net.broadcast({ type: 'lobbystate', slots: this.slots, opt: this.opt, route: this.routeIdx, stages: this.stages });
       }
       this.tryStart();
     }
@@ -326,6 +329,8 @@ export class OnlineSelectScene extends Scene {
             this.slots = msg.slots.map((s) => ({ ...s }));
             this.slots[this.net.mySlot] = mine;
             this.opt = msg.opt;
+            if (msg.route !== undefined) this.routeIdx = msg.route;
+            if (msg.stages) this.stages = [...msg.stages];
           }
           break;
         case 'start':
@@ -342,8 +347,13 @@ export class OnlineSelectScene extends Scene {
     if (!me.ready) {
       if (k.left) (me.charIdx = (me.charIdx + n - 1) % n), this.changed();
       if (k.right) (me.charIdx = (me.charIdx + 1) % n), this.changed();
-      if (k.up) (me.team = (me.team + 4) % 5), this.changed();
-      if (k.down) (me.team = (me.team + 1) % 5), this.changed();
+      // 合作闖關不分隊：房主的 ↑↓ 改成打開闖關場景設定
+      if (this.isHost && onlineOptions(this.app)[this.opt].mode === 'campaign') {
+        if (k.up || k.down) this.routeCursor = 0;
+      } else {
+        if (k.up) (me.team = (me.team + 4) % 5), this.changed();
+        if (k.down) (me.team = (me.team + 1) % 5), this.changed();
+      }
       if (this.isHost && k.A) {
         this.opt = (this.opt + 1) % onlineOptions(this.app).length;
         this.dirty = true;
@@ -359,6 +369,8 @@ export class OnlineSelectScene extends Scene {
         this.changed();
       }
       if (this.isHost && (k.left || k.right)) this.aiCursor = this.nextAiSlot(0, 1);
+      // 合作闖關：↑↓ 打開闖關場景設定
+      if (this.isHost && (k.up || k.down) && onlineOptions(this.app)[this.opt].mode === 'campaign') this.routeCursor = 0;
     }
     if (this.isHost && k.A && me.ready) this.share();
   }
@@ -413,8 +425,28 @@ export class OnlineSelectScene extends Scene {
     this.dirty = true;
   }
 
+  private get route(): (typeof ROUTES)[number]['id'] {
+    return ROUTES[this.routeIdx].id;
+  }
+
+  /** 房主設定闖關場景：第 0 列換路線，自選時第 1… 列換各關場景 */
+  private updateRouteEdit(k: Snapshot): void {
+    const rows = 1 + (this.route === 'custom' ? this.stages.length : 0);
+    if (k.up) this.routeCursor = (this.routeCursor + rows - 1) % rows;
+    if (k.down) this.routeCursor = (this.routeCursor + 1) % rows;
+    const step = k.left ? -1 : k.right ? 1 : 0;
+    if (step && this.routeCursor === 0) this.routeIdx = (this.routeIdx + ROUTES.length + step) % ROUTES.length;
+    else if (step) {
+      const order = this.app.data.stageOrder;
+      const i = this.routeCursor - 1;
+      this.stages[i] = order[(order.indexOf(this.stages[i]) + order.length + step) % order.length];
+    }
+    if (k.D || k.J) this.routeCursor = -1;
+    this.dirty = true;
+  }
+
   private tryStart(): void {
-    if (this.aiCursor >= 0) return;
+    if (this.aiCursor >= 0 || this.routeCursor >= 0) return;
     const humans = this.slots.filter((s) => s.kind === 'human');
     if (!humans.every((s) => s.ready)) return;
     const o = onlineOptions(this.app)[this.opt];
@@ -427,8 +459,8 @@ export class OnlineSelectScene extends Scene {
       }
     }
     const ids = this.app.data.selectable;
-    const route = o.mode === 'campaign' ? (o.route ?? 'fixed') : undefined;
-    const campaignStages = route === 'random' ? randomCampaignRoute(this.app) : undefined;
+    const route = o.mode === 'campaign' ? this.route : undefined;
+    const campaignStages = route === 'random' ? randomCampaignRoute(this.app) : route === 'custom' ? [...this.stages] : undefined;
     const setup: MatchSetup = {
       mode: o.mode,
       stageId: o.mode === 'campaign' ? (campaignStages?.[0] ?? this.app.data.campaign[0].stage) : o.stageId!,
@@ -451,6 +483,10 @@ export class OnlineSelectScene extends Scene {
   }
 
   onEscape(): void {
+    if (this.routeCursor >= 0) {
+      this.routeCursor = -1;
+      return;
+    }
     if (this.aiCursor >= 0) {
       this.aiCursor = -1;
       return;
@@ -506,7 +542,9 @@ export class OnlineSelectScene extends Scene {
       def.moves.forEach((m, mi) => text(ctx, `${moveLabel(m.command)} ${m.name}`, x + 8 + (mi % 2) * 90, y + 232 + Math.floor(mi / 2) * 13, 9, 'rgba(255,255,255,0.75)', 'left', false));
       if (s.ready) text(ctx, s.kind === 'ai' ? '電腦' : '準備完成！', x + 94, y + 278, 13, '#ffd23f', 'center');
     }
-    button(ctx, this.isHost && !this.me.ready ? `模式：${o.label}（攻擊切換）` : `模式：${o.label}`, VW / 2, 350, 420, this.isHost && !this.me.ready);
+    const modeLabel = o.mode === 'campaign' ? `${o.label}・${ROUTES[this.routeIdx].label}` : o.label;
+    button(ctx, this.isHost && !this.me.ready ? `模式：${modeLabel}（攻擊切換）` : `模式：${modeLabel}`, VW / 2, 350, 460, this.isHost && !this.me.ready);
+    if (this.routeCursor >= 0) this.renderRouteEditor(ctx);
     let h1: string;
     const lost = n.lostSlots();
     if (n.status !== 'open') h1 = n.error || '與房主的連線已中斷，按 Esc 返回標題';
@@ -515,12 +553,41 @@ export class OnlineSelectScene extends Scene {
     else if (this.warn > 0) h1 = '對戰至少需要兩隊！請調整隊伍或加入電腦。';
     else if (this.copied > 0) h1 = '✓ 已複製分享連結';
     else if (this.aiCursor >= 0) h1 = '設定電腦：←→ 選欄位　攻擊 加入/改難度/移除　↑↓ 換角色　跳躍 換隊　防禦 完成';
+    else if (this.routeCursor >= 0) h1 = '闖關場景：↑↓ 選擇　←→ 切換　跳躍 / 防禦 完成';
+    else if (this.isHost && this.me.ready && o.mode === 'campaign') h1 = '已確定：← / → 設定電腦　↑ / ↓ 闖關場景　攻擊 複製分享連結　防禦 取消';
     else if (this.isHost && this.me.ready) h1 = '已確定：← / → 設定電腦　攻擊 複製分享連結　防禦 取消';
+    else if (this.isHost && o.mode === 'campaign') h1 = '←→ 選角　↑↓ 闖關場景　跳躍 確定　攻擊 切換模式';
     else h1 = '←→ 選角　↑↓ 選隊伍　跳躍 確定　防禦 取消' + (this.isHost ? '　攻擊 切換模式' : '');
     text(ctx, h1, VW / 2, 404, 12, n.status !== 'open' || n.reconnecting || lost.length || this.warn > 0 ? '#ff8a8a' : '#fff', 'center', false);
     if (this.isHost && this.newVersion) hint(ctx, '網站已更新：請按 Esc 離開，重新整理網頁後再建立房間（舊版房間朋友連不進來）');
     else if (this.isHost && n.guestSlots().length === 0) hint(ctx, '分享連結後請回到這個畫面等朋友加入（停在別的 App 時朋友連不進來）　·　Esc 離開連線');
+    else if (o.mode === 'campaign' && this.route === 'custom') hint(ctx, `闖關場景：${this.stages.map((id) => this.app.data.stages[id]?.name ?? id).join(' → ')}`);
     else hint(ctx, '所有玩家都確定後由房主開始　·　Esc 離開連線');
+  }
+
+  /** 房主設定闖關場景的面板 */
+  private renderRouteEditor(ctx: CanvasRenderingContext2D): void {
+    const custom = this.route === 'custom';
+    const h = custom ? 216 : 110;
+    const y0 = 96;
+    ctx.fillStyle = 'rgba(8,12,30,0.94)';
+    roundRect(ctx, VW / 2 - 230, y0, 460, h, 12);
+    ctx.fill();
+    ctx.strokeStyle = '#ffd23f';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    text(ctx, '闖關場景', VW / 2, y0 + 30, 20, '#ffd23f', 'center', true);
+    const r = ROUTES[this.routeIdx];
+    const sel0 = this.routeCursor === 0;
+    text(ctx, sel0 ? `◀ ${r.label} ▶` : r.label, VW / 2, y0 + 62, 17, sel0 ? '#ffd23f' : '#fff', 'center');
+    text(ctx, custom ? '↓ 選關卡、←→ 換場景（各關敵人與難度不變）' : r.id === 'random' ? '開始時從所有場地抽出不重複的關卡' : r.desc, VW / 2, y0 + 86, 12, '#cbd5e1', 'center', false);
+    if (!custom) return;
+    this.stages.forEach((id, i) => {
+      const sel = this.routeCursor === i + 1;
+      const name = this.app.data.stages[id]?.name ?? id;
+      const last = i === this.stages.length - 1 ? '（頭目）' : '';
+      text(ctx, sel ? `◀ 第 ${i + 1} 關　${name}${last} ▶` : `第 ${i + 1} 關　${name}${last}`, VW / 2, y0 + 116 + i * 24, 15, sel ? '#ffd23f' : '#fff', 'center');
+    });
   }
 }
 

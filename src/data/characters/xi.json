@@ -1,0 +1,282 @@
+{
+  "id": "xi",
+  "name": "習大包",
+  "title": "包子掌門",
+  "accessory": "none",
+  "quote": "包子趁熱吃，一人一顆！",
+  "stats": {
+    "hp": 540,
+    "walkSpeed": 2.4,
+    "runSpeed": 5.3,
+    "jumpPower": 8.6,
+    "weight": 1.2
+  },
+  "palette": {
+    "skin": "#f1c9a0",
+    "main": "#262b36",
+    "accent": "#e11d48",
+    "hair": "#151515"
+  },
+  "look": {
+    "hair": "sidepart",
+    "tie": "#991b1b"
+  },
+  "frames": {
+    "bun_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "bun_2",
+      "sound": "special"
+    },
+    "bun_2": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "bun_3",
+      "spawn": [
+        {
+          "id": "bun",
+          "x": 24,
+          "y": 38,
+          "vx": 7,
+          "dz": -10
+        }
+      ]
+    },
+    "bun_3": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "bun_4",
+      "spawn": [
+        {
+          "id": "bun",
+          "x": 24,
+          "y": 40,
+          "vx": 7.5
+        }
+      ]
+    },
+    "bun_4": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "bun_rec",
+      "spawn": [
+        {
+          "id": "bun",
+          "x": 24,
+          "y": 38,
+          "vx": 7,
+          "dz": 10
+        }
+      ]
+    },
+    "bun_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "steam_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "steam_2",
+      "sound": "special"
+    },
+    "steam_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "steam_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -100,
+          "y": 0,
+          "w": 200,
+          "h": 60,
+          "damage": 50,
+          "fall": 80,
+          "dvx": 5,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 56,
+          "radial": true
+        }
+      ]
+    },
+    "steam_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "firewall_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "blockProjectile",
+        "value": 1,
+        "duration": 240
+      }
+    },
+    "road_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "road_2",
+      "sound": "special"
+    },
+    "road_2": {
+      "duration": 18,
+      "pose": "dash",
+      "next": "road_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 12
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "road_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "bunrain_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "bunrain_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "bundrop",
+          "at": "random",
+          "count": 6,
+          "y": 0
+        }
+      ]
+    },
+    "bunrain_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "honey_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "sound": "special",
+      "heal": 100
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "包子連發",
+      "mp": 60,
+      "startFrame": "bun_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "蒸籠震地",
+      "mp": 100,
+      "startFrame": "steam_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "防火長城",
+      "mp": 120,
+      "startFrame": "firewall_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "一帶一路衝刺",
+      "mp": 80,
+      "startFrame": "road_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "包子雨",
+      "mp": 150,
+      "startFrame": "bunrain_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "蜂蜜補給",
+      "mp": 140,
+      "startFrame": "honey_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "bun": {
+      "life": 55,
+      "size": 10,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "bun",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -9,
+              "y": -8,
+              "w": 18,
+              "h": 16,
+              "damage": 18,
+              "fall": 16,
+              "dvx": 2,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "bundrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "bundrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 34,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

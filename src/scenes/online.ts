@@ -14,6 +14,7 @@ import { Scene, type App, type MenuInput } from './scene';
 import { DIFF_LABEL, TEAM_LABEL, moveLabel } from './select';
 import { button, hint, menuBackground } from './ui';
 import { ROUTES, randomCampaignRoute } from './campaign';
+import { DEFAULT_CAMPAIGN_LENGTH, defaultCampaignRoute } from '../sim/world';
 
 const VW = CONFIG.view.width;
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
@@ -236,6 +237,8 @@ export class OnlineSelectScene extends Scene {
   private aiCursor = -1;
   /** 合作闖關的場景路線（ROUTES 的索引）與自選的各關場景（房主設定，同步給大家） */
   private routeIdx = 0;
+  /** 合作闖關的關數 */
+  private len = DEFAULT_CAMPAIGN_LENGTH;
   private stages: string[];
   /** 房主設定闖關場景時的游標：0 = 路線，1… = 第幾關；-1 表示未在編輯 */
   private routeCursor = -1;
@@ -250,7 +253,7 @@ export class OnlineSelectScene extends Scene {
     private net: NetSession,
   ) {
     super(app);
-    this.stages = app.data.campaign.map((c) => c.stage);
+    this.stages = defaultCampaignRoute(app.data, this.len);
     this.slots = Array.from({ length: MAX_SLOTS }, (_, i) => emptySlot(i));
     const me = this.slots[net.mySlot];
     me.kind = 'human';
@@ -300,7 +303,7 @@ export class OnlineSelectScene extends Scene {
     if (this.isHost) {
       if (this.dirty || this.t % 60 === 0) {
         this.dirty = false;
-        this.net.broadcast({ type: 'lobbystate', slots: this.slots, opt: this.opt, route: this.routeIdx, stages: this.stages });
+        this.net.broadcast({ type: 'lobbystate', slots: this.slots, opt: this.opt, route: this.routeIdx, stages: this.stages, len: this.len });
       }
       this.tryStart();
     }
@@ -331,6 +334,7 @@ export class OnlineSelectScene extends Scene {
             this.opt = msg.opt;
             if (msg.route !== undefined) this.routeIdx = msg.route;
             if (msg.stages) this.stages = [...msg.stages];
+            if (msg.len !== undefined) this.len = msg.len;
           }
           break;
         case 'start':
@@ -429,16 +433,19 @@ export class OnlineSelectScene extends Scene {
     return ROUTES[this.routeIdx].id;
   }
 
-  /** 房主設定闖關場景：第 0 列換路線，自選時第 1… 列換各關場景 */
+  /** 房主設定闖關場景：第 0 列關卡數、第 1 列路線，自選時第 2… 列換各關場景 */
   private updateRouteEdit(k: Snapshot): void {
-    const rows = 1 + (this.route === 'custom' ? this.stages.length : 0);
+    const rows = 2 + (this.route === 'custom' ? this.stages.length : 0);
     if (k.up) this.routeCursor = (this.routeCursor + rows - 1) % rows;
     if (k.down) this.routeCursor = (this.routeCursor + 1) % rows;
     const step = k.left ? -1 : k.right ? 1 : 0;
-    if (step && this.routeCursor === 0) this.routeIdx = (this.routeIdx + ROUTES.length + step) % ROUTES.length;
+    if (step && this.routeCursor === 0) {
+      this.len = Math.max(1, Math.min(this.app.data.campaign.length, this.len + step));
+      this.stages = defaultCampaignRoute(this.app.data, this.len);
+    } else if (step && this.routeCursor === 1) this.routeIdx = (this.routeIdx + ROUTES.length + step) % ROUTES.length;
     else if (step) {
       const order = this.app.data.stageOrder;
-      const i = this.routeCursor - 1;
+      const i = this.routeCursor - 2;
       this.stages[i] = order[(order.indexOf(this.stages[i]) + order.length + step) % order.length];
     }
     if (k.D || k.J) this.routeCursor = -1;
@@ -460,10 +467,11 @@ export class OnlineSelectScene extends Scene {
     }
     const ids = this.app.data.selectable;
     const route = o.mode === 'campaign' ? this.route : undefined;
-    const campaignStages = route === 'random' ? randomCampaignRoute(this.app) : route === 'custom' ? [...this.stages] : undefined;
+    const campaignStages = route === 'random' ? randomCampaignRoute(this.app, this.len) : route === 'custom' ? [...this.stages] : undefined;
     const setup: MatchSetup = {
       mode: o.mode,
-      stageId: o.mode === 'campaign' ? (campaignStages?.[0] ?? this.app.data.campaign[0].stage) : o.stageId!,
+      stageId: o.mode === 'campaign' ? (campaignStages?.[0] ?? this.stages[0]) : o.stageId!,
+      campaignLength: o.mode === 'campaign' ? this.len : undefined,
       campaignStages,
       campaignRoute: route,
       seed: (Date.now() ^ (performance.now() * 1000)) >>> 0,
@@ -542,7 +550,7 @@ export class OnlineSelectScene extends Scene {
       def.moves.forEach((m, mi) => text(ctx, `${moveLabel(m.command)} ${m.name}`, x + 8 + (mi % 2) * 90, y + 232 + Math.floor(mi / 2) * 13, 9, 'rgba(255,255,255,0.75)', 'left', false));
       if (s.ready) text(ctx, s.kind === 'ai' ? '電腦' : '準備完成！', x + 94, y + 278, 13, '#ffd23f', 'center');
     }
-    const modeLabel = o.mode === 'campaign' ? `${o.label}・${ROUTES[this.routeIdx].label}` : o.label;
+    const modeLabel = o.mode === 'campaign' ? `${o.label}・${this.len} 關・${ROUTES[this.routeIdx].label}` : o.label;
     button(ctx, this.isHost && !this.me.ready ? `模式：${modeLabel}（攻擊切換）` : `模式：${modeLabel}`, VW / 2, 350, 460, this.isHost && !this.me.ready);
     if (this.routeCursor >= 0) this.renderRouteEditor(ctx);
     let h1: string;
@@ -568,25 +576,32 @@ export class OnlineSelectScene extends Scene {
   /** 房主設定闖關場景的面板 */
   private renderRouteEditor(ctx: CanvasRenderingContext2D): void {
     const custom = this.route === 'custom';
-    const h = custom ? 216 : 110;
-    const y0 = 96;
-    ctx.fillStyle = 'rgba(8,12,30,0.94)';
-    roundRect(ctx, VW / 2 - 230, y0, 460, h, 12);
+    const n = this.stages.length;
+    const twoCols = n > 5;
+    const listRows = custom ? (twoCols ? Math.ceil(n / 2) : n) : 0;
+    const w = twoCols ? 640 : 480;
+    const h = 136 + listRows * 24;
+    const y0 = 70;
+    ctx.fillStyle = 'rgba(8,12,30,0.95)';
+    roundRect(ctx, VW / 2 - w / 2, y0, w, h, 12);
     ctx.fill();
     ctx.strokeStyle = '#ffd23f';
     ctx.lineWidth = 3;
     ctx.stroke();
-    text(ctx, '闖關場景', VW / 2, y0 + 30, 20, '#ffd23f', 'center', true);
+    text(ctx, '闖關設定', VW / 2, y0 + 28, 20, '#ffd23f', 'center', true);
+    const rowText = (sel: boolean, s: string, x: number, y: number, size = 16) => text(ctx, sel ? `◀ ${s} ▶` : s, x, y, size, sel ? '#ffd23f' : '#fff', 'center');
+    rowText(this.routeCursor === 0, `關卡數：${this.len}（最後一關有頭目）`, VW / 2, y0 + 58);
     const r = ROUTES[this.routeIdx];
-    const sel0 = this.routeCursor === 0;
-    text(ctx, sel0 ? `◀ ${r.label} ▶` : r.label, VW / 2, y0 + 62, 17, sel0 ? '#ffd23f' : '#fff', 'center');
-    text(ctx, custom ? '↓ 選關卡、←→ 換場景（各關敵人與難度不變）' : r.id === 'random' ? '開始時從所有場地抽出不重複的關卡' : r.desc, VW / 2, y0 + 86, 12, '#cbd5e1', 'center', false);
+    rowText(this.routeCursor === 1, `場景：${r.label}`, VW / 2, y0 + 86);
+    text(ctx, custom ? '↓ 選關卡、←→ 換場景（各關敵人與難度不變）' : r.desc, VW / 2, y0 + 110, 12, '#cbd5e1', 'center', false);
     if (!custom) return;
     this.stages.forEach((id, i) => {
-      const sel = this.routeCursor === i + 1;
+      const col = twoCols ? Math.floor(i / listRows) : 0;
+      const rr = twoCols ? i % listRows : i;
+      const x = twoCols ? VW / 2 + (col === 0 ? -160 : 160) : VW / 2;
       const name = this.app.data.stages[id]?.name ?? id;
-      const last = i === this.stages.length - 1 ? '（頭目）' : '';
-      text(ctx, sel ? `◀ 第 ${i + 1} 關　${name}${last} ▶` : `第 ${i + 1} 關　${name}${last}`, VW / 2, y0 + 116 + i * 24, 15, sel ? '#ffd23f' : '#fff', 'center');
+      const last = i === n - 1 ? '（頭目）' : '';
+      rowText(this.routeCursor === i + 2, `第 ${i + 1} 關　${name}${last}`, x, y0 + 138 + rr * 24, 14);
     });
   }
 }

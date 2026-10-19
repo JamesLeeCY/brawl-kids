@@ -1,0 +1,328 @@
+{
+  "id": "kim",
+  "name": "金正嗯",
+  "title": "髮型大師",
+  "accessory": "maosuit",
+  "quote": "鼓掌！大家一起熱烈鼓掌！",
+  "stats": {
+    "hp": 600,
+    "walkSpeed": 2.2,
+    "runSpeed": 5.0,
+    "jumpPower": 8.2,
+    "weight": 1.35
+  },
+  "palette": {
+    "skin": "#f2cfa8",
+    "main": "#1c1c1c",
+    "accent": "#ef4444",
+    "hair": "#111111"
+  },
+  "look": {
+    "hair": "flattop"
+  },
+  "frames": {
+    "rocket_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "rocket_2",
+      "sound": "special"
+    },
+    "rocket_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "rocket_rec",
+      "spawn": [
+        {
+          "id": "firework",
+          "x": 24,
+          "y": 40,
+          "vx": 7
+        }
+      ]
+    },
+    "rocket_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "clap_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "clap_2",
+      "sound": "special"
+    },
+    "clap_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "clap_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -100,
+          "y": 0,
+          "w": 200,
+          "h": 60,
+          "damage": 50,
+          "fall": 80,
+          "dvx": 5,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 56,
+          "radial": true
+        }
+      ]
+    },
+    "clap_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "noodle_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "sound": "special",
+      "heal": 110
+    },
+    "belly_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "belly_2",
+      "sound": "special"
+    },
+    "belly_2": {
+      "duration": 16,
+      "pose": "dash",
+      "next": "belly_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 10
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 44,
+          "fall": 80,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "belly_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "show_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "show_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "fireworkdrop",
+          "at": "random",
+          "count": 5,
+          "y": 0
+        }
+      ]
+    },
+    "show_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "swirl_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "swirl_2",
+      "sound": "special"
+    },
+    "swirl_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "swirl_rec",
+      "spawn": [
+        {
+          "id": "swirl",
+          "x": 40,
+          "y": 30,
+          "vx": 2.2
+        }
+      ]
+    },
+    "swirl_rec": {
+      "duration": 10,
+      "pose": "cast"
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "煙火火箭",
+      "mp": 70,
+      "startFrame": "rocket_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "熱烈鼓掌震波",
+      "mp": 100,
+      "startFrame": "clap_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "冷麵補給",
+      "mp": 140,
+      "startFrame": "noodle_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "肚子衝撞",
+      "mp": 80,
+      "startFrame": "belly_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "煙火大會",
+      "mp": 160,
+      "startFrame": "show_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "髮型旋風",
+      "mp": 110,
+      "startFrame": "swirl_1",
+      "role": "burst"
+    }
+  ],
+  "projectiles": {
+    "firework": {
+      "life": 50,
+      "size": 12,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "rocket",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -10,
+              "y": -7,
+              "w": 20,
+              "h": 14,
+              "damage": 14,
+              "fall": 10,
+              "dvx": 2,
+              "hitstop": 3
+            }
+          ]
+        }
+      },
+      "onHit": "fwboom",
+      "onExpire": "fwboom"
+    },
+    "fwboom": {
+      "life": 30,
+      "size": 34,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "boom",
+      "frames": {
+        "boom": {
+          "duration": 16,
+          "pose": "spark_burst",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -34,
+              "y": -34,
+              "w": 68,
+              "h": 68,
+              "damage": 40,
+              "fall": 80,
+              "dvx": 5,
+              "dvy": 7,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 30
+            }
+          ]
+        }
+      }
+    },
+    "fireworkdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "fireworkdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 38,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    },
+    "swirl": {
+      "life": 120,
+      "size": 22,
+      "pull": 1.6,
+      "pullRadius": 140,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "spin",
+      "frames": {
+        "spin": {
+          "duration": 1,
+          "pose": "vortex",
+          "next": "spin",
+          "itr": [
+            {
+              "x": -20,
+              "y": -26,
+              "w": 40,
+              "h": 52,
+              "damage": 8,
+              "fall": 6,
+              "dvx": 0,
+              "hitstop": 2,
+              "rehit": 15,
+              "zRange": 20
+            }
+          ]
+        }
+      }
+    }
+  }
+}

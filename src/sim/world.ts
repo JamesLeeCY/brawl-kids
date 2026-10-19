@@ -40,6 +40,8 @@ export interface MatchSetup {
   campaignIndex?: number;
   /** 闖關難度（預設普通） */
   campaignDifficulty?: Difficulty;
+  /** 闖關總關數（1～campaign 模板數；沒有就是 4 關） */
+  campaignLength?: number;
   /** 闖關各關的場景（沒有就用 campaign 資料裡的預設路線） */
   campaignStages?: string[];
   /** 闖關路線的選法（重新開始時，隨機路線會重抽） */
@@ -49,9 +51,44 @@ export interface MatchSetup {
 
 export type CampaignRoute = 'fixed' | 'random' | 'custom';
 
-/** 闖關第 idx 關的場景：玩家選的路線優先，否則用預設路線 */
-export function campaignStageId(data: { campaign: readonly { stage: string }[] }, setup: MatchSetup, idx: number): string {
-  return setup.campaignStages?.[idx] ?? data.campaign[idx].stage;
+/** 沒指定關數時的預設（與早期版本相同的 4 關） */
+export const DEFAULT_CAMPAIGN_LENGTH = 4;
+
+type CampaignData = { campaign: readonly { stage: string }[] };
+
+/** 這次闖關共幾關 */
+export function campaignLength(data: CampaignData, setup: Pick<MatchSetup, 'campaignLength'>): number {
+  const total = data.campaign.length;
+  return Math.max(1, Math.min(total, setup.campaignLength ?? Math.min(DEFAULT_CAMPAIGN_LENGTH, total)));
+}
+
+/**
+ * 第 idx 關用哪一個難度模板：關數較少時平均取樣（例如 4 關 = 模板 1、4、7、10），
+ * 最後一關一定是最後的模板（有頭目）。
+ */
+export function campaignTemplateIndex(total: number, length: number, idx: number): number {
+  if (length <= 1) return total - 1;
+  return Math.round((idx * (total - 1)) / (length - 1));
+}
+
+export function campaignTemplate(data: CampaignData, setup: MatchSetup, idx: number): number {
+  return campaignTemplateIndex(data.campaign.length, campaignLength(data, setup), idx);
+}
+
+/** 闖關第 idx 關的場景：玩家選的路線優先，否則用該關模板的預設場景 */
+export function campaignStageId(data: CampaignData, setup: MatchSetup, idx: number): string {
+  return setup.campaignStages?.[idx] ?? data.campaign[campaignTemplate(data, setup, idx)].stage;
+}
+
+/** 過關時回復的 HP：長途闖關回復較多 */
+export function campaignHealAmount(data: CampaignData, setup: Pick<MatchSetup, 'campaignLength'>): number {
+  const M = CONFIG.match;
+  return campaignLength(data, setup) > DEFAULT_CAMPAIGN_LENGTH ? M.campaignHealLongRun : M.campaignHealBetweenStages;
+}
+
+/** 某個關數的預設路線 */
+export function defaultCampaignRoute(data: CampaignData, length: number): string[] {
+  return Array.from({ length }, (_, i) => data.campaign[campaignTemplateIndex(data.campaign.length, length, i)].stage);
 }
 
 export type GameEvent =
@@ -98,7 +135,7 @@ export class World {
     this.itemTimer = this.rng.int(CONFIG.items.spawnMinTicks, CONFIG.items.spawnMaxTicks);
 
     if (setup.mode === 'campaign') {
-      const c = data.campaign[setup.campaignIndex ?? 0];
+      const c = data.campaign[campaignTemplate(data, setup, setup.campaignIndex ?? 0)];
       this.waves = { waves: c.waves };
     }
 
@@ -302,7 +339,7 @@ export class World {
     } else {
       const playersAlive = chars.some((c) => c.team === CAMPAIGN_PLAYER_TEAM && isAlive(c));
       const enemiesAlive = chars.some((c) => c.team === ENEMY_TEAM && isAlive(c));
-      const lastStage = (this.setup.campaignIndex ?? 0) >= this.data.campaign.length - 1;
+      const lastStage = (this.setup.campaignIndex ?? 0) >= campaignLength(this.data, this.setup) - 1;
       if (!playersAlive) res = { outcome: 'lose', winnerTeam: ENEMY_TEAM };
       else if (!enemiesAlive && this.waveIndex >= this.waves!.waves.length - 1)
         res = { outcome: lastStage ? 'win' : 'stageClear', winnerTeam: CAMPAIGN_PLAYER_TEAM };

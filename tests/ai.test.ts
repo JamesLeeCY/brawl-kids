@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptySnapshot } from '../src/sim/snapshot';
 import type { Difficulty } from '../src/config';
-import { World, type MatchSetup } from '../src/sim/world';
+import { World, campaignHealAmount, type MatchSetup } from '../src/sim/world';
 import { data } from './helpers';
 
 function runUntilResult(w: World, maxTicks: number): void {
@@ -35,7 +35,7 @@ describe('闖關模式', () => {
     ['normal', 200],
     ['normal', 300],
   ];
-  it.each(cases)('難度 %s：4 關可全破（由困難 AI 代打，種子 %i）', (diff, base) => {
+  it.each(cases)('難度 %s：全部關卡可全破（由困難 AI 代打，種子 %i）', (diff, base) => {
     let carry: MatchSetup['carry'];
     for (let idx = 0; idx < data.campaign.length; idx++) {
       const setup: MatchSetup = {
@@ -43,6 +43,7 @@ describe('闖關模式', () => {
         stageId: data.campaign[idx].stage,
         seed: base + idx,
         campaignIndex: idx,
+        campaignLength: data.campaign.length,
         campaignDifficulty: diff,
         carry,
         players: [
@@ -54,7 +55,8 @@ describe('闖關模式', () => {
       runUntilResult(w, 60 * 300);
       const expected = idx === data.campaign.length - 1 ? 'win' : 'stageClear';
       expect(w.result?.outcome, `第 ${idx + 1} 關`).toBe(expected);
-      carry = w.chars().filter((c) => c.slot >= 0).map((c) => ({ slot: c.slot, hp: c.hp > 0 ? Math.min(c.maxHp, c.hp + 200) : 200, mp: 500, damage: 0, kos: 0, downs: 0 }));
+      const heal = campaignHealAmount(data, setup);
+      carry = w.chars().filter((c) => c.slot >= 0).map((c) => ({ slot: c.slot, hp: c.hp > 0 ? Math.min(c.maxHp, c.hp + heal) : 200, mp: 500, damage: 0, kos: 0, downs: 0 }));
     }
   });
 

@@ -25,7 +25,7 @@ export type NetMsg =
   | { type: 'welcome'; slot: number; e?: number; have?: number }
   | { type: 'reject'; reason: string; stale?: boolean }
   /** route / stages：合作闖關的場景路線（ROUTES 的索引）與自選的各關場景 */
-  | { type: 'lobbystate'; slots: LobbySlot[]; opt: number; route?: number; stages?: string[] }
+  | { type: 'lobbystate'; slots: LobbySlot[]; opt: number; route?: number; stages?: string[]; len?: number }
   | { type: 'sel'; charIdx: number; team: number; ready: boolean }
   | { type: 'start'; setup: MatchSetup; epoch: number; delay: number }
   | { type: 'rematch'; setup: MatchSetup; epoch: number; delay: number }

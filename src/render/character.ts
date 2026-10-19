@@ -233,6 +233,29 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
       circle(ctx, -2.4, -16, 1, '#111');
       ctx.fillStyle = '#f5f5f5';
       ctx.fillRect(-5.2, -13.4, 2.4, 0.9);
+    } else if (acc === 'judo') {
+      // 柔道服：交疊的衣襟 + 黑帶
+      ctx.strokeStyle = shade(pal.main, -0.3);
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-5, -20);
+      ctx.lineTo(4, -7);
+      ctx.moveTo(7, -20);
+      ctx.lineTo(1, -11);
+      ctx.stroke();
+      ctx.fillStyle = '#111';
+      ctx.fillRect(-9.5, -5, 19, 3.6);
+      ctx.fillRect(3, -3, 2.2, 6);
+      ctx.fillRect(5.5, -3, 2.2, 5);
+    } else if (acc === 'maosuit') {
+      // 立領中山裝：高領、一排鈕扣、口袋
+      ctx.fillStyle = shade(pal.main, 0.25);
+      ctx.fillRect(-6, -21, 13, 3.5);
+      for (const by of [-15, -10.5, -6]) circle(ctx, 3.5, by, 1.1, '#9ca3af');
+      ctx.strokeStyle = shade(pal.main, 0.3);
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-7, -15, 4.5, 3.5);
+      ctx.strokeRect(-7, -8, 4.5, 4);
     } else if (isRobot) {
       ctx.fillStyle = pal.accent;
       ctx.fillRect(-6, -14, 12, 3);
@@ -386,6 +409,52 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
       ctx.fillStyle = '#1f1f1f';
       ctx.fillRect(x - 12, y - 2, 5, 5);
       return;
+    case 'swoop':
+      // 蓬鬆金髮、往前梳的大瀏海
+      ctx.beginPath();
+      ctx.arc(x - 1, y - 2, 12.6, Math.PI * 0.9, Math.PI * 2.0);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - 7, y - 13);
+      ctx.quadraticCurveTo(x + 9, y - 19, x + 14.5, y - 6);
+      ctx.quadraticCurveTo(x + 9, y - 9.5, x + 2, y - 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillRect(x - 13, y - 3, 6, 8);
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x - 4, y - 14);
+      ctx.quadraticCurveTo(x + 5, y - 16, x + 10, y - 9);
+      ctx.stroke();
+      return;
+    case 'flattop': {
+      // 兩側推短、頭頂高聳平頭
+      // 側邊推短：只在耳後畫一小塊淡淡的髮根
+      ctx.globalAlpha = 0.35;
+      ctx.fillRect(x - 12, y - 6, 4, 8);
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - 10, y - 6);
+      ctx.lineTo(x - 10, y - 14);
+      ctx.quadraticCurveTo(x - 9, y - 17, x - 5, y - 17);
+      ctx.lineTo(x + 6, y - 17);
+      ctx.quadraticCurveTo(x + 9, y - 17, x + 9, y - 13);
+      ctx.lineTo(x + 8, y - 8);
+      ctx.quadraticCurveTo(x, y - 10, x - 10, y - 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - 6, y - 15);
+      ctx.lineTo(x + 5, y - 15);
+      ctx.stroke();
+      return;
+    }
     case 'neat':
       // 整齊短髮（較貼頭）
       ctx.beginPath();

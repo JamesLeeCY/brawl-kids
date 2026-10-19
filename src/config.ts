@@ -95,6 +95,8 @@ export const CONFIG = {
     firstWaveDelayTicks: 45,
     campaignReviveHp: 200,
     campaignHealBetweenStages: 200,
+    /** 超過 4 關的長途闖關，每關之間回復較多（避免後段血量被磨光） */
+    campaignHealLongRun: 300,
   },
 
   fx: {

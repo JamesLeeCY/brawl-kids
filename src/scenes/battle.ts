@@ -13,7 +13,7 @@ import { hint, overlay } from './ui';
 
 import { VW, viewOffset } from '../render/view';
 import { resetCampaign } from './campaign';
-import { campaignStageId } from '../sim/world';
+import { campaignHealAmount, campaignLength, campaignStageId } from '../sim/world';
 const PAUSE_ITEMS = ['繼續', '重新開始', '回選角', '按鍵說明'];
 const NET_MENU_ITEMS = ['繼續', '按鍵說明', '離開連線'];
 const HASH_INTERVAL = 120;
@@ -123,7 +123,7 @@ export class BattleScene extends Scene {
       .filter((c) => c.slot >= 0)
       .map((c) => ({
         slot: c.slot,
-        hp: c.hp > 0 ? Math.min(c.maxHp, c.hp + M.campaignHealBetweenStages) : M.campaignReviveHp,
+        hp: c.hp > 0 ? Math.min(c.maxHp, c.hp + campaignHealAmount(this.app.data, this.setup)) : M.campaignReviveHp,
         mp: CONFIG.combat.mpMax,
         damage: c.stats.damage,
         kos: c.stats.kos,
@@ -198,13 +198,13 @@ export class BattleScene extends Scene {
     if (this.setup.mode === 'campaign' && w.waves) {
       const idx = (this.setup.campaignIndex ?? 0) + 1;
       const dl = this.app.data.campaignDifficulty[this.setup.campaignDifficulty ?? 'normal'].label;
-      extra = `【${dl}】第 ${idx} / ${this.app.data.campaign.length} 關　${w.stage.name}　波 ${Math.max(1, w.waveIndex + 1)} / ${w.waves.waves.length}`;
+      extra = `【${dl}】第 ${idx} / ${campaignLength(this.app.data, this.setup)} 關　${w.stage.name}　波 ${Math.max(1, w.waveIndex + 1)} / ${w.waves.waves.length}`;
     }
     this.renderer.draw(ctx, w, extra);
     if (this.intro > 0) {
       ctx.save();
       ctx.globalAlpha = Math.min(1, this.intro / 25);
-      const title = this.setup.mode === 'campaign' ? `第 ${(this.setup.campaignIndex ?? 0) + 1} 關　${w.stage.name}` : w.stage.name;
+      const title = this.setup.mode === 'campaign' ? `第 ${(this.setup.campaignIndex ?? 0) + 1} / ${campaignLength(this.app.data, this.setup)} 關　${w.stage.name}` : w.stage.name;
       text(ctx, title, VW / 2, 180, 30, '#fff', 'center', true, true);
       text(ctx, this.intro > 30 ? '準備…' : '開打！', VW / 2, 225, 40, '#ffd23f', 'center', true, true);
       ctx.restore();

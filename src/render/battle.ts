@@ -776,9 +776,12 @@ export class BattleRenderer {
       }
       case 'laugh':
       case 'zan':
-      case 'talk': {
-        // 文字聲波：哈哈 / 讚啦 / 質詢
-        const word = pose === 'laugh' ? '哈哈' : pose === 'zan' ? '讚啦' : '質詢！';
+      case 'talk':
+      case 'fired':
+      case 'joke': {
+        // 文字聲波：哈哈 / 讚啦 / 質詢 / 你被開除！ / 哈！
+        const words: Record<string, string> = { laugh: '哈哈', zan: '讚啦', talk: '質詢！', fired: '你被開除！', joke: '哈！' };
+        const word = words[pose] ?? '！';
         ctx.strokeStyle = color;
         ctx.lineWidth = 2.5;
         for (let i = 0; i < 2; i++) {
@@ -804,6 +807,10 @@ export class BattleRenderer {
       case 'dumbbell':
       case 'mic':
       case 'candle':
+      case 'tweet':
+      case 'bun':
+      case 'pudding':
+      case 'sunflower':
         ctx.shadowBlur = 4;
         drawIcon(ctx, pose, x, y, 1, p.facing, color, w.tick, p.id);
         break;
@@ -811,7 +818,12 @@ export class BattleRenderer {
       case 'slipperdrop':
       case 'laughdrop':
       case 'frogdrop':
-      case 'candledrop': {
+      case 'candledrop':
+      case 'towerdrop':
+      case 'bundrop':
+      case 'puddingdrop':
+      case 'sunflowerdrop':
+      case 'fireworkdrop': {
         const k = f ? p.frameTime / f.duration : 1;
         const by = HZ + p.z - Math.max(0, 1 - k * 2.2) * 260;
         ctx.shadowBlur = 0;
@@ -1054,6 +1066,103 @@ function drawIcon(ctx: CanvasRenderingContext2D, kind: string, x: number, y: num
       ctx.arc(0, -4, 4, 0, Math.PI * 2);
       ctx.fill();
       break;
+    case 'tweet': {
+      // 推文對話框
+      ctx.rotate(Math.sin(tick * 0.25 + seed) * 0.15);
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.ellipse(0, -1, 10, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-5, 4);
+      ctx.lineTo(-8, 9);
+      ctx.lineTo(-1, 5);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold 10px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('#', 0, 3);
+      break;
+    }
+    case 'bun': {
+      // 包子：白色圓頂 + 褶子
+      ctx.fillStyle = '#fdf6e3';
+      ctx.beginPath();
+      ctx.ellipse(0, 1, 10, 7.5, 0, Math.PI, Math.PI * 2);
+      ctx.lineTo(10, 4);
+      ctx.lineTo(-10, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#d6c7a1';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.beginPath();
+      for (const a of [-0.9, -0.3, 0.3, 0.9]) {
+        ctx.moveTo(0, -6);
+        ctx.lineTo(Math.sin(a) * 7, -6 + Math.cos(a) * 4);
+      }
+      ctx.stroke();
+      break;
+    }
+    case 'pudding': {
+      // 布丁：會晃的焦糖布丁
+      const wob = Math.sin(tick * 0.5 + seed) * 1.5;
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.moveTo(-10, 7);
+      ctx.lineTo(10, 7);
+      ctx.lineTo(7 + wob, -5);
+      ctx.lineTo(-7 + wob, -5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#92400e';
+      ctx.beginPath();
+      ctx.ellipse(wob, -5, 7, 2.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(-6, -1, 2, 6);
+      break;
+    }
+    case 'sunflower': {
+      ctx.rotate(tick * 0.3 + seed);
+      ctx.fillStyle = '#facc15';
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.ellipse(Math.cos(a) * 7, Math.sin(a) * 7, 4, 2, a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(0, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'tower': {
+      // 金色大樓
+      ctx.fillStyle = '#d4a017';
+      ctx.fillRect(-7, -16, 14, 30);
+      ctx.fillStyle = '#fde68a';
+      for (let r = 0; r < 6; r++) for (let c = 0; c < 3; c++) ctx.fillRect(-5 + c * 4, -13 + r * 4.5, 2.4, 2.6);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(-9, 13, 18, 3);
+      break;
+    }
+    case 'firework': {
+      // 天降煙火：小火箭 + 爆開的星星
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(-2, -2, 4, 12);
+      ctx.beginPath();
+      ctx.moveTo(-3, -2);
+      ctx.lineTo(0, -8);
+      ctx.lineTo(3, -2);
+      ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + tick * 0.2;
+        star(ctx, Math.cos(a) * 11, -10 + Math.sin(a) * 8, 3.2, i % 2 ? '#facc15' : '#f472b6');
+      }
+      break;
+    }
     case 'candle': {
       const up = seed % 2 === 0;
       const c = up ? '#ef4444' : '#22c55e';

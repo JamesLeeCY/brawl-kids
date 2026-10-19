@@ -251,6 +251,70 @@
       ]
     },
     {
+      "stage": "zoo",
+      "waves": [
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "easy"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "easy"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "easy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "maokong",
+      "waves": [
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "easy"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "easy"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "stage": "ximending",
       "waves": [
         {
@@ -283,6 +347,80 @@
       ]
     },
     {
+      "stage": "expo",
+      "waves": [
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 2,
+              "difficulty": "normal"
+            },
+            {
+              "char": "random_main",
+              "count": 1,
+              "difficulty": "easy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "chifeng",
+      "waves": [
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 2,
+              "difficulty": "normal"
+            },
+            {
+              "char": "random_main",
+              "count": 1,
+              "difficulty": "easy"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "stage": "dome",
       "waves": [
         {
@@ -309,6 +447,85 @@
               "char": "guardbot",
               "count": 4,
               "difficulty": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "government",
+      "waves": [
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 2,
+              "difficulty": "normal"
+            },
+            {
+              "char": "random_main",
+              "count": 1,
+              "difficulty": "easy"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "stage": "maokong",
+      "waves": [
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 3,
+              "difficulty": "normal"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 2,
+              "difficulty": "normal"
+            },
+            {
+              "char": "random_main",
+              "count": 1,
+              "difficulty": "easy"
+            }
+          ]
+        },
+        {
+          "enemies": [
+            {
+              "char": "guardbot",
+              "count": 2,
+              "difficulty": "normal"
+            },
+            {
+              "char": "random_main",
+              "count": 1,
+              "difficulty": "easy"
             }
           ]
         }

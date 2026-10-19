@@ -1,0 +1,315 @@
+{
+  "id": "trump",
+  "name": "川噗",
+  "title": "推文總裁",
+  "accessory": "none",
+  "quote": "推文發出去，全世界都在看！",
+  "stats": {
+    "hp": 560,
+    "walkSpeed": 2.4,
+    "runSpeed": 5.4,
+    "jumpPower": 8.6,
+    "weight": 1.2
+  },
+  "palette": {
+    "skin": "#f6c08f",
+    "main": "#1e2a5e",
+    "accent": "#f59e0b",
+    "hair": "#f2c94c"
+  },
+  "look": {
+    "hair": "swoop",
+    "tie": "#dc2626"
+  },
+  "frames": {
+    "tweet_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "tweet_2",
+      "sound": "special"
+    },
+    "tweet_2": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "tweet_3",
+      "spawn": [
+        {
+          "id": "tweet",
+          "x": 24,
+          "y": 40,
+          "vx": 8,
+          "dz": -10
+        }
+      ]
+    },
+    "tweet_3": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "tweet_4",
+      "spawn": [
+        {
+          "id": "tweet",
+          "x": 24,
+          "y": 42,
+          "vx": 8.5
+        }
+      ]
+    },
+    "tweet_4": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "tweet_rec",
+      "spawn": [
+        {
+          "id": "tweet",
+          "x": 24,
+          "y": 40,
+          "vx": 8,
+          "dz": 10
+        }
+      ]
+    },
+    "tweet_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "fired_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "fired_2",
+      "sound": "special"
+    },
+    "fired_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "fired_rec",
+      "spawn": [
+        {
+          "id": "fired",
+          "x": 24,
+          "y": 36,
+          "vx": 7
+        }
+      ]
+    },
+    "fired_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "wall_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "blockProjectile",
+        "value": 1,
+        "duration": 240
+      }
+    },
+    "golf_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "golf_2",
+      "sound": "special"
+    },
+    "golf_2": {
+      "duration": 16,
+      "pose": "run_attack",
+      "next": "golf_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 42,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "golf_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "tower_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "tower_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "towerdrop",
+          "at": "random",
+          "count": 4,
+          "y": 0
+        }
+      ]
+    },
+    "tower_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "jet_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "jet_2",
+      "sound": "special"
+    },
+    "jet_2": {
+      "duration": 12,
+      "pose": "jet_up",
+      "hover": true,
+      "selfVel": {
+        "vx": 0,
+        "vy": 7
+      },
+      "buff": {
+        "type": "hover",
+        "value": 1,
+        "duration": 84
+      }
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "推文連發",
+      "mp": 60,
+      "startFrame": "tweet_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "你被開除了！",
+      "mp": 100,
+      "startFrame": "fired_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "築一道高牆",
+      "mp": 120,
+      "startFrame": "wall_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "高爾夫揮桿衝刺",
+      "mp": 80,
+      "startFrame": "golf_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "金色大樓從天降",
+      "mp": 150,
+      "startFrame": "tower_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "專機起飛",
+      "mp": 60,
+      "startFrame": "jet_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "tweet": {
+      "life": 60,
+      "size": 10,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "tweet",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -9,
+              "y": -8,
+              "w": 18,
+              "h": 16,
+              "damage": 18,
+              "fall": 16,
+              "dvx": 2,
+              "hitstop": 3
+            }
+          ]
+        }
+      },
+      "homing": 0.08
+    },
+    "fired": {
+      "life": 42,
+      "size": 18,
+      "hitLimit": 4,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "fired",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -16,
+              "y": -16,
+              "w": 32,
+              "h": 32,
+              "damage": 34,
+              "fall": 70,
+              "dvx": 5,
+              "dvy": 4,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    },
+    "towerdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "towerdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 40,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

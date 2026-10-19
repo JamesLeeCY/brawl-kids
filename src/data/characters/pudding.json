@@ -1,0 +1,267 @@
+{
+  "id": "pudding",
+  "name": "布丁",
+  "title": "柔道黑帶",
+  "accessory": "judo",
+  "quote": "布丁要冰過才好吃。",
+  "stats": {
+    "hp": 520,
+    "walkSpeed": 2.7,
+    "runSpeed": 6.0,
+    "jumpPower": 9.0,
+    "weight": 1.05
+  },
+  "palette": {
+    "skin": "#f3cfb0",
+    "main": "#f3f4f6",
+    "accent": "#3b82f6",
+    "hair": "#b8a27a"
+  },
+  "look": {
+    "hair": "receding"
+  },
+  "frames": {
+    "pud_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "pud_2",
+      "sound": "special"
+    },
+    "pud_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "pud_rec",
+      "spawn": [
+        {
+          "id": "pudding",
+          "x": 24,
+          "y": 40,
+          "vx": 6.5
+        }
+      ]
+    },
+    "pud_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "judo_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "judo_2",
+      "sound": "special"
+    },
+    "judo_2": {
+      "duration": 12,
+      "pose": "grab",
+      "next": "judo_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 9
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 48,
+          "fall": 95,
+          "dvx": -6,
+          "dvy": 8,
+          "hitstop": 6
+        }
+      ]
+    },
+    "judo_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "ice_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "ice_2",
+      "sound": "special"
+    },
+    "ice_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "ice_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -100,
+          "y": 0,
+          "w": 200,
+          "h": 60,
+          "damage": 50,
+          "fall": 80,
+          "dvx": 5,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 56,
+          "radial": true
+        }
+      ]
+    },
+    "ice_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "tough_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "dmgReduce",
+        "value": 0.5,
+        "duration": 180
+      }
+    },
+    "pudrain_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "pudrain_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "puddingdrop",
+          "at": "random",
+          "count": 5,
+          "y": 0
+        }
+      ]
+    },
+    "pudrain_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "belt_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "belt_2",
+      "sound": "special"
+    },
+    "belt_2": {
+      "duration": 12,
+      "pose": "jet_up",
+      "hover": true,
+      "selfVel": {
+        "vx": 0,
+        "vy": 7
+      },
+      "buff": {
+        "type": "hover",
+        "value": 1,
+        "duration": 84
+      }
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "布丁彈",
+      "mp": 60,
+      "startFrame": "pud_1",
+      "role": "ranged"
+    },
+    {
+      "command": "D>J",
+      "name": "柔道過肩摔",
+      "mp": 90,
+      "startFrame": "judo_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvA",
+      "name": "冰原震地",
+      "mp": 100,
+      "startFrame": "ice_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "赤膊硬漢",
+      "mp": 140,
+      "startFrame": "tough_1",
+      "role": "buff"
+    },
+    {
+      "command": "DvJ",
+      "name": "天降布丁",
+      "mp": 150,
+      "startFrame": "pudrain_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "黑帶飛躍",
+      "mp": 60,
+      "startFrame": "belt_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "pudding": {
+      "life": 70,
+      "size": 12,
+      "hitLimit": 2,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "pudding",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -11,
+              "y": -10,
+              "w": 22,
+              "h": 20,
+              "damage": 26,
+              "fall": 40,
+              "dvx": 4,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    },
+    "puddingdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "puddingdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 40,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,300 @@
+{
+  "id": "zelensky",
+  "name": "則倫斯基",
+  "title": "喜劇總統",
+  "accessory": "none",
+  "quote": "下一個笑點，馬上來！",
+  "stats": {
+    "hp": 480,
+    "walkSpeed": 2.8,
+    "runSpeed": 6.2,
+    "jumpPower": 9.6,
+    "weight": 0.95
+  },
+  "palette": {
+    "skin": "#f0c6a2",
+    "main": "#4d5b2f",
+    "accent": "#facc15",
+    "hair": "#3b2a1a"
+  },
+  "look": {
+    "hair": "short",
+    "beard": true
+  },
+  "frames": {
+    "flower_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "flower_2",
+      "sound": "special"
+    },
+    "flower_2": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "flower_3",
+      "spawn": [
+        {
+          "id": "sunflower",
+          "x": 24,
+          "y": 40,
+          "vx": 9
+        }
+      ]
+    },
+    "flower_3": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "flower_rec",
+      "spawn": [
+        {
+          "id": "sunflower",
+          "x": 24,
+          "y": 36,
+          "vx": 9,
+          "dz": 8
+        }
+      ]
+    },
+    "flower_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "joke_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "joke_2",
+      "sound": "special"
+    },
+    "joke_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "joke_rec",
+      "spawn": [
+        {
+          "id": "joke",
+          "x": 24,
+          "y": 36,
+          "vx": 7
+        }
+      ]
+    },
+    "joke_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "tee_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "dmgReduce",
+        "value": 0.5,
+        "duration": 180
+      }
+    },
+    "servant_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "servant_2",
+      "sound": "special"
+    },
+    "servant_2": {
+      "duration": 16,
+      "pose": "run_attack",
+      "next": "servant_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11.5
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "servant_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "field_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "field_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "sunflowerdrop",
+          "at": "random",
+          "count": 6,
+          "y": 0
+        }
+      ]
+    },
+    "field_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "stage_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "stage_2",
+      "sound": "special"
+    },
+    "stage_2": {
+      "duration": 12,
+      "pose": "jet_up",
+      "hover": true,
+      "selfVel": {
+        "vx": 0,
+        "vy": 7
+      },
+      "buff": {
+        "type": "hover",
+        "value": 1,
+        "duration": 84
+      }
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "向日葵飛鏢",
+      "mp": 60,
+      "startFrame": "flower_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "即興喜劇",
+      "mp": 90,
+      "startFrame": "joke_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "綠 T 硬漢",
+      "mp": 130,
+      "startFrame": "tee_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "人民公僕衝刺",
+      "mp": 80,
+      "startFrame": "servant_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "向日葵花海",
+      "mp": 150,
+      "startFrame": "field_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "舞台飛躍",
+      "mp": 60,
+      "startFrame": "stage_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "sunflower": {
+      "life": 55,
+      "size": 11,
+      "hitLimit": 2,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "sunflower",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -10,
+              "y": -10,
+              "w": 20,
+              "h": 20,
+              "damage": 22,
+              "fall": 16,
+              "dvx": 2,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "joke": {
+      "life": 42,
+      "size": 18,
+      "hitLimit": 4,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "joke",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -16,
+              "y": -16,
+              "w": 32,
+              "h": 32,
+              "damage": 30,
+              "fall": 60,
+              "dvx": 5,
+              "dvy": 4,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    },
+    "sunflowerdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "sunflowerdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 34,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

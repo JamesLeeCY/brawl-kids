@@ -8,7 +8,8 @@ import { Scene, type MenuInput } from './scene';
 import { hint, menuBackground } from './ui';
 
 const VW = CONFIG.view.width;
-const ROWS = ACTIONS.length + 4; // 7 個按鍵 + 主音量 + 音效音量 + 恢復預設 + 返回
+const ROWS = ACTIONS.length + 5; // 7 個按鍵 + 主音量 + 音效音量 + 音樂音量 + 恢復預設 + 返回
+const VOLUME_KEYS = ['masterVolume', 'sfxVolume', 'musicVolume'] as const;
 
 export class SettingsScene extends Scene {
   private row = 0;
@@ -27,18 +28,18 @@ export class SettingsScene extends Scene {
       if (a.left) this.col = (this.col + HUMAN_PLAYERS - 1) % HUMAN_PLAYERS;
       if (a.right) this.col = (this.col + 1) % HUMAN_PLAYERS;
       if (a.A) this.startRebind();
-    } else if (this.row === ACTIONS.length || this.row === ACTIONS.length + 1) {
-      const key = this.row === ACTIONS.length ? 'masterVolume' : 'sfxVolume';
+    } else if (this.row < ACTIONS.length + VOLUME_KEYS.length) {
+      const key = VOLUME_KEYS[this.row - ACTIONS.length];
       const d = (a.right ? 0.1 : 0) - (a.left ? 0.1 : 0);
       if (d) {
         s[key] = Math.round(Math.max(0, Math.min(1, s[key] + d)) * 10) / 10;
         this.apply();
-        this.app.sfx.play('hit_light');
+        if (key !== 'musicVolume') this.app.sfx.play('hit_light');
       }
-    } else if (this.row === ACTIONS.length + 2 && a.A) {
+    } else if (this.row === ACTIONS.length + 3 && a.A) {
       s.bindings = DEFAULT_BINDINGS.map((b) => ({ ...b }));
       this.apply();
-    } else if (this.row === ACTIONS.length + 3 && a.A) this.app.scenes.pop();
+    } else if (this.row === ACTIONS.length + 4 && a.A) this.app.scenes.pop();
   }
 
   private startRebind(): void {
@@ -61,6 +62,7 @@ export class SettingsScene extends Scene {
     const s = this.app.settings;
     this.app.kb.setBindings(s.bindings);
     this.app.sfx.setVolumes(s.masterVolume, s.sfxVolume);
+    this.app.music.setVolume(s.musicVolume);
     saveSettings(s);
   }
 
@@ -96,6 +98,7 @@ export class SettingsScene extends Scene {
     const vols: [string, number][] = [
       ['主音量', s.masterVolume],
       ['音效音量', s.sfxVolume],
+      ['音樂音量', s.musicVolume],
     ];
     vols.forEach(([label, v], i) => {
       const y = vy + i * 28;
@@ -107,9 +110,9 @@ export class SettingsScene extends Scene {
       ctx.fillRect(x0 + 8, y + 7, 400 * v, 10);
       text(ctx, `${Math.round(v * 100)}%`, x0 + 420, y + 18, 13, '#fff');
     });
-    const by = vy + 62;
-    text(ctx, '恢復預設按鍵', VW / 2 - 90, by + 16, 15, this.row === ACTIONS.length + 2 ? '#ffd23f' : '#fff', 'center');
-    text(ctx, '返回', VW / 2 + 90, by + 16, 15, this.row === ACTIONS.length + 3 ? '#ffd23f' : '#fff', 'center');
+    const by = vy + 90;
+    text(ctx, '恢復預設按鍵', VW / 2 - 90, by + 16, 15, this.row === ACTIONS.length + 3 ? '#ffd23f' : '#fff', 'center');
+    text(ctx, '返回', VW / 2 + 90, by + 16, 15, this.row === ACTIONS.length + 4 ? '#ffd23f' : '#fff', 'center');
     hint(ctx, '方向鍵移動　攻擊鍵 / Enter 重新綁定　左右調整音量　Esc 返回　·　P1 坐左、P2 坐右');
   }
 }

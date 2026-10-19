@@ -1,5 +1,8 @@
 // 進入點：固定時間步長迴圈（accumulator），邏輯 60 tick/秒，繪圖跟隨 requestAnimationFrame。
+import { musicCue } from './audio/director';
+import { Music } from './audio/music';
 import { Sfx } from './audio/sfx';
+import { trackFor } from './audio/tracks';
 import { CONFIG } from './config';
 import { getGameData } from './data';
 import { Keyboard } from './input/keyboard';
@@ -12,6 +15,9 @@ import { JoinScene, OnlineMenuScene } from './scenes/online';
 import { TitleScene } from './scenes/title';
 import { updateIfStale } from './version';
 import { loadSettings } from './settings';
+import { extractReplayCode, HASH_PREFIX } from './replay/replay';
+import { clearReplayHash } from './replay/share';
+import { ReplayLoadScene } from './scenes/replay';
 import { emptySnapshot, pressedEdges, type Snapshot } from './sim/snapshot';
 import type { World } from './sim/world';
 import type { NetSession } from './net/session';
@@ -28,6 +34,8 @@ const kb = new Keyboard(window);
 kb.setBindings(settings.bindings);
 const sfx = new Sfx();
 sfx.setVolumes(settings.masterVolume, settings.sfxVolume);
+const music = new Music(sfx);
+music.setVolume(settings.musicVolume);
 kb.onFirstInput = () => sfx.unlock();
 const touchUi = new TouchControls(kb, document.body);
 window.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -38,6 +46,7 @@ const app: App = {
   settings,
   kb,
   sfx,
+  music,
   scenes: new SceneManager(),
   slots: defaultSlots(),
   showFps: false,
@@ -49,6 +58,29 @@ if (roomCode) {
   app.scenes.push(new OnlineMenuScene(app));
   app.scenes.push(new JoinScene(app, roomCode));
 }
+// 透過分享連結 #replay=... 開啟時直接播放重播；離開後回到標題
+function openReplay(code: string): void {
+  const home = app.scenes.stack.slice(0, 1);
+  app.scenes.reset([
+    ...home,
+    new ReplayLoadScene(app, code, () => {
+      clearReplayHash();
+      app.scenes.reset(home);
+    }),
+  ]);
+}
+if (location.hash.startsWith(HASH_PREFIX)) openReplay(location.hash.slice(HASH_PREFIX.length));
+// 已開著遊戲時貼上重播連結（只改 hash，不會重新載入）
+window.addEventListener('hashchange', () => {
+  if (location.hash.startsWith(HASH_PREFIX)) openReplay(location.hash.slice(HASH_PREFIX.length));
+});
+// 標題畫面 Ctrl+V 貼上重播代碼或連結（網址太長時分享的是代碼文字）
+window.addEventListener('paste', (e) => {
+  if (!(app.scenes.top instanceof TitleScene)) return;
+  const s = e.clipboardData?.getData('text') ?? '';
+  const code = s.length >= 40 ? extractReplayCode(s) : null;
+  if (code) openReplay(code);
+});
 if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;
 
 // 正式版：若瀏覽器快取到舊版網頁（和伺服器上的 version.json 不同），自動換到新版
@@ -61,6 +93,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 }
 // 網頁開著放在背景很久（手機常見），回到前景且還在標題畫面時再檢查一次
 document.addEventListener('visibilitychange', () => {
+  music.setHidden(document.visibilityState === 'hidden');
   if (document.visibilityState === 'visible' && app.scenes.top instanceof TitleScene) void updateIfStale();
 });
 
@@ -144,7 +177,9 @@ function frame(now: number): void {
   app.scenes.top?.render(ctx);
   if (off) ctx.setTransform(scale, 0, 0, scale, 0, 0);
   touchUi.setCharge(superCharge());
-  document.body.classList.toggle('in-battle', !!app.scenes.top?.wide);
+  // 背景音樂只讀取場景狀態；Music 在使用者第一次操作（解鎖 AudioContext）前不會出聲
+  music.play(trackFor(musicCue(app)));
+  document.body.classList.toggle('in-battle', !!app.scenes.top?.wide && !app.scenes.top.noTouchPad);
   frames++;
   if (now - fpsTimer >= 500) {
     fps = (frames * 1000) / (now - fpsTimer);

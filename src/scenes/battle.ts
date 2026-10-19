@@ -13,6 +13,8 @@ import { hint, overlay } from './ui';
 
 import { VW, viewOffset } from '../render/view';
 import { resetCampaign } from './campaign';
+import { dataVersion } from '../data';
+import { ReplayRecorder } from '../replay/replay';
 import { campaignHealAmount, campaignLength, campaignStageId } from '../sim/world';
 const PAUSE_ITEMS = ['繼續', '重新開始', '回選角', '按鍵說明'];
 const NET_MENU_ITEMS = ['繼續', '按鍵說明', '離開連線'];
@@ -35,6 +37,8 @@ export class BattleScene extends Scene {
   private practicePrevFrame = new Map<number, string | null>();
   private practiceToast: { text: string; t: number } | null = null;
   private combo = { dmg: 0, hits: 0, last: -9999, best: 0, hp: -1 };
+  /** 重播錄製（練習模式不錄：畫面層會改動世界，重播無法重現）；闖關只錄目前這一關 */
+  private recorder: ReplayRecorder | null;
 
   constructor(
     app: App,
@@ -44,6 +48,7 @@ export class BattleScene extends Scene {
     super(app);
     this.world = new World(app.data, setup);
     this.renderer = new BattleRenderer(this.world);
+    this.recorder = setup.practice ? null : new ReplayRecorder(setup, dataVersion());
     if (setup.practice) this.initPractice();
   }
 
@@ -154,6 +159,7 @@ export class BattleScene extends Scene {
 
   /** 前進一個 tick；若場景已切換回傳 true */
   private stepWorld(inputs: readonly (Snapshot | undefined)[]): boolean {
+    this.recorder?.record(inputs);
     this.world.step(inputs);
     this.renderer.consume(this.world.events);
     for (const ev of this.world.events) if (ev.type === 'sound') this.app.sfx.play(ev.key);
@@ -164,7 +170,7 @@ export class BattleScene extends Scene {
       this.nextStage();
       return false;
     }
-    this.app.scenes.replace(new ResultScene(this.app, this.setup, this.world, res, this.net));
+    this.app.scenes.replace(new ResultScene(this.app, this.setup, this.world, res, this.net, this.recorder?.finish(this.world.hash()) ?? null));
     return true;
   }
 
@@ -185,6 +191,7 @@ export class BattleScene extends Scene {
     this.setup = { ...this.setup, campaignIndex: idx, stageId: campaignStageId(this.app.data, this.setup, idx), carry, seed: this.setup.seed + 1 };
     this.world = new World(this.app.data, this.setup);
     this.renderer = new BattleRenderer(this.world);
+    this.recorder = new ReplayRecorder(this.setup, dataVersion());
     this.intro = 90;
     if (this.net?.lockstep) {
       // 各端在同一個世界 tick 過關，各自切到下一段 lockstep

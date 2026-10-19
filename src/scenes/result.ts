@@ -9,16 +9,25 @@ import type { NetSession } from '../net/session';
 import { BattleScene, backToSelect, backToTitle } from './battle';
 import { startOnlineMatch } from './online';
 import { Scene, type App, type MenuInput } from './scene';
-import { hint, menuBackground } from './ui';
+import { button, hint, menuBackground } from './ui';
+import { ReplayScene } from './replay';
+import type { Replay } from '../replay/replay';
+import { shareReplay } from '../replay/share';
 import { resetCampaign } from './campaign';
 
 const VW = CONFIG.view.width;
+const VH = CONFIG.view.height;
+/** 右上角「觀看重播 / 分享重播」按鈕 */
+const REPLAY_BTN = { x: 700, w: 150, y: [16, 60] };
 
 export class ResultScene extends Scene {
   private t = 0;
   private winners: Entity[];
   private players: Entity[];
   private title: string;
+  /** 分享重播的結果訊息 */
+  private shareMsg: { text: string; t: number } | null = null;
+  private sharing = false;
 
   constructor(
     app: App,
@@ -26,6 +35,7 @@ export class ResultScene extends Scene {
     private world: World,
     res: MatchResult,
     private net: NetSession | null = null,
+    private replay: Replay | null = null,
   ) {
     super(app);
     if (net) net.inMatch = false;
@@ -42,6 +52,14 @@ export class ResultScene extends Scene {
 
   update(inp: MenuInput): void {
     this.t++;
+    if (this.shareMsg && --this.shareMsg.t <= 0) this.shareMsg = null;
+    if (this.t >= 30 && this.replay) {
+      if (inp.pressed.some((p) => p.J)) {
+        this.watchReplay();
+        return;
+      }
+      if (inp.pressed.some((p) => p.up)) this.share();
+    }
     if (this.net) {
       this.updateNet(inp);
       return;
@@ -54,18 +72,47 @@ export class ResultScene extends Scene {
     } else if (inp.any.D) backToSelect(this.app);
   }
 
-  private updateNet(inp: MenuInput): void {
+  private watchReplay(): void {
+    if (!this.replay) return;
+    // 連線時看重播，仍要接收房主的「再來一場 / 回選角」
+    const onTick = this.net ? () => void this.pollNet() : undefined;
+    this.app.scenes.push(new ReplayScene(this.app, this.replay, { onTick }));
+  }
+
+  private share(): void {
+    if (!this.replay || this.sharing) return;
+    this.sharing = true;
+    this.shareMsg = { text: '準備重播連結…', t: 600 };
+    shareReplay(this.replay)
+      .then(
+        (msg) => (this.shareMsg = { text: msg, t: 300 }),
+        () => (this.shareMsg = { text: '分享失敗，這個瀏覽器可能不支援', t: 300 }),
+      )
+      .finally(() => (this.sharing = false));
+  }
+
+  /** 處理房主訊息；場景已切換回傳 true */
+  private pollNet(): boolean {
     const net = this.net!;
     for (const { msg: m } of net.drain()) {
       if (m.type === 'rematch') {
-        this.app.scenes.replace(new BattleScene(this.app, m.setup, net));
-        return;
+        // 自己（以及上面可能疊著的重播畫面）換成新的一場
+        const st = this.app.scenes.stack;
+        const i = st.indexOf(this);
+        this.app.scenes.reset([...st.slice(0, i < 0 ? st.length - 1 : i), new BattleScene(this.app, m.setup, net)]);
+        return true;
       }
       if (m.type === 'lobby') {
         this.toOnlineSelect();
-        return;
+        return true;
       }
     }
+    return false;
+  }
+
+  private updateNet(inp: MenuInput): void {
+    const net = this.net!;
+    if (this.pollNet()) return;
     if (net.status !== 'open') {
       if (inp.any.A || inp.any.D) backToTitle(this.app, net);
       return;
@@ -93,6 +140,12 @@ export class ResultScene extends Scene {
     }
     this.app.scenes.reset(stack.slice(0, i + 1));
     (stack[i] as unknown as { reset(): void }).reset();
+  }
+
+  onClick(x: number, y: number): void {
+    if (!this.replay || this.t < 30 || Math.abs(x - REPLAY_BTN.x) > REPLAY_BTN.w / 2) return;
+    if (y >= REPLAY_BTN.y[0] && y <= REPLAY_BTN.y[0] + 36) this.watchReplay();
+    else if (y >= REPLAY_BTN.y[1] && y <= REPLAY_BTN.y[1] + 36) this.share();
   }
 
   onEscape(): void {
@@ -134,6 +187,12 @@ export class ResultScene extends Scene {
       text(ctx, `${p.stats.kos}`, cx[3], y, 14, '#fff', 'center');
       text(ctx, `${p.stats.downs}`, cx[4], y, 14, '#fff', 'center');
     });
+    if (this.replay) {
+      button(ctx, '▶ 觀看重播', REPLAY_BTN.x, REPLAY_BTN.y[0], REPLAY_BTN.w, false);
+      button(ctx, '分享重播', REPLAY_BTN.x, REPLAY_BTN.y[1], REPLAY_BTN.w, false);
+      if (this.shareMsg) text(ctx, this.shareMsg.text, VW / 2, 92, 14, '#86efac', 'center', true, true);
+      hint(ctx, '跳躍 / 點右上：觀看重播　↑：分享重播', VH - 32);
+    }
     if (!this.net) hint(ctx, '攻擊 / Enter：再來一場　防禦 / Esc：回選角');
     else if (this.net.status !== 'open') hint(ctx, '對手已離線　·　按 攻擊 回到標題');
     else if (this.net.role === 'host') hint(ctx, '攻擊 / Enter：再來一場　防禦：回連線選角　Esc：離開連線');

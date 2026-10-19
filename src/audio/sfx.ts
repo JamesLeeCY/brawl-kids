@@ -33,6 +33,11 @@ export class Sfx {
     }
   }
 
+  /** 背景音樂共用同一個 AudioContext 與主音量；尚未解鎖時為 null */
+  graph(): { ctx: AudioContext; master: GainNode } | null {
+    return this.ctx && this.master ? { ctx: this.ctx, master: this.master } : null;
+  }
+
   setVolumes(master: number, sfx: number): void {
     this.masterVolume = master;
     this.sfxVolume = sfx;

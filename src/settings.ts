@@ -8,10 +8,11 @@ export interface Settings {
   bindings: Binding[];
   masterVolume: number;
   sfxVolume: number;
+  musicVolume: number;
 }
 
 export function defaultSettings(): Settings {
-  return { bindings: DEFAULT_BINDINGS.map((b) => ({ ...b })), masterVolume: 0.8, sfxVolume: 0.8 };
+  return { bindings: DEFAULT_BINDINGS.map((b) => ({ ...b })), masterVolume: 0.8, sfxVolume: 0.8, musicVolume: 0.6 };
 }
 
 export function loadSettings(): Settings {
@@ -27,6 +28,7 @@ export function loadSettings(): Settings {
     }
     if (typeof j.masterVolume === 'number') s.masterVolume = clamp01(j.masterVolume);
     if (typeof j.sfxVolume === 'number') s.sfxVolume = clamp01(j.sfxVolume);
+    if (typeof j.musicVolume === 'number') s.musicVolume = clamp01(j.musicVolume);
   } catch {
     /* 無法讀取時使用預設值 */
   }

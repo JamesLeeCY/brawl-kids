@@ -1,3 +1,4 @@
+import type { Music } from '../audio/music';
 import type { Sfx } from '../audio/sfx';
 import type { Difficulty } from '../config';
 import type { GameData } from '../data/load';
@@ -29,6 +30,7 @@ export interface App {
   settings: Settings;
   kb: Keyboard;
   sfx: Sfx;
+  music: Music;
   scenes: SceneManager;
   slots: SlotConfig[];
   showFps: boolean;
@@ -38,6 +40,8 @@ export abstract class Scene {
   readonly tag: string = '';
   /** true：使用加寬的戰鬥畫面；false：800 寬置中 */
   readonly wide: boolean = false;
+  /** true：加寬畫面但不顯示觸控搖桿 / 按鈕（例如重播，改用畫面上的按鈕） */
+  readonly noTouchPad: boolean = false;
   constructor(protected app: App) {}
   abstract update(inp: MenuInput): void;
   abstract render(ctx: CanvasRenderingContext2D): void;

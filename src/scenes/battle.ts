@@ -12,6 +12,8 @@ import { Scene, type App, type MenuInput } from './scene';
 import { hint, overlay } from './ui';
 
 import { VW, viewOffset } from '../render/view';
+import { resetCampaign } from './campaign';
+import { campaignStageId } from '../sim/world';
 const PAUSE_ITEMS = ['繼續', '重新開始', '回選角', '按鍵說明'];
 const NET_MENU_ITEMS = ['繼續', '按鍵說明', '離開連線'];
 const HASH_INTERVAL = 120;
@@ -127,7 +129,7 @@ export class BattleScene extends Scene {
         kos: c.stats.kos,
         downs: c.stats.downs,
       }));
-    this.setup = { ...this.setup, campaignIndex: idx, stageId: this.app.data.campaign[idx].stage, carry, seed: this.setup.seed + 1 };
+    this.setup = { ...this.setup, campaignIndex: idx, stageId: campaignStageId(this.app.data, this.setup, idx), carry, seed: this.setup.seed + 1 };
     this.world = new World(this.app.data, this.setup);
     this.renderer = new BattleRenderer(this.world);
     this.intro = 90;
@@ -140,11 +142,7 @@ export class BattleScene extends Scene {
 
   private restart(): void {
     const s = { ...this.setup, seed: (this.setup.seed * 1103515245 + 12345) >>> 0 };
-    if (s.mode === 'campaign') {
-      s.campaignIndex = 0;
-      s.stageId = this.app.data.campaign[0].stage;
-      s.carry = undefined;
-    }
+    if (s.mode === 'campaign') resetCampaign(this.app, s);
     this.app.scenes.replace(new BattleScene(this.app, s));
   }
 

@@ -10,6 +10,7 @@ import { BattleScene, backToSelect, backToTitle } from './battle';
 import { startOnlineMatch } from './online';
 import { Scene, type App, type MenuInput } from './scene';
 import { hint, menuBackground } from './ui';
+import { resetCampaign } from './campaign';
 
 const VW = CONFIG.view.width;
 
@@ -48,10 +49,7 @@ export class ResultScene extends Scene {
     if (this.t < 30) return;
     if (inp.any.A) {
       const s = { ...this.setup, seed: (this.setup.seed * 1664525 + 1013904223) >>> 0, carry: undefined };
-      if (s.mode === 'campaign') {
-        s.campaignIndex = 0;
-        s.stageId = this.app.data.campaign[0].stage;
-      }
+      if (s.mode === 'campaign') resetCampaign(this.app, s);
       this.app.scenes.replace(new BattleScene(this.app, s));
     } else if (inp.any.D) backToSelect(this.app);
   }
@@ -78,10 +76,7 @@ export class ResultScene extends Scene {
     const d = inp.pressed.some((p) => p.D);
     if (a && net.role === 'host') {
       const s: MatchSetup = { ...this.setup, seed: (this.setup.seed * 1664525 + 1013904223) >>> 0, carry: undefined };
-      if (s.mode === 'campaign') {
-        s.campaignIndex = 0;
-        s.stageId = this.app.data.campaign[0].stage;
-      }
+      if (s.mode === 'campaign') resetCampaign(this.app, s);
       startOnlineMatch(this.app, net, s, 'rematch');
     } else if (d && net.role === 'host') {
       net.broadcast({ type: 'lobby' });

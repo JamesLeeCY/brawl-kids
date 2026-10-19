@@ -40,7 +40,18 @@ export interface MatchSetup {
   campaignIndex?: number;
   /** 闖關難度（預設普通） */
   campaignDifficulty?: Difficulty;
+  /** 闖關各關的場景（沒有就用 campaign 資料裡的預設路線） */
+  campaignStages?: string[];
+  /** 闖關路線的選法（重新開始時，隨機路線會重抽） */
+  campaignRoute?: CampaignRoute;
   carry?: CarryOver[];
+}
+
+export type CampaignRoute = 'fixed' | 'random' | 'custom';
+
+/** 闖關第 idx 關的場景：玩家選的路線優先，否則用預設路線 */
+export function campaignStageId(data: { campaign: readonly { stage: string }[] }, setup: MatchSetup, idx: number): string {
+  return setup.campaignStages?.[idx] ?? data.campaign[idx].stage;
 }
 
 export type GameEvent =

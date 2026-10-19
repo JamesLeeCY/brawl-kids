@@ -35,7 +35,34 @@ interface Debris {
   vy: number;
   t: number;
   color: string;
+  /** 碎石大小（預設 6） */
+  size?: number;
+  /** 前後方向的速度（震地碎石往四面八方飛） */
+  vz?: number;
 }
+
+/** 震地衝擊：地面擴散的震波圈 */
+interface Quake {
+  x: number;
+  z: number;
+  rx: number;
+  rz: number;
+  t: number;
+  color: string;
+}
+
+/** 震地揚起的塵土 */
+interface Dust {
+  x: number;
+  z: number;
+  vx: number;
+  r: number;
+  t: number;
+}
+
+/** 震波圈持續時間（tick） */
+const QUAKE_TICKS = 34;
+const DUST_TICKS = 40;
 
 export function screenY(e: { y: number; z: number }): number {
   return HZ + e.z - e.y;
@@ -106,6 +133,12 @@ export class BattleRenderer {
   sparks: Spark[] = [];
   afterimages: Afterimage[] = [];
   debris: Debris[] = [];
+  quakes: Quake[] = [];
+  dust: Dust[] = [];
+  /** 震地瞬間的白色閃光（剩餘 tick） */
+  flash = 0;
+  private lastFrame = new Map<number, string | null>();
+  private fxSeed = 1;
   hpLag = new Map<number, number>();
   banner: { text: string; t: number } | null = null;
   private sparkSeed = 0;
@@ -140,8 +173,64 @@ export class BattleRenderer {
     }
   }
 
+  /** 畫面用的亂數（只影響特效，不影響遊戲結果） */
+  private rand(): number {
+    this.fxSeed = (this.fxSeed * 16807) % 2147483647;
+    return this.fxSeed / 2147483647;
+  }
+
+  /** 震地招式落地的瞬間：震波、碎石、塵土、閃光、強烈搖晃 */
+  private spawnQuake(w: World, e: Entity, itr: { x: number; w: number; zRange?: number }): void {
+    const rx = Math.max(Math.abs(itr.x), Math.abs(itr.x + itr.w));
+    const rz = itr.zRange ?? CONFIG.physics.hitZTolerance;
+    const color = w.charDef(e).palette.accent;
+    for (let i = 0; i < 3; i++) this.quakes.push({ x: e.x, z: e.z, rx: rx * (1 + i * 0.18), rz: rz * (1 + i * 0.18), t: QUAKE_TICKS + i * 5, color });
+    const rockColors = ['#8b6b4a', '#a1866b', '#6b5440', '#cbb89d'];
+    for (let i = 0; i < 22; i++) {
+      const a = this.rand() * Math.PI * 2;
+      const sp = 2 + this.rand() * 5;
+      this.debris.push({
+        x: e.x + Math.cos(a) * rx * 0.3,
+        y: 2,
+        z: e.z + Math.sin(a) * rz * 0.3,
+        vx: Math.cos(a) * sp,
+        vz: Math.sin(a) * sp * 0.35,
+        vy: 4 + this.rand() * 6,
+        t: 34 + Math.floor(this.rand() * 14),
+        color: rockColors[i % rockColors.length],
+        size: 4 + Math.floor(this.rand() * 6),
+      });
+    }
+    for (let i = 0; i < 12; i++) {
+      const side = i % 2 ? 1 : -1;
+      this.dust.push({ x: e.x + side * rx * (0.2 + this.rand() * 0.7), z: e.z + (this.rand() - 0.5) * rz, vx: side * (0.6 + this.rand() * 1.4), r: 10 + this.rand() * 12, t: DUST_TICKS });
+    }
+    this.flash = 7;
+    this.shakeAmp = Math.max(this.shakeAmp, 11);
+    this.shakeTicks = Math.max(this.shakeTicks, 22);
+  }
+
   /** 每個邏輯 tick 呼叫一次 */
   tick(w: World): void {
+    for (const c of w.chars()) {
+      const prev = this.lastFrame.get(c.id);
+      if (c.frame !== prev) {
+        this.lastFrame.set(c.id, c.frame);
+        const fr = c.state === 'attack' && c.frame ? w.charDef(c).frames[c.frame] : undefined;
+        const quake = fr?.itr?.find((it) => it.radial);
+        if (quake) this.spawnQuake(w, c, quake);
+      }
+    }
+    for (const q of this.quakes) q.t--;
+    this.quakes = this.quakes.filter((q) => q.t > 0);
+    for (const d of this.dust) {
+      d.x += d.vx;
+      d.vx *= 0.94;
+      d.r += 0.9;
+      d.t--;
+    }
+    this.dust = this.dust.filter((d) => d.t > 0);
+    if (this.flash > 0) this.flash--;
     this.camX += (this.targetCam(w) - this.camX) * FX.cameraLerp;
     if (this.shakeTicks > 0) this.shakeTicks--;
     for (const s of this.sparks) s.t--;
@@ -151,7 +240,12 @@ export class BattleRenderer {
     for (const d of this.debris) {
       d.vy -= 0.4;
       d.x += d.vx;
+      if (d.vz) d.z += d.vz;
       d.y = Math.max(0, d.y + d.vy);
+      if (d.y === 0) {
+        d.vx *= 0.8;
+        if (d.vz) d.vz *= 0.8;
+      }
       d.t--;
     }
     this.debris = this.debris.filter((d) => d.t > 0);
@@ -188,6 +282,8 @@ export class BattleRenderer {
       ctx.fill();
     }
 
+    for (const q of this.quakes) this.drawQuakeRing(ctx, q, cam);
+
     for (const a of this.afterimages) {
       const def = w.charDef(a.e);
       ctx.globalAlpha = FX.afterimageAlpha * (a.t / FX.afterimageLife);
@@ -202,12 +298,24 @@ export class BattleRenderer {
       else this.drawProjectile(ctx, w, e, cam);
     }
 
+    for (const d of this.dust) {
+      const k = d.t / DUST_TICKS;
+      ctx.fillStyle = `rgba(214,196,168,${0.55 * k})`;
+      ctx.beginPath();
+      ctx.ellipse(d.x - cam, HZ + d.z - d.r * 0.5, d.r, d.r * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     for (const d of this.debris) {
+      const sz = d.size ?? 6;
       ctx.fillStyle = d.color;
-      ctx.fillRect(d.x - cam - 3, HZ + d.z - d.y - 3, 6, 5);
+      ctx.fillRect(d.x - cam - sz / 2, HZ + d.z - d.y - sz / 2, sz, sz * 0.85);
     }
     for (const s of this.sparks) this.drawSpark(ctx, s, cam);
     ctx.restore();
+    if (this.flash > 0) {
+      ctx.fillStyle = `rgba(255,250,230,${0.07 * this.flash})`;
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    }
     this.drawHud(ctx, w, hudExtra);
   }
 
@@ -303,8 +411,8 @@ export class BattleRenderer {
     const rz = itr.zRange ?? CONFIG.physics.hitZTolerance;
     const grow = 0.45 + 0.55 * k;
     ctx.save();
-    ctx.globalAlpha = 1 - k * 0.55;
-    ctx.fillStyle = 'rgba(255,236,190,0.28)';
+    ctx.globalAlpha = 1 - k * 0.4;
+    ctx.fillStyle = 'rgba(255,226,150,0.42)';
     ctx.strokeStyle = color;
     ctx.lineWidth = 2 + 4 * (1 - k);
     ctx.beginPath();
@@ -327,6 +435,28 @@ export class BattleRenderer {
       ctx.lineTo(x + c * rx * 0.45 * grow + sn * 4, gy + sn * rz * 0.45 * grow);
       ctx.lineTo(x + c * rx * 0.8 * grow, gy + sn * rz * 0.8 * grow);
     }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** 落地後的震波：擴散到超過命中範圍並淡出 */
+  private drawQuakeRing(ctx: CanvasRenderingContext2D, q: Quake, cam: number): void {
+    const k = 1 - q.t / QUAKE_TICKS; // 0 → 1（後面幾圈會稍微超過 1）
+    if (k < 0) return;
+    const grow = 0.3 + 1.0 * Math.min(1.2, k);
+    const x = q.x - cam;
+    const gy = HZ + q.z;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - k);
+    ctx.strokeStyle = q.color;
+    ctx.lineWidth = 8 * (1 - Math.min(1, k)) + 2;
+    ctx.beginPath();
+    ctx.ellipse(x, gy, q.rx * grow, q.rz * grow, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(x, gy, q.rx * grow * 0.85, q.rz * grow * 0.85, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }

@@ -13,6 +13,7 @@ import { BattleScene } from './battle';
 import { Scene, type App, type MenuInput } from './scene';
 import { DIFF_LABEL, TEAM_LABEL, moveLabel } from './select';
 import { button, hint, menuBackground } from './ui';
+import { randomCampaignRoute } from './campaign';
 
 const VW = CONFIG.view.width;
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
@@ -213,12 +214,17 @@ interface OnlineOption {
   mode: 'versus' | 'campaign';
   stageId?: string;
   difficulty?: Difficulty;
+  /** 闖關場景：原本路線或隨機（房主開始時抽籤，結果隨開賽訊息送給大家） */
+  route?: 'fixed' | 'random';
 }
 
 export function onlineOptions(app: App): OnlineOption[] {
   const d = app.data;
   const out: OnlineOption[] = d.stageOrder.map((id) => ({ label: `對戰・${d.stages[id].name}`, mode: 'versus', stageId: id }));
-  for (const diff of DIFFS) out.push({ label: `合作闖關・${d.campaignDifficulty[diff].label}`, mode: 'campaign', difficulty: diff });
+  for (const diff of DIFFS) {
+    out.push({ label: `合作闖關・${d.campaignDifficulty[diff].label}`, mode: 'campaign', difficulty: diff, route: 'fixed' });
+    out.push({ label: `合作闖關・${d.campaignDifficulty[diff].label}・隨機場景`, mode: 'campaign', difficulty: diff, route: 'random' });
+  }
   return out;
 }
 
@@ -421,9 +427,13 @@ export class OnlineSelectScene extends Scene {
       }
     }
     const ids = this.app.data.selectable;
+    const route = o.mode === 'campaign' ? (o.route ?? 'fixed') : undefined;
+    const campaignStages = route === 'random' ? randomCampaignRoute(this.app) : undefined;
     const setup: MatchSetup = {
       mode: o.mode,
-      stageId: o.mode === 'campaign' ? this.app.data.campaign[0].stage : o.stageId!,
+      stageId: o.mode === 'campaign' ? (campaignStages?.[0] ?? this.app.data.campaign[0].stage) : o.stageId!,
+      campaignStages,
+      campaignRoute: route,
       seed: (Date.now() ^ (performance.now() * 1000)) >>> 0,
       campaignIndex: 0,
       campaignDifficulty: o.difficulty,

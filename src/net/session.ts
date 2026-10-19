@@ -3,7 +3,7 @@
 //   1. 直連：PeerJS（WebRTC DataChannel）點對點，延遲最低。PeerJS 的免費雲端 broker 只負責「介紹」雙方。
 //   2. 中繼：直連建立不起來時（行動網路的電信級 NAT、公司 / 學校防火牆），改經公用 MQTT broker（WebSocket / 443）轉送。
 // 兩者都不需要自架伺服器或註冊帳號。
-import Peer, { type DataConnection } from 'peerjs';
+import Peer from 'peerjs';
 import type { Difficulty } from '../config';
 import type { MatchSetup } from '../sim/world';
 import { Lockstep, MAX_SLOTS, type InputPacket } from './lockstep';
@@ -140,6 +140,52 @@ function forceRelay(): boolean {
   }
 }
 
+// ---------------- 底層傳輸（測試時可換成假的） ----------------
+type Listener = (...args: any[]) => void;
+
+/** PeerJS DataConnection 用到的部分 */
+export interface PeerConnection {
+  readonly open: boolean;
+  send(data: unknown): void;
+  close(): void;
+  on(event: string, cb: Listener): unknown;
+}
+
+/** PeerJS Peer 用到的部分 */
+export interface PeerClient {
+  readonly destroyed: boolean;
+  readonly disconnected: boolean;
+  on(event: string, cb: Listener): unknown;
+  once(event: string, cb: Listener): unknown;
+  connect(id: string, options?: { reliable?: boolean; serialization?: string }): PeerConnection;
+  reconnect(): unknown;
+  destroy(): void;
+}
+
+/** MiniMqtt 用到的部分 */
+export interface MqttClient {
+  readonly connected: boolean;
+  readonly lastRx: number;
+  readonly ready: Promise<void>;
+  onClose: (() => void) | null;
+  subscribe(topic: string, cb: (payload: string) => void): void;
+  publish(topic: string, payload: string): void;
+  close(): void;
+}
+
+export interface NetTransport {
+  /** 建立 PeerJS 用戶端；id 省略時由配對伺服器分配 */
+  peer(id?: string): PeerClient;
+  mqtt(url: string, clientId: string): MqttClient;
+  brokers: readonly string[];
+}
+
+const defaultTransport: NetTransport = {
+  peer: (id) => (id === undefined ? new Peer(PEER_OPTIONS) : new Peer(id, PEER_OPTIONS)),
+  mqtt: (url, clientId) => new MiniMqtt(url, clientId),
+  brokers: RELAY_BROKERS,
+};
+
 // ---------------- 通道 ----------------
 interface Channel {
   readonly kind: LinkKind;
@@ -148,7 +194,7 @@ interface Channel {
   close(): void;
 }
 
-function p2pChannel(c: DataConnection): Channel {
+function p2pChannel(c: PeerConnection): Channel {
   return {
     kind: 'p2p',
     get open() {
@@ -170,7 +216,7 @@ interface RelayItem {
  * 每 125 ms 合併成一則送出（公用 broker 有頻率限制），並附上最近的按鍵封包以防掉包；斷線會自動重連。
  */
 class RelayHub {
-  private mq: MiniMqtt | null = null;
+  private mq: MqttClient | null = null;
   private handler: ((payload: string) => void) | null = null;
   private out: RelayItem[] = [];
   private recent: RelayItem[] = [];
@@ -186,6 +232,7 @@ class RelayHub {
     private clientId: string,
     private topic: string,
     private myId: string,
+    private mqtt: NetTransport['mqtt'],
   ) {}
 
   get connected(): boolean {
@@ -218,7 +265,7 @@ class RelayHub {
   private open(): Promise<void> {
     window.clearTimeout(this.reopenTimer);
     const old = this.mq;
-    const mq = new MiniMqtt(this.url, `${this.clientId}-${Math.floor(Math.random() * 1e6)}`);
+    const mq = this.mqtt(this.url, `${this.clientId}-${Math.floor(Math.random() * 1e6)}`);
     this.mq = mq;
     old?.close();
     mq.onClose = () => {
@@ -311,7 +358,7 @@ export class NetSession {
   remoteHashes = new Map<string, string>();
   private inbox: Inbound[] = [];
   private pending = new Map<number, NetMsg[]>();
-  private peer: Peer | null = null;
+  private peer: PeerClient | null = null;
   /** 房主：欄位 → 連線；加入者：只有 0（房主） */
   private links = new Map<number, Link>();
   private pingTimer = 0;
@@ -349,6 +396,7 @@ export class NetSession {
   private constructor(
     readonly role: 'host' | 'guest',
     private version: string,
+    private transport: NetTransport,
   ) {
     // 關閉分頁時通知其他人，避免對方等到逾時才發現
     // （進入 bfcache 的 persisted 情況可能還會回來，不算離開）
@@ -373,16 +421,16 @@ export class NetSession {
     }, 1000);
   }
 
-  static host(version: string): NetSession {
-    const s = new NetSession('host', version);
+  static host(version: string, transport = defaultTransport): NetSession {
+    const s = new NetSession('host', version, transport);
     s.code = randomCode();
     s.openHost();
     s.listenRelay();
     return s;
   }
 
-  static join(code: string, version: string): NetSession {
-    const s = new NetSession('guest', version);
+  static join(code: string, version: string, transport = defaultTransport): NetSession {
+    const s = new NetSession('guest', version, transport);
     s.code = code.toUpperCase();
     if (forceRelay()) {
       s.diag.peer = s.diag.p2p = 'skip';
@@ -424,7 +472,7 @@ export class NetSession {
 
   /** 房主：目前連上的中繼伺服器數 */
   relayUp(): string {
-    return `${this.hubs.filter((h) => h.connected).length}/${RELAY_BROKERS.length}`;
+    return `${this.hubs.filter((h) => h.connected).length}/${this.transport.brokers.length}`;
   }
 
   transportLabel(): string {
@@ -437,7 +485,7 @@ export class NetSession {
 
   // ---------------- 房主 ----------------
   private openHost(): void {
-    const peer = new Peer(ID_PREFIX + this.code, PEER_OPTIONS);
+    const peer = this.transport.peer(ID_PREFIX + this.code);
     this.peer = peer;
     window.clearTimeout(this.timeout);
     if (!this.registered)
@@ -506,8 +554,8 @@ export class NetSession {
     this.relayStarted = true;
     this.startBeacon();
     const topic = `${TOPIC_BASE}/${this.code}/r`;
-    RELAY_BROKERS.forEach((url, i) => {
-      const hub = new RelayHub(url, `bkh${i}-${this.myId}`, topic, 'h');
+    this.transport.brokers.forEach((url, i) => {
+      const hub = new RelayHub(url, `bkh${i}-${this.myId}`, topic, 'h', this.transport.mqtt);
       this.hubs.push(hub);
       // 連不上的 broker 每 5 秒再試，房主在越多 broker 上等，加入者越容易找到
       const attempt = () => {
@@ -579,7 +627,7 @@ export class NetSession {
     return null;
   }
 
-  private acceptP2P(c: DataConnection): void {
+  private acceptP2P(c: PeerConnection): void {
     c.on('open', () => {
       const ch = p2pChannel(c);
       c.on('data', (d) => {
@@ -665,9 +713,9 @@ export class NetSession {
   }
 
   private openGuest(): void {
-    const peer = new Peer(PEER_OPTIONS);
+    const peer = this.transport.peer();
     this.peer = peer;
-    let conn: DataConnection | null = null;
+    let conn: PeerConnection | null = null;
     const giveUpP2P = () => {
       if (this.relayStarted) return;
       if (this.diag.p2p === 'wait') this.diag.p2p = 'fail';
@@ -708,7 +756,7 @@ export class NetSession {
   }
 
   /** 加入者的直連通道：第一次連線與斷線重連共用 */
-  private wireGuestP2P(c: DataConnection, onEarlyClose?: () => void): void {
+  private wireGuestP2P(c: PeerConnection, onEarlyClose?: () => void): void {
     const ch = p2pChannel(c);
     c.on('open', () => {
       const cur = this.links.get(0);
@@ -746,9 +794,9 @@ export class NetSession {
   private startGuestRelay(): void {
     const topic = `${TOPIC_BASE}/${this.code}/r`;
     const have = new Set(this.hubs.map((h) => h.url));
-    RELAY_BROKERS.forEach((url, i) => {
+    this.transport.brokers.forEach((url, i) => {
       if (have.has(url)) return;
-      const hub = new RelayHub(url, `bkg${i}-${this.myId}`, topic, this.myId);
+      const hub = new RelayHub(url, `bkg${i}-${this.myId}`, topic, this.myId, this.transport.mqtt);
       this.hubs.push(hub);
       hub
         .connect((payload) => this.onRelayGuest(hub, payload))

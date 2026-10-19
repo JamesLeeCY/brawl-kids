@@ -11,13 +11,19 @@ import { emptySnapshot, type Snapshot } from '../sim/snapshot';
 import type { MatchSetup } from '../sim/world';
 import { BattleScene } from './battle';
 import { Scene, type App, type MenuInput } from './scene';
-import { DIFF_LABEL, TEAM_LABEL, moveLabel } from './select';
+import { drawCharGrid, gridCols, gridHit, gridSize, moveGridCursor, type GridCursor } from './charGrid';
+import { DIFF_LABEL, TEAM_LABEL, moveLabel, touchMode } from './select';
 import { button, hint, menuBackground } from './ui';
 import { ROUTES, randomCampaignRoute } from './campaign';
 import { DEFAULT_CAMPAIGN_LENGTH, defaultCampaignRoute } from '../sim/world';
 
 const VW = CONFIG.view.width;
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
+/** 連線選角版面：上方頭像格、中間四張角色卡、下方模式按鈕 */
+const GRID_Y = 6;
+const CARD_Y = 136;
+const CARD_H = 204;
+const MODE_Y = 346;
 
 /** 連線時本機玩家可用 1P 或 2P 任一組按鍵 */
 export function localPressed(inp: MenuInput): Snapshot {
@@ -247,6 +253,8 @@ export class OnlineSelectScene extends Scene {
   /** 房主等人時發現網站有新版本（舊版房間新版的朋友連不進來） */
   private newVersion = false;
   private dirty = true;
+  /** 房主的游標在「模式」按鈕上（從頭像格最下列再按 ↓） */
+  private onMode = false;
 
   constructor(
     app: App,
@@ -275,6 +283,7 @@ export class OnlineSelectScene extends Scene {
     for (const s of this.slots) s.ready = false;
     this.aiCursor = -1;
     this.routeCursor = -1;
+    this.onMode = false;
     this.dirty = true;
     if (!this.isHost) this.sendSel();
   }
@@ -348,24 +357,28 @@ export class OnlineSelectScene extends Scene {
   private updateSelf(k: Snapshot): void {
     const n = this.app.data.selectable.length;
     const me = this.me;
+    const campaign = onlineOptions(this.app)[this.opt].mode === 'campaign';
     if (!me.ready) {
-      if (k.left) (me.charIdx = (me.charIdx + n - 1) % n), this.changed();
-      if (k.right) (me.charIdx = (me.charIdx + 1) % n), this.changed();
-      // 合作闖關不分隊：房主的 ↑↓ 改成打開闖關場景設定
-      if (this.isHost && onlineOptions(this.app)[this.opt].mode === 'campaign') {
-        if (k.up || k.down) this.routeCursor = 0;
-      } else {
-        if (k.up) (me.team = (me.team + 4) % 5), this.changed();
-        if (k.down) (me.team = (me.team + 1) % 5), this.changed();
+      if (this.isHost && this.onMode) {
+        // 模式按鈕：←→ 切換、↑↓ 回到頭像格
+        const step = k.left ? -1 : k.right ? 1 : 0;
+        const len = onlineOptions(this.app).length;
+        if (step) (this.opt = (this.opt + len + step) % len), (this.dirty = true);
+        if (k.up || k.down) this.onMode = false;
+      } else if (this.isHost && k.down && me.charIdx + gridCols(n) >= n) this.onMode = true;
+      else {
+        const nx = moveGridCursor(me.charIdx, k, n);
+        if (nx !== me.charIdx) (me.charIdx = nx), this.changed();
       }
-      if (this.isHost && k.A) {
-        this.opt = (this.opt + 1) % onlineOptions(this.app).length;
-        this.dirty = true;
-      }
-      if (k.J) {
+      // 跳躍：對戰換隊；合作闖關不分隊，房主改成打開闖關場景設定
+      if (k.J && campaign && this.isHost) this.routeCursor = 0;
+      else if (k.J && !campaign) (me.team = (me.team + 1) % 5), this.changed();
+      if (k.A) {
         me.ready = true;
+        this.onMode = false;
         this.app.sfx.play('special');
         this.changed();
+        return;
       }
     } else {
       if (k.D) {
@@ -374,9 +387,28 @@ export class OnlineSelectScene extends Scene {
       }
       if (this.isHost && (k.left || k.right)) this.aiCursor = this.nextAiSlot(0, 1);
       // 合作闖關：↑↓ 打開闖關場景設定
-      if (this.isHost && (k.up || k.down) && onlineOptions(this.app)[this.opt].mode === 'campaign') this.routeCursor = 0;
+      if (this.isHost && (k.up || k.down) && campaign) this.routeCursor = 0;
     }
     if (this.isHost && k.A && me.ready) this.share();
+  }
+
+  onClick(x: number, y: number): void {
+    const n = this.app.data.selectable.length;
+    const i = gridHit(x, y, this.gridX, GRID_Y, n);
+    if (i < 0 || this.routeCursor >= 0 || this.net.status !== 'open') return;
+    // 點頭像：房主設定電腦時換該電腦的角色，否則換自己的角色
+    if (this.aiCursor >= 0) {
+      const s = this.slots[this.aiCursor];
+      if (s.kind === 'ai') (s.charIdx = i), (this.dirty = true);
+    } else if (!this.me.ready) {
+      this.me.charIdx = i;
+      this.onMode = false;
+      this.changed();
+    }
+  }
+
+  private get gridX(): number {
+    return (VW - gridSize(this.app.data.selectable.length).w) / 2;
   }
 
   private share(): void {
@@ -402,31 +434,29 @@ export class OnlineSelectScene extends Scene {
       this.aiCursor = this.nextAiSlot(0, 1);
       return;
     }
-    if (k.right) {
-      const nx = this.nextAiSlot(this.aiCursor, 1);
-      if (nx >= 0) this.aiCursor = nx;
-    }
-    if (k.left) this.aiCursor = this.nextAiSlot(this.aiCursor, -1);
-    if (k.D) this.aiCursor = -1;
-    if (this.aiCursor < 0) return;
-    const n = this.app.data.selectable.length;
-    if (k.A) {
-      if (s.kind === 'empty') {
-        s.kind = 'ai';
-        s.difficulty = 'easy';
-        s.ready = true;
-      } else {
-        const i = DIFFS.indexOf(s.difficulty);
-        if (i === DIFFS.length - 1) Object.assign(s, emptySlot(this.aiCursor));
-        else s.difficulty = DIFFS[i + 1];
-      }
-    }
-    if (s.kind === 'ai') {
-      if (k.up) s.charIdx = (s.charIdx + n - 1) % n;
-      if (k.down) s.charIdx = (s.charIdx + 1) % n;
-      if (k.J) s.team = (s.team + 1) % 5;
-    }
     this.dirty = true;
+    // 空欄位：←→ 換欄位、攻擊加入、防禦完成；電腦欄位：方向鍵在頭像格選角、防禦換下一個欄位（沒有就完成）
+    if (s.kind === 'empty') {
+      if (k.right) {
+        const nx = this.nextAiSlot(this.aiCursor, 1);
+        if (nx >= 0) this.aiCursor = nx;
+      }
+      if (k.left) this.aiCursor = this.nextAiSlot(this.aiCursor, -1);
+      if (k.D) this.aiCursor = -1;
+      if (this.aiCursor >= 0 && this.slots[this.aiCursor] === s && k.A) Object.assign(s, { kind: 'ai', difficulty: 'easy', ready: true });
+      return;
+    }
+    if (k.D) {
+      this.aiCursor = this.nextAiSlot(this.aiCursor, 1);
+      return;
+    }
+    s.charIdx = moveGridCursor(s.charIdx, k, this.app.data.selectable.length);
+    if (k.J) s.team = (s.team + 1) % 5;
+    if (k.A) {
+      const i = DIFFS.indexOf(s.difficulty);
+      if (i === DIFFS.length - 1) Object.assign(s, emptySlot(this.aiCursor));
+      else s.difficulty = DIFFS[i + 1];
+    }
   }
 
   private get route(): (typeof ROUTES)[number]['id'] {
@@ -505,54 +535,72 @@ export class OnlineSelectScene extends Scene {
   render(ctx: CanvasRenderingContext2D): void {
     menuBackground(ctx, this.t, '#16213e', '#0f3460');
     const n = this.net;
-    text(ctx, '連線選角', VW / 2, 28, 22, '#ffd23f', 'center', true, true);
-    const ping = n.role === 'host' ? `最慢延遲 ${Math.round(n.rtt)} ms` : `延遲 ${Math.round(n.rtt)} ms`;
-    const relay = this.isHost ? `　·　中繼伺服器 ${n.relayUp()}` : '';
-    text(ctx, `房間 ${n.code}　·　${n.transportLabel()}${relay}　·　${ping}　·　分享：${shareUrl(n.code)}`, VW / 2, 46, 11, '#cbd5e1', 'center', false);
     const ids = this.app.data.selectable;
+    const gx = this.gridX;
+    // 頭像格左側：標題與房間資訊；右側：分享連結
+    text(ctx, '連線選角', gx / 2, 32, 22, '#ffd23f', 'center', true, true);
+    text(ctx, `房間 ${n.code}`, gx / 2, 58, 18, '#fff', 'center', true, true);
+    const ping = n.role === 'host' ? `最慢延遲 ${Math.round(n.rtt)} ms` : `延遲 ${Math.round(n.rtt)} ms`;
+    text(ctx, `${n.transportLabel()}　·　${ping}`, gx / 2, 80, 11, '#cbd5e1', 'center', false);
+    if (this.isHost) text(ctx, `中繼伺服器 ${n.relayUp()}`, gx / 2, 96, 11, '#cbd5e1', 'center', false);
+    const url = shareUrl(n.code);
+    const q = url.indexOf('?');
+    const rx = VW - gx / 2;
+    text(ctx, '分享連結', rx, 40, 13, '#ffd23f', 'center');
+    text(ctx, q > 0 ? url.slice(0, q) : url, rx, 60, 10, '#cbd5e1', 'center', false);
+    if (q > 0) text(ctx, url.slice(q), rx, 75, 10, '#cbd5e1', 'center', false);
+    const cursors: GridCursor[] = [];
+    this.slots.forEach((s, i) => {
+      if (s.kind === 'empty') return;
+      const label = s.kind === 'ai' ? 'COM' : `${i + 1}P`;
+      cursors.push({ idx: s.charIdx, slot: i, color: SLOT_COLORS[i], label, locked: s.kind === 'ai' ? this.aiCursor !== i : s.ready });
+    });
+    drawCharGrid(ctx, ids.map((id) => this.app.data.characters[id]), gx, GRID_Y, cursors, this.t);
     const o = onlineOptions(this.app)[this.opt];
+    const touch = touchMode();
     for (let i = 0; i < MAX_SLOTS; i++) {
       const s = this.slots[i];
       const x = i * 200 + 6;
-      const y = 56;
+      const y = CARD_Y;
       const mine = i === n.mySlot;
       const editing = this.aiCursor === i;
       ctx.fillStyle = s.kind === 'empty' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.35)';
-      roundRect(ctx, x, y, 188, 286, 10);
+      roundRect(ctx, x, y, 188, CARD_H, 10);
       ctx.fill();
       ctx.strokeStyle = editing ? '#fff' : s.ready ? '#ffd23f' : SLOT_COLORS[i];
       ctx.lineWidth = editing || s.ready || mine ? 4 : 2;
       ctx.stroke();
       const label = s.kind === 'ai' ? `COM（${DIFF_LABEL[s.difficulty]}）` : s.kind === 'human' ? `${i + 1}P${mine ? '（你）' : i === 0 ? '（房主）' : ''}` : `${i + 1}P`;
-      text(ctx, label, x + 94, y + 22, 15, SLOT_COLORS[i], 'center');
+      text(ctx, label, x + 94, y + 19, 15, SLOT_COLORS[i], 'center');
       if (s.kind === 'empty') {
-        text(ctx, '等待玩家加入…', x + 94, y + 140, 14, 'rgba(255,255,255,0.7)', 'center');
-        if (this.isHost) text(ctx, '（房主可設為電腦）', x + 94, y + 164, 11, 'rgba(255,255,255,0.5)', 'center', false);
-        if (editing) text(ctx, '攻擊：加入電腦', x + 94, y + 200, 13, '#fff', 'center');
+        text(ctx, '等待玩家加入…', x + 94, y + 96, 14, 'rgba(255,255,255,0.7)', 'center');
+        if (this.isHost) text(ctx, '（房主可設為電腦）', x + 94, y + 120, 11, 'rgba(255,255,255,0.5)', 'center', false);
+        if (editing) text(ctx, '攻擊：加入電腦', x + 94, y + 156, 13, '#fff', 'center');
         continue;
       }
       const def = this.app.data.characters[ids[s.charIdx % ids.length]];
+      // 左：大頭像；右：名字、稱號、隊伍、狀態；下：招式表
       ctx.save();
       ctx.beginPath();
-      ctx.rect(x + 14, y + 32, 160, 122);
+      ctx.rect(x + 8, y + 26, 86, 100);
       ctx.clip();
       ctx.fillStyle = shade(def.palette.accent, -0.55);
-      ctx.fillRect(x + 14, y + 32, 160, 122);
-      drawFigure(ctx, def, { pose: getPose(s.ready ? 'victory' : `idle_${(this.t >> 5) % 2}`), x: x + 94, y: y + 180, facing: 1, scale: 1.65, tick: this.t, upperOnly: true, expression: s.ready ? 'happy' : 'normal' });
+      ctx.fillRect(x + 8, y + 26, 86, 100);
+      drawFigure(ctx, def, { pose: getPose(s.ready ? 'victory' : `idle_${(this.t >> 5) % 2}`), x: x + 51, y: y + 150, facing: 1, scale: 1.45, tick: this.t, upperOnly: true, expression: s.ready ? 'happy' : 'normal' });
       ctx.restore();
-      if (mine && !s.ready) {
-        text(ctx, '◀', x + 22, y + 98, 18, '#fff', 'center');
-        text(ctx, '▶', x + 166, y + 98, 18, '#fff', 'center');
-      }
-      text(ctx, def.name, x + 94, y + 176, 19, '#fff', 'center');
-      text(ctx, def.title, x + 94, y + 194, 12, def.palette.accent, 'center');
-      if (o.mode === 'versus') text(ctx, `隊伍：${TEAM_LABEL[s.team]}`, x + 94, y + 214, 13, '#fff', 'center');
-      def.moves.forEach((m, mi) => text(ctx, `${moveLabel(m.command)} ${m.name}`, x + 8 + (mi % 2) * 90, y + 232 + Math.floor(mi / 2) * 13, 9, 'rgba(255,255,255,0.75)', 'left', false));
-      if (s.ready) text(ctx, s.kind === 'ai' ? '電腦' : '準備完成！', x + 94, y + 278, 13, '#ffd23f', 'center');
+      text(ctx, def.name, x + 141, y + 52, 17, '#fff', 'center');
+      text(ctx, def.title, x + 141, y + 72, 12, def.palette.accent, 'center');
+      if (o.mode === 'versus') text(ctx, `隊伍：${TEAM_LABEL[s.team]}`, x + 141, y + 96, 13, '#fff', 'center');
+      if (s.ready) text(ctx, s.kind === 'ai' ? '電腦' : '準備完成！', x + 141, y + 120, 13, '#ffd23f', 'center');
+      const fs = touch ? 10 : 9;
+      def.moves.forEach((m, mi) => text(ctx, `${moveLabel(m.command)} ${m.name}`, x + 8 + (mi % 2) * 90, y + 144 + Math.floor(mi / 2) * 14, fs, 'rgba(255,255,255,0.8)', 'left', false));
+      if (editing) text(ctx, '方向鍵選角 跳躍換隊 攻擊改難度', x + 94, y + CARD_H - 6, 10, '#fff', 'center');
     }
     const modeLabel = o.mode === 'campaign' ? `${o.label}・${this.len} 關・${ROUTES[this.routeIdx].label}` : o.label;
-    button(ctx, this.isHost && !this.me.ready ? `模式：${modeLabel}（攻擊切換）` : `模式：${modeLabel}`, VW / 2, 350, 460, this.isHost && !this.me.ready);
+    const hostPick = this.isHost && !this.me.ready;
+    button(ctx, hostPick ? `模式：${modeLabel}（${this.onMode ? '←→ 切換' : '↓ 到這裡切換'}）` : `模式：${modeLabel}`, VW / 2, MODE_Y, 460, hostPick && this.onMode);
     if (this.routeCursor >= 0) this.renderRouteEditor(ctx);
+    const DIR = touch ? '搖桿' : '方向鍵';
     let h1: string;
     const lost = n.lostSlots();
     if (n.status !== 'open') h1 = n.error || '與房主的連線已中斷，按 Esc 返回標題';
@@ -560,17 +608,20 @@ export class OnlineSelectScene extends Scene {
     else if (lost.length) h1 = `${lost.map((s) => `${s + 1}P`).join('、')} 連線中斷，等待重新連線…`;
     else if (this.warn > 0) h1 = '對戰至少需要兩隊！請調整隊伍或加入電腦。';
     else if (this.copied > 0) h1 = '✓ 已複製分享連結';
-    else if (this.aiCursor >= 0) h1 = '設定電腦：←→ 選欄位　攻擊 加入/改難度/移除　↑↓ 換角色　跳躍 換隊　防禦 完成';
+    else if (this.aiCursor >= 0) h1 = `設定電腦：攻擊 加入/改難度/移除　${DIR} 在頭像格選角　跳躍 換隊　防禦 下一個欄位（沒有就完成）`;
     else if (this.routeCursor >= 0) h1 = '闖關場景：↑↓ 選擇　←→ 切換　跳躍 / 防禦 完成';
     else if (this.isHost && this.me.ready && o.mode === 'campaign') h1 = '已確定：← / → 設定電腦　↑ / ↓ 闖關場景　攻擊 複製分享連結　防禦 取消';
     else if (this.isHost && this.me.ready) h1 = '已確定：← / → 設定電腦　攻擊 複製分享連結　防禦 取消';
-    else if (this.isHost && o.mode === 'campaign') h1 = '←→ 選角　↑↓ 闖關場景　跳躍 確定　攻擊 切換模式';
-    else h1 = '←→ 選角　↑↓ 選隊伍　跳躍 確定　防禦 取消' + (this.isHost ? '　攻擊 切換模式' : '');
+    else if (this.isHost && this.onMode) h1 = '模式：←→ 切換　↑ 回到頭像格　攻擊 確定';
+    else if (this.isHost && o.mode === 'campaign') h1 = `${DIR} 在頭像格選角（最下列再按 ↓ 切換模式）　跳躍 闖關場景　攻擊 確定`;
+    else if (this.isHost) h1 = `${DIR} 在頭像格選角（最下列再按 ↓ 切換模式）　跳躍 換隊伍　攻擊 確定`;
+    else if (o.mode === 'campaign') h1 = `${DIR} 在頭像格選角　攻擊 確定`;
+    else h1 = `${DIR} 在頭像格選角　跳躍 換隊伍　攻擊 確定`;
     text(ctx, h1, VW / 2, 404, 12, n.status !== 'open' || n.reconnecting || lost.length || this.warn > 0 ? '#ff8a8a' : '#fff', 'center', false);
     if (this.isHost && this.newVersion) hint(ctx, '網站已更新：請按 Esc 離開，重新整理網頁後再建立房間（舊版房間朋友連不進來）');
     else if (this.isHost && n.guestSlots().length === 0) hint(ctx, '分享連結後請回到這個畫面等朋友加入（停在別的 App 時朋友連不進來）　·　Esc 離開連線');
     else if (o.mode === 'campaign' && this.route === 'custom') hint(ctx, `闖關場景：${this.stages.map((id) => this.app.data.stages[id]?.name ?? id).join(' → ')}`);
-    else hint(ctx, '所有玩家都確定後由房主開始　·　Esc 離開連線');
+    else hint(ctx, `所有玩家都確定後由房主開始　·　${touch ? '也可直接點頭像選角' : 'Esc 離開連線'}`);
   }
 
   /** 房主設定闖關場景的面板 */

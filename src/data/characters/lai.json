@@ -84,16 +84,16 @@
       "shake": true,
       "itr": [
         {
-          "x": -60,
+          "x": -80,
           "y": 0,
-          "w": 120,
-          "h": 34,
+          "w": 160,
+          "h": 50,
           "damage": 50,
           "fall": 80,
           "dvx": 5,
           "dvy": 7,
           "hitstop": 6,
-          "zRange": 40,
+          "zRange": 48,
           "radial": true
         }
       ]

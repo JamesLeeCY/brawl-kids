@@ -234,6 +234,10 @@ export class BattleRenderer {
       ctx.fill();
       ctx.stroke();
     }
+    // 震地類招式：地面畫出實際的命中範圍（擴散的震波），看得出打得到哪裡
+    const fr = e.state === 'attack' && e.frame ? def.frames[e.frame] : undefined;
+    const quake = fr?.itr?.find((it) => it.radial);
+    if (fr && quake) this.drawQuake(ctx, x, HZ + e.z, quake, Math.min(1, e.frameTime / fr.duration), def.palette.accent);
     drawFigure(ctx, def, {
       pose,
       x,
@@ -291,6 +295,40 @@ export class BattleRenderer {
         ctx.textAlign = 'left';
       }
     }
+  }
+
+  /** 震波：橢圓大小 = 命中範圍（左右 itr 寬、前後 zRange），隨時間擴散淡出 */
+  private drawQuake(ctx: CanvasRenderingContext2D, x: number, gy: number, itr: { x: number; w: number; zRange?: number }, k: number, color: string): void {
+    const rx = Math.max(Math.abs(itr.x), Math.abs(itr.x + itr.w));
+    const rz = itr.zRange ?? CONFIG.physics.hitZTolerance;
+    const grow = 0.45 + 0.55 * k;
+    ctx.save();
+    ctx.globalAlpha = 1 - k * 0.55;
+    ctx.fillStyle = 'rgba(255,236,190,0.28)';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 + 4 * (1 - k);
+    ctx.beginPath();
+    ctx.ellipse(x, gy, rx * grow, rz * grow, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, gy, rx * grow * 0.6, rz * grow * 0.6, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // 地面裂痕
+    ctx.strokeStyle = 'rgba(70,45,25,0.75)';
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + 0.3;
+      const c = Math.cos(a);
+      const sn = Math.sin(a);
+      ctx.moveTo(x + c * rx * 0.15, gy + sn * rz * 0.15);
+      ctx.lineTo(x + c * rx * 0.45 * grow + sn * 4, gy + sn * rz * 0.45 * grow);
+      ctx.lineTo(x + c * rx * 0.8 * grow, gy + sn * rz * 0.8 * grow);
+    }
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawProjectile(ctx: CanvasRenderingContext2D, w: World, p: Entity, cam: number): void {

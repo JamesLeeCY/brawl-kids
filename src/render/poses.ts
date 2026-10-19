@@ -60,7 +60,7 @@ export const POSES: Record<string, Pose> = {
   cast: { t: 10, bua: 80, bfa: 85, fua: 88, ffa: 92, ...stance },
   cast_up: { t: -4, bua: 155, bfa: 165, fua: 140, ffa: 165, bth: -10, bsh: -10, fth: 10, fsh: 10 },
   slam_ready: { t: -14, bua: 160, bfa: 175, fua: 165, ffa: 178, ...stance },
-  slam: { t: 32, bua: 60, bfa: 15, fua: 70, ffa: 20, bth: -35, bsh: 20, fth: 45, fsh: -25, dy: 9 },
+  slam: { t: 40, bua: 30, bfa: 22, fua: 38, ffa: 28, bth: -45, bsh: 40, fth: 58, fsh: -42, dy: 15 },
   dash: { t: 38, bua: -80, bfa: -100, fua: -60, ffa: -90, bth: -50, bsh: -90, fth: 50, fsh: 20, dy: 2 },
   place: { t: 30, bua: 20, bfa: 30, fua: 60, ffa: 40, bth: -40, bsh: 35, fth: 45, fsh: -35, dy: 8 },
   jet_up: { t: 0, bua: -25, bfa: -15, fua: 25, ffa: 15, bth: -5, bsh: -5, fth: 10, fsh: 0 },

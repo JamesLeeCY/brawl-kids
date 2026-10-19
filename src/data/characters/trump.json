@@ -5,7 +5,7 @@
   "accessory": "none",
   "quote": "推文發出去，全世界都在看！",
   "stats": {
-    "hp": 560,
+    "hp": 470,
     "walkSpeed": 2.4,
     "runSpeed": 5.4,
     "jumpPower": 8.6,
@@ -248,7 +248,7 @@
           ]
         }
       },
-      "homing": 0.08
+      "homing": 0.05
     },
     "fired": {
       "life": 42,

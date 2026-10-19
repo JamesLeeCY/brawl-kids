@@ -5,7 +5,7 @@
   "accessory": "frog",
   "quote": "呱！今天也很好笑。",
   "stats": {
-    "hp": 490,
+    "hp": 550,
     "walkSpeed": 2.7,
     "runSpeed": 5.8,
     "jumpPower": 11,

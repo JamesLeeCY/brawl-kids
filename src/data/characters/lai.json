@@ -5,7 +5,7 @@
   "accessory": "stethoscope",
   "quote": "醫生建議：多休息！",
   "stats": {
-    "hp": 580,
+    "hp": 510,
     "walkSpeed": 2.3,
     "runSpeed": 5.0,
     "jumpPower": 8.5,

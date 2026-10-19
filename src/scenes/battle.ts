@@ -30,6 +30,11 @@ export class BattleScene extends Scene {
   private stall = 0;
   private myHashes = new Map<number, string>();
   private desync = false;
+  /** 練習模式：每位真人玩家已放出的招式、上一個幀（偵測剛放出）、提示訊息、沙包的連段傷害 */
+  private practiceDone = new Map<number, Set<string>>();
+  private practicePrevFrame = new Map<number, string | null>();
+  private practiceToast: { text: string; t: number } | null = null;
+  private combo = { dmg: 0, hits: 0, last: -9999, best: 0, hp: -1 };
 
   constructor(
     app: App,
@@ -39,6 +44,53 @@ export class BattleScene extends Scene {
     super(app);
     this.world = new World(app.data, setup);
     this.renderer = new BattleRenderer(this.world);
+    if (setup.practice) this.initPractice();
+  }
+
+  private isPracticeHuman(slot: number): boolean {
+    return slot >= 0 && this.app.slots[slot]?.kind === 'human';
+  }
+
+  private initPractice(): void {
+    for (const c of this.world.chars()) {
+      if (this.isPracticeHuman(c.slot)) continue;
+      c.hp = c.maxHp = 9999; // 沙包
+    }
+    this.combo = { dmg: 0, hits: 0, last: -9999, best: 0, hp: 9999 };
+  }
+
+  /** 練習模式每個 tick：真人玩家無限 MP、不會倒下；沙包 2 秒沒被打就回滿；記錄放出的招式與連段傷害 */
+  private practiceTick(): void {
+    const w = this.world;
+    for (const c of w.chars()) {
+      if (this.isPracticeHuman(c.slot)) {
+        c.mp = CONFIG.combat.mpMax;
+        c.hp = c.maxHp;
+        const prev = this.practicePrevFrame.get(c.id) ?? null;
+        if (c.state === 'attack' && c.frame && c.frame !== prev) {
+          const mv = w.charDef(c).moves.find((m) => m.startFrame === c.frame);
+          if (mv) {
+            const done = this.practiceDone.get(c.slot) ?? new Set<string>();
+            done.add(mv.command);
+            this.practiceDone.set(c.slot, done);
+            this.practiceToast = { text: `${c.slot + 1}P ✓ ${mv.name}（${moveLabel(mv.command)}）`, t: 100 };
+          }
+        }
+        this.practicePrevFrame.set(c.id, c.state === 'attack' ? c.frame : null);
+      } else {
+        if (c.hp < this.combo.hp) {
+          if (w.tick - this.combo.last > 90) this.combo.dmg = this.combo.hits = 0;
+          this.combo.dmg += this.combo.hp - c.hp;
+          this.combo.hits++;
+          this.combo.last = w.tick;
+          this.combo.best = Math.max(this.combo.best, this.combo.dmg);
+        }
+        if (w.tick - this.combo.last > 120 && c.hp < c.maxHp) c.hp = c.maxHp;
+        if (c.hp < 1000) c.hp = c.maxHp;
+        this.combo.hp = c.hp;
+      }
+    }
+    if (this.practiceToast && --this.practiceToast.t <= 0) this.practiceToast = null;
   }
 
   update(inp: MenuInput): void {
@@ -53,6 +105,7 @@ export class BattleScene extends Scene {
     if (this.intro > 0) this.intro--;
     const inputs: (Snapshot | undefined)[] = inp.held.map((h, slot) => (this.app.slots[slot]?.kind === 'human' ? h : undefined));
     this.stepWorld(inputs);
+    if (this.setup.practice) this.practiceTick();
   }
 
   /** 連線模式：世界不會暫停；只有雙方按鍵都到齊才前進 */
@@ -204,11 +257,12 @@ export class BattleScene extends Scene {
     if (this.intro > 0) {
       ctx.save();
       ctx.globalAlpha = Math.min(1, this.intro / 25);
-      const title = this.setup.mode === 'campaign' ? `第 ${(this.setup.campaignIndex ?? 0) + 1} / ${campaignLength(this.app.data, this.setup)} 關　${w.stage.name}` : w.stage.name;
+      const title = this.setup.practice ? `練習模式　${w.stage.name}` : this.setup.mode === 'campaign' ? `第 ${(this.setup.campaignIndex ?? 0) + 1} / ${campaignLength(this.app.data, this.setup)} 關　${w.stage.name}` : w.stage.name;
       text(ctx, title, VW / 2, 180, 30, '#fff', 'center', true, true);
       text(ctx, this.intro > 30 ? '準備…' : '開打！', VW / 2, 225, 40, '#ffd23f', 'center', true, true);
       ctx.restore();
     }
+    if (this.setup.practice) this.renderPractice(ctx);
     if (w.endTimer > 0) {
       text(ctx, 'K.O.!', VW / 2, 200, 64, '#ff4d4d', 'center', true, true);
     }
@@ -229,6 +283,36 @@ export class BattleScene extends Scene {
       });
       hint(ctx, '↑↓ 選擇　攻擊 / Enter 確定　Esc 繼續', undefined, VW / 2);
     }
+  }
+
+  /** 練習模式：每位真人玩家的招式表（放出過的打勾）、剛放出的提示、沙包連段傷害 */
+  private renderPractice(ctx: CanvasRenderingContext2D): void {
+    const humans = this.world.chars().filter((c) => this.isPracticeHuman(c.slot));
+    humans.slice(0, 2).forEach((c, i) => {
+      const def = this.world.charDef(c);
+      const done = this.practiceDone.get(c.slot) ?? new Set<string>();
+      const pw = 190;
+      const x = i === 0 ? 8 : VW - pw - 8;
+      const y = 86;
+      ctx.fillStyle = 'rgba(10,12,30,0.62)';
+      roundRect(ctx, x, y, pw, 30 + def.moves.length * 19, 8);
+      ctx.fill();
+      text(ctx, `${c.slot + 1}P ${def.name}　${done.size} / ${def.moves.length}`, x + 10, y + 19, 12, '#ffd23f', 'left');
+      def.moves.forEach((m, mi) => {
+        const ok = done.has(m.command);
+        text(ctx, `${ok ? '✓' : '・'} ${moveLabel(m.command)}　${m.name}`, x + 10, y + 40 + mi * 19, 12, ok ? '#86efac' : '#fff', 'left', ok);
+      });
+    });
+    if (this.practiceToast) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, this.practiceToast.t / 20);
+      text(ctx, this.practiceToast.text, VW / 2, 120, 20, '#86efac', 'center', true, true);
+      ctx.restore();
+    }
+    const c = this.combo;
+    const live = this.world.tick - c.last <= 90 && c.hits > 0;
+    text(ctx, live ? `連段 ${c.hits} 下　傷害 ${Math.round(c.dmg)}` : `最高連段傷害 ${Math.round(c.best)}`, VW / 2, 420, 14, live ? '#ffd23f' : '#cbd5e1', 'center', true, true);
+    text(ctx, '練習模式：無限 MP、不會倒下　·　Esc 選單（重新開始 / 回選角）', VW / 2, 440, 11, 'rgba(255,255,255,0.8)', 'center', false, true);
   }
 
   private renderNetStatus(ctx: CanvasRenderingContext2D): void {

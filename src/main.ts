@@ -53,6 +53,12 @@ if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;
 
 // 正式版：若瀏覽器快取到舊版網頁（和伺服器上的 version.json 不同），自動換到新版
 void updateIfStale();
+// PWA：可「加入主畫面」，全螢幕橫向開啟，第二次開啟更快（離線快取）
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => undefined);
+  });
+}
 // 網頁開著放在背景很久（手機常見），回到前景且還在標題畫面時再檢查一次
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && app.scenes.top instanceof TitleScene) void updateIfStale();

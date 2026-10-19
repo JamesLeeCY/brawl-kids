@@ -5,7 +5,7 @@
   "accessory": "none",
   "quote": "來，練起來！",
   "stats": {
-    "hp": 650,
+    "hp": 610,
     "walkSpeed": 2.2,
     "runSpeed": 5.0,
     "jumpPower": 8.0,

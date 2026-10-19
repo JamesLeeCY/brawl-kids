@@ -48,6 +48,20 @@ export function buildSetup(
 }
 
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
+
+type MenuMode = 'versus' | 'campaign' | 'practice';
+const MODES: { id: MenuMode; label: string }[] = [
+  { id: 'versus', label: '對戰模式' },
+  { id: 'campaign', label: '闖關模式' },
+  { id: 'practice', label: '練習模式' },
+];
+/** 練習沙包的行為 */
+const DUMMIES: { label: string; ai: Difficulty | null }[] = [
+  { label: '站著不動', ai: null },
+  { label: '電腦（簡單）', ai: 'easy' },
+  { label: '電腦（普通）', ai: 'normal' },
+  { label: '電腦（困難）', ai: 'hard' },
+];
 const DIFF_DESC = ['敵人較弱、血量 80%，適合新手', '標準難度', '敵人更聰明、每波多一隻、血量 130%'];
 
 /** 闖關設定列：0 模式、1 難度、2 關數、3 場景路線、4… 自選各關、最後 出發 */
@@ -59,8 +73,11 @@ const ROW_STAGES = 4;
 export class ModeScene extends Scene {
   private t = 0;
   private row = 0;
-  private mode: GameMode = 'versus';
+  private mode: MenuMode = 'versus';
   private stageIdx = 0;
+  private dummyIdx = 0;
+  /** 沙包角色：0 = 守衛機器人，之後依序為可選角色 */
+  private dummyChar = 0;
   private diffIdx = 1;
   private routeIdx = 0;
   private length = DEFAULT_CAMPAIGN_LENGTH;
@@ -83,6 +100,7 @@ export class ModeScene extends Scene {
 
   private rowCount(): number {
     if (this.mode === 'versus') return 3;
+    if (this.mode === 'practice') return 5;
     return ROW_STAGES + 1 + (this.route === 'custom' ? this.length : 0);
   }
 
@@ -98,13 +116,19 @@ export class ModeScene extends Scene {
     const rows = this.rowCount();
     if (a.up) this.row = (this.row + rows - 1) % rows;
     if (a.down) this.row = (this.row + 1) % rows;
-    if (this.row === 0 && (a.left || a.right)) {
-      this.mode = this.mode === 'versus' ? 'campaign' : 'versus';
-      this.row = 0;
-    }
     const stages = this.app.data.stageOrder;
     const step = a.left ? -1 : a.right ? 1 : 0;
-    if (step && this.mode === 'versus' && this.row === 1) this.stageIdx = (this.stageIdx + stages.length + step) % stages.length;
+    if (this.row === 0 && step) {
+      const i = MODES.findIndex((m) => m.id === this.mode);
+      this.mode = MODES[(i + MODES.length + step) % MODES.length].id;
+      this.row = 0;
+    }
+    if (step && this.mode !== 'campaign' && this.row === 1) this.stageIdx = (this.stageIdx + stages.length + step) % stages.length;
+    if (step && this.mode === 'practice') {
+      const nChar = this.app.data.selectable.length + 1;
+      if (this.row === 2) this.dummyIdx = (this.dummyIdx + DUMMIES.length + step) % DUMMIES.length;
+      if (this.row === 3) this.dummyChar = (this.dummyChar + nChar + step) % nChar;
+    }
     if (step && this.mode === 'campaign') {
       if (this.row === ROW_DIFF) this.diffIdx = (this.diffIdx + 3 + step) % 3;
       else if (this.row === ROW_LEN) this.setLength(this.length + step);
@@ -121,7 +145,35 @@ export class ModeScene extends Scene {
     }
   }
 
+  private get dummyCharId(): string {
+    return this.dummyChar === 0 ? 'guardbot' : this.app.data.selectable[this.dummyChar - 1];
+  }
+
+  /** 練習模式：本機真人玩家（同一隊）＋一個沙包 */
+  private practiceSetup(): MatchSetup | null {
+    const ids = this.app.data.selectable;
+    const players: PlayerSetup[] = [];
+    this.app.slots.forEach((s, slot) => {
+      if (s.kind === 'human') players.push({ slot, charId: ids[s.charIdx % ids.length], team: 1, controller: 'human', difficulty: s.difficulty });
+    });
+    if (!players.length) return null;
+    const free = [0, 1, 2, 3].find((i) => this.app.slots[i]?.kind !== 'human')!;
+    const d = DUMMIES[this.dummyIdx];
+    // 站著不動的沙包：設成真人但這個欄位沒有人按鍵，所以不會動
+    players.push({ slot: free, charId: this.dummyCharId, team: 2, controller: d.ai ? 'ai' : 'human', difficulty: d.ai ?? 'normal' });
+    return { mode: 'versus', stageId: this.app.data.stageOrder[this.stageIdx], seed: (Date.now() ^ (performance.now() * 1000)) >>> 0, players, practice: true };
+  }
+
   private start(): void {
+    if (this.mode === 'practice') {
+      const ps = this.practiceSetup();
+      if (!ps) {
+        this.warn = 150;
+        return;
+      }
+      this.app.scenes.push(new BattleScene(this.app, ps));
+      return;
+    }
     const route = this.route;
     const stagesForRun = route === 'random' ? randomCampaignRoute(this.app, this.length) : route === 'custom' ? [...this.custom] : undefined;
     const setup = buildSetup(this.app, this.mode, this.app.data.stageOrder[this.stageIdx], 0, DIFFS[this.diffIdx], stagesForRun, route, this.length);
@@ -138,16 +190,30 @@ export class ModeScene extends Scene {
   render(ctx: CanvasRenderingContext2D): void {
     menuBackground(ctx, this.t, '#2b1331', '#5c2a4d');
     text(ctx, '選擇模式與場地', VW / 2, 42, 24, '#ffd23f', 'center', true, true);
-    button(ctx, `◀ ${this.mode === 'versus' ? '對戰模式' : '闖關模式'} ▶`, VW / 2, 56, 300, this.row === 0);
+    button(ctx, `◀ ${MODES.find((m) => m.id === this.mode)!.label} ▶`, VW / 2, 56, 300, this.row === 0);
     if (this.mode === 'versus') this.renderVersus(ctx);
-    else this.renderCampaign(ctx);
-    if (this.warn > 0) text(ctx, '對戰至少需要兩隊！請回選角設定隊伍或加入電腦。', VW / 2, 412, 15, '#ff7b7b', 'center');
-    hint(
-      ctx,
-      this.mode === 'campaign'
-        ? '所有玩家同隊合作、電腦成為隊友　·　↑↓ 選擇　←→ 切換　攻擊 確定　Esc 返回'
-        : '場上只剩一隊存活即獲勝　·　↑↓ 選擇　←→ 切換　攻擊 確定　跳躍 直接開始　Esc 返回選角',
-    );
+    else if (this.mode === 'campaign') this.renderCampaign(ctx);
+    else this.renderPractice(ctx);
+    if (this.warn > 0)
+      text(ctx, this.mode === 'practice' ? '練習模式需要至少一位真人玩家，請回選角加入。' : '對戰至少需要兩隊！請回選角設定隊伍或加入電腦。', VW / 2, 412, 15, '#ff7b7b', 'center');
+    const hints: Record<MenuMode, string> = {
+      versus: '場上只剩一隊存活即獲勝　·　↑↓ 選擇　←→ 切換　攻擊 確定　跳躍 直接開始　Esc 返回選角',
+      campaign: '所有玩家同隊合作、電腦成為隊友　·　↑↓ 選擇　←→ 切換　攻擊 確定　Esc 返回',
+      practice: '無限 MP、不會倒下，沙包被打完會自動回血；畫面上有招式表，放出來會打勾　·　Esc 返回',
+    };
+    hint(ctx, hints[this.mode]);
+  }
+
+  private renderPractice(ctx: CanvasRenderingContext2D): void {
+    const ids = this.app.data.stageOrder;
+    const st = this.app.data.stages[ids[this.stageIdx]];
+    button(ctx, `◀ ${st.name} ▶`, VW / 2, 102, 360, this.row === 1);
+    drawStageCard(ctx, this.app.data, ids[this.stageIdx], VW / 2, 150, 240, { selected: this.row === 1 });
+    const name = this.dummyChar === 0 ? '守衛機器人' : this.app.data.characters[this.dummyCharId].name;
+    button(ctx, `◀ 沙包：${DUMMIES[this.dummyIdx].label} ▶`, VW / 2 - 160, 300, 300, this.row === 2);
+    button(ctx, `◀ 沙包角色：${name} ▶`, VW / 2 + 160, 300, 300, this.row === 3);
+    text(ctx, '沙包 HP 無限、2 秒沒被打會回滿；可以看連段傷害', VW / 2, 360, 12, '#fde68a', 'center', false);
+    button(ctx, '開始練習！', VW / 2, 392, 200, this.row === 4);
   }
 
   private renderVersus(ctx: CanvasRenderingContext2D): void {

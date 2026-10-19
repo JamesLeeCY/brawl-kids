@@ -5,7 +5,7 @@
   "accessory": "judo",
   "quote": "布丁要冰過才好吃。",
   "stats": {
-    "hp": 520,
+    "hp": 590,
     "walkSpeed": 2.7,
     "runSpeed": 6.0,
     "jumpPower": 9.0,
@@ -65,7 +65,7 @@
           "y": 10,
           "w": 34,
           "h": 46,
-          "damage": 48,
+          "damage": 58,
           "fall": 95,
           "dvx": -6,
           "dvy": 8,
@@ -219,7 +219,7 @@
               "y": -10,
               "w": 22,
               "h": 20,
-              "damage": 26,
+              "damage": 30,
               "fall": 40,
               "dvx": 4,
               "hitstop": 5

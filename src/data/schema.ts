@@ -86,7 +86,7 @@ export const ProjectileSchema = z.object({
   onExpire: z.string().optional(),
   blockable: z.boolean().default(true),
   startFrame: z.string(),
-  frames: z.record(FrameSchema),
+  frames: z.record(z.string(), FrameSchema),
 });
 export type ProjectileDef = z.infer<typeof ProjectileSchema>;
 
@@ -135,15 +135,15 @@ export const CharacterSchema = z.object({
       tie: Color.optional(),
       shirt: Color.default('#f5f5f5'),
     })
-    .default({}),
+    .prefault({}),
   body: BoxSchema.optional(),
-  frames: z.record(FrameSchema).default({}),
+  frames: z.record(z.string(), FrameSchema).default({}),
   moves: z.array(MoveSchema).max(6).default([]),
-  projectiles: z.record(ProjectileSchema).default({}),
+  projectiles: z.record(z.string(), ProjectileSchema).default({}),
 });
 export type CharacterRaw = z.infer<typeof CharacterSchema>;
 
-export const BaseFramesSchema = z.object({ frames: z.record(FrameSchema) });
+export const BaseFramesSchema = z.object({ frames: z.record(z.string(), FrameSchema) });
 
 export const ItemSchema = z.object({
   id: z.string(),
@@ -197,7 +197,7 @@ export const StageSchema = z.object({
         .object({ interval: z.number().int().positive(), duration: z.number().int().positive(), shake: z.number().min(0) })
         .optional(),
     })
-    .default({}),
+    .prefault({}),
 });
 export type StageDef = z.infer<typeof StageSchema>;
 

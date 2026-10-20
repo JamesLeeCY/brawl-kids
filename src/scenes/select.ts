@@ -216,7 +216,7 @@ export class SelectScene extends Scene {
       ctx.fillStyle = shade(def.palette.accent, -0.55);
       ctx.fillRect(x + 14, y + 30, 160, 104);
       const pose = getPose(s.ready ? 'victory' : `idle_${Math.floor(this.t / 30) % 2}`);
-      drawFigure(ctx, def, { pose, x: x + 94, y: y + 160, facing: 1, scale: 1.45, tick: this.t, upperOnly: true, expression: s.ready ? 'happy' : 'normal' });
+      drawFigure(ctx, def, { pose, x: x + 94, y: y + 160, facing: 1, scale: 1.45, tick: this.t, upperOnly: true, sticker: true, expression: s.ready ? 'happy' : 'normal' });
       ctx.restore();
       text(ctx, def.name, x + 94, y + 153, 20, '#fff', 'center');
       text(ctx, def.title, x + 94, y + 171, 13, def.palette.accent, 'center');

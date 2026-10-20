@@ -62,7 +62,7 @@ export class TitleScene extends Scene {
       const y = 250 + (k % 2) * 26;
       const cheer = Math.floor(this.t / 40 + i) % 3 === 0;
       const pose = getPose(cheer ? 'victory' : `idle_${Math.floor(this.t / 30) % 2}`);
-      drawFigure(ctx, def, { pose, x, y: y + 6, facing: left ? 1 : -1, scale: 1.15, tick: this.t, expression: cheer ? 'happy' : 'normal' });
+      drawFigure(ctx, def, { pose, x, y: y + 6, facing: left ? 1 : -1, scale: 1.15, tick: this.t, expression: cheer ? 'happy' : 'normal', sticker: true });
     });
     text(ctx, '台灣大亂鬥', VW / 2, 110, 64, '#ffd23f', 'center', true, true);
     text(ctx, 'TAIWAN BRAWL', VW / 2, 145, 22, '#ffffff', 'center', true, true);

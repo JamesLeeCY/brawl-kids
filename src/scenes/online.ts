@@ -586,7 +586,7 @@ export class OnlineSelectScene extends Scene {
       ctx.clip();
       ctx.fillStyle = shade(def.palette.accent, -0.55);
       ctx.fillRect(x + 8, y + 26, 86, 100);
-      drawFigure(ctx, def, { pose: getPose(s.ready ? 'victory' : `idle_${(this.t >> 5) % 2}`), x: x + 51, y: y + 150, facing: 1, scale: 1.45, tick: this.t, upperOnly: true, expression: s.ready ? 'happy' : 'normal' });
+      drawFigure(ctx, def, { pose: getPose(s.ready ? 'victory' : `idle_${(this.t >> 5) % 2}`), x: x + 51, y: y + 150, facing: 1, scale: 1.45, tick: this.t, upperOnly: true, sticker: true, expression: s.ready ? 'happy' : 'normal' });
       ctx.restore();
       text(ctx, def.name, x + 141, y + 52, 17, '#fff', 'center');
       text(ctx, def.title, x + 141, y + 72, 12, def.palette.accent, 'center');

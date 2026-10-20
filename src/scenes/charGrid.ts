@@ -76,7 +76,7 @@ export function drawCharGrid(ctx: CanvasRenderingContext2D, defs: CharacterDef[]
     ctx.clip();
     ctx.fillStyle = shade(def.palette.accent, -0.5);
     ctx.fillRect(x, y, CELL_W, CELL_H);
-    drawFigure(ctx, def, { pose: getPose('idle_0'), x: x + CELL_W / 2 - 3 * s, y: y + 74 * s, facing: 1, scale: 0.86 * s, tick, upperOnly: true });
+    drawFigure(ctx, def, { pose: getPose('idle_0'), x: x + CELL_W / 2 - 3 * s, y: y + 74 * s, facing: 1, scale: 0.86 * s, tick, upperOnly: true, sticker: true });
     ctx.restore();
     ctx.strokeStyle = OUTLINE;
     ctx.lineWidth = 2;

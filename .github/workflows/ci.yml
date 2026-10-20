@@ -1,0 +1,28 @@
+# Pull Request 檢查：開 PR（含 Dependabot 的套件更新 PR）或推到 main 以外的分支時，
+# 自動跑測試、型別檢查與建置。全部通過才建議合併；合併進 main 後由 deploy.yml 部署上線。
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build

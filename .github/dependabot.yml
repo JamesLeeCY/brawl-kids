@@ -1,0 +1,33 @@
+# Dependabot：每週檢查套件與 GitHub Actions 的更新，自動開 Pull Request（會觸發 ci.yml 跑測試）。
+# 小版本 / 修補版合併成一個 PR，避免太多通知；大版本更新各自一個 PR，方便個別確認。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Taipei
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - '*'

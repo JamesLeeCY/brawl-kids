@@ -4,7 +4,7 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-function utf8(s: string): Uint8Array {
+function utf8(s: string): Uint8Array<ArrayBuffer> {
   const b = enc.encode(s);
   const out = new Uint8Array(b.length + 2);
   out[0] = b.length >> 8;
@@ -24,7 +24,7 @@ function remainingLength(n: number): number[] {
   return out;
 }
 
-function packet(header: number, ...parts: Uint8Array[]): Uint8Array {
+function packet(header: number, ...parts: Uint8Array[]): Uint8Array<ArrayBuffer> {
   const len = parts.reduce((s, p) => s + p.length, 0);
   const rl = remainingLength(len);
   const out = new Uint8Array(1 + rl.length + len);

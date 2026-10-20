@@ -14,6 +14,9 @@ import { ReplayScene } from './replay';
 import type { Replay } from '../replay/replay';
 import { shareReplay } from '../replay/share';
 import { resetCampaign } from './campaign';
+import { recordMatch, type AchievementDef } from '../progress';
+import { progressTotals } from './achievements';
+import { campaignLength } from '../sim/world';
 
 const VW = CONFIG.view.width;
 const VH = CONFIG.view.height;
@@ -28,6 +31,8 @@ export class ResultScene extends Scene {
   /** 分享重播的結果訊息 */
   private shareMsg: { text: string; t: number } | null = null;
   private sharing = false;
+  /** 這場新解鎖的成就 */
+  private newAch: AchievementDef[] = [];
 
   constructor(
     app: App,
@@ -48,6 +53,23 @@ export class ResultScene extends Scene {
       this.winners = res.winnerTeam === null ? [] : chars.filter((c) => c.team === res.winnerTeam && c.slot >= 0);
       this.title = this.winners.length ? '勝利！' : '平手';
     }
+    this.record(res);
+  }
+
+  /** 記錄這台裝置上真人玩家的戰績（連線時只記自己） */
+  private record(res: MatchResult): void {
+    const mine = this.players.filter((c) => (this.net ? c.slot === this.net.mySlot : this.app.slots[c.slot]?.kind === 'human'));
+    if (!mine.length) return;
+    const campaignWin = this.setup.mode === 'campaign' && res.outcome === 'win';
+    this.newAch = recordMatch(
+      {
+        stageId: this.setup.stageId,
+        online: !!this.net,
+        players: mine.map((c) => ({ charId: c.charId, won: this.winners.includes(c) })),
+        campaignClear: campaignWin ? { difficulty: this.setup.campaignDifficulty ?? 'normal', length: campaignLength(this.app.data, this.setup) } : undefined,
+      },
+      progressTotals(this.app),
+    );
   }
 
   update(inp: MenuInput): void {
@@ -159,6 +181,14 @@ export class ResultScene extends Scene {
   render(ctx: CanvasRenderingContext2D): void {
     menuBackground(ctx, this.t, '#1a1a2e', '#3d2c5c');
     text(ctx, this.title, VW / 2, 52, 40, '#ffd23f', 'center', true, true);
+    // 新解鎖的成就（左上）
+    this.newAch.slice(0, 3).forEach((a, i) => {
+      const y = 12 + i * 30;
+      ctx.fillStyle = 'rgba(234,179,8,0.9)';
+      roundRect(ctx, 12, y, 230, 26, 8);
+      ctx.fill();
+      text(ctx, `★ 成就解鎖：${a.name}`, 22, y + 18, 13, '#1a1530', 'left');
+    });
     const ws = this.winners;
     ws.forEach((c, i) => {
       const def = this.world.charDef(c);

@@ -21,6 +21,7 @@ import { ReplayLoadScene } from './scenes/replay';
 import { emptySnapshot, pressedEdges, type Snapshot } from './sim/snapshot';
 import type { World } from './sim/world';
 import type { NetSession } from './net/session';
+import { AutoQuality, applyQualitySetting, lowQuality, onQualityChange } from './render/quality';
 
 const VW = CONFIG.view.width;
 const VH = CONFIG.view.height;
@@ -112,12 +113,16 @@ function resize(): void {
   canvas.style.width = `${Math.floor(logicalW * s)}px`;
   canvas.style.height = `${Math.floor(VH * s)}px`;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  scale = Math.max(1, Math.min(3, Math.ceil(s * dpr)));
+  // 低畫質：用 1 倍解析度繪製（手機上像素量少一半以上）
+  scale = lowQuality ? 1 : Math.max(1, Math.min(3, Math.ceil(s * dpr)));
   canvas.width = Math.round(logicalW * scale);
   canvas.height = VH * scale;
 }
 window.addEventListener('resize', resize);
+applyQualitySetting(app.settings.quality);
+onQualityChange(resize);
 resize();
+const autoQuality = new AutoQuality();
 
 /** 非加寬場景（選單）在加寬畫布中置中的偏移 */
 function sceneOffset(): number {
@@ -185,7 +190,11 @@ function frame(now: number): void {
     fps = (frames * 1000) / (now - fpsTimer);
     frames = 0;
     fpsTimer = now;
+    // 自動畫質：戰鬥中（開場之後）跑太慢就降成低畫質
+    const top = app.scenes.top as { wide?: boolean; intro?: number } | undefined;
+    autoQuality.sample(fps, app.settings.quality, !!top?.wide && !(top.intro && top.intro > 0), now);
   }
+  if (now < autoQuality.noticeUntil) text(ctx, '畫面較慢，已自動切換為低畫質（設定可調整）', logicalW / 2, 22, 12, '#fde68a', 'center', true, true);
   if (app.showFps) text(ctx, `${fps.toFixed(0)} FPS`, logicalW - 6, VH - 6, 11, "#0f0", "right");
   requestAnimationFrame(frame);
 }

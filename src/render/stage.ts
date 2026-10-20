@@ -5,6 +5,7 @@ import type { World } from '../sim/world';
 import { shade } from './character';
 
 import { VW } from './view';
+import { lowQuality } from './quality';
 const VH = CONFIG.view.height;
 const HZ = CONFIG.view.horizon;
 const GROUND_TOP = HZ - 10;
@@ -305,7 +306,7 @@ function sign(ctx: Ctx, x: number, y: number, text: string, color: string, on: b
   ctx.strokeRect(x, y, tw, th);
   if (on) {
     ctx.shadowColor = color;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = lowQuality ? 0 : 8;
   }
   ctx.fillStyle = on ? color : shade(color, -0.6);
   ctx.textBaseline = 'top';

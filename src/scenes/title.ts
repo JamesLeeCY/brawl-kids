@@ -6,15 +6,19 @@ import { Scene, type MenuInput } from './scene';
 import { SelectScene } from './select';
 import { OnlineMenuScene } from './online';
 import { SettingsScene } from './settings';
+import { TutorialScene, tutorialDone } from './tutorial';
+import { AchievementsScene } from './achievements';
 import { touchMode } from './select';
 import { button, hint, menuBackground } from './ui';
 
 const VW = CONFIG.view.width;
 
 export class TitleScene extends Scene {
-  private sel = 0;
   private t = 0;
-  private readonly options = ['本機遊戲', '連線對戰', '設定'];
+  private readonly options = ['本機遊戲', '連線對戰', '新手教學', '成就', '設定'];
+  /** 第一次玩：預設選「新手教學」並提示 */
+  private firstRun = !tutorialDone();
+  private sel = this.firstRun ? 2 : 0;
 
   update(inp: MenuInput): void {
     this.t++;
@@ -26,6 +30,10 @@ export class TitleScene extends Scene {
   private choose(): void {
     if (this.sel === 0) this.app.scenes.push(new SelectScene(this.app));
     else if (this.sel === 1) this.app.scenes.push(new OnlineMenuScene(this.app));
+    else if (this.sel === 2) {
+      this.firstRun = false;
+      this.app.scenes.push(new TutorialScene(this.app));
+    } else if (this.sel === 3) this.app.scenes.push(new AchievementsScene(this.app));
     else this.app.scenes.push(new SettingsScene(this.app));
   }
 
@@ -33,8 +41,8 @@ export class TitleScene extends Scene {
 
   onClick(x: number, y: number): void {
     if (Math.abs(x - VW / 2) < 100) {
-      const i = Math.floor((y - 290) / 40);
-      if (i >= 0 && i < this.options.length && (y - 290) % 40 < 34) {
+      const i = Math.floor((y - 222) / 40);
+      if (i >= 0 && i < this.options.length && (y - 222) % 40 < 36) {
         this.sel = i;
         this.choose();
       }
@@ -58,8 +66,15 @@ export class TitleScene extends Scene {
     });
     text(ctx, '台灣大亂鬥', VW / 2, 110, 64, '#ffd23f', 'center', true, true);
     text(ctx, 'TAIWAN BRAWL', VW / 2, 145, 22, '#ffffff', 'center', true, true);
-    this.options.forEach((o, i) => button(ctx, o, VW / 2, 290 + i * 40, 200, this.sel === i));
-    if ((this.t >> 5) % 2 === 0) text(ctx, touchMode() ? '點選單或「攻擊」開始' : '按任一玩家的攻擊鍵開始', VW / 2, 420, 15, '#fff', 'center');
+    this.options.forEach((o, i) => button(ctx, o, VW / 2, 222 + i * 40, 200, this.sel === i));
+    if (this.firstRun && (this.t >> 4) % 2 === 0) {
+      // 第一次玩：在「新手教學」旁邊閃爍提示
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.roundRect?.(VW / 2 + 108, 222 + 2 * 40 + 6, 120, 24, 12);
+      ctx.fill();
+      text(ctx, '第一次玩？約 30 秒', VW / 2 + 168, 222 + 2 * 40 + 23, 12, '#fff', 'center');
+    }
     if (touchMode()) hint(ctx, '點「攻擊」或選單開始　·　左半邊按住＝搖桿　·　推搖桿方向再點「必殺」放必殺技');
     else hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵、數字鍵 1/2/3　·　必殺技：按住防禦＋方向，再按攻擊或跳躍');
   }

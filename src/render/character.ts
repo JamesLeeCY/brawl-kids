@@ -2,6 +2,7 @@
 import type { CharacterDef } from '../data/load';
 import type { ItemDef } from '../data/schema';
 import type { Pose } from './poses';
+import { lowQuality } from './quality';
 
 export interface FigureOpts {
   pose: Pose;
@@ -113,7 +114,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   ctx.scale(o.facing * s, s);
   if (o.glow) {
     ctx.shadowColor = o.glow;
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = lowQuality ? 0 : 14;
   }
   if (p.rot) {
     ctx.translate(0, -9 * Math.abs(Math.sin(p.rot * D2R)));
@@ -431,27 +432,34 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
       ctx.stroke();
       return;
     case 'flattop': {
-      // 兩側推短、頭頂高聳平頭
-      // 側邊推短：只在耳後畫一小塊淡淡的髮根
-      ctx.globalAlpha = 0.35;
-      ctx.fillRect(x - 12, y - 6, 4, 8);
-      ctx.globalAlpha = 1;
+      // 兩側推短（露出頭皮的淡淡髮根）、頭頂往後梳的蓬鬆髮量
+      ctx.save();
+      ctx.globalAlpha = 0.28;
       ctx.beginPath();
-      ctx.moveTo(x - 10, y - 6);
-      ctx.lineTo(x - 10, y - 14);
-      ctx.quadraticCurveTo(x - 9, y - 17, x - 5, y - 17);
-      ctx.lineTo(x + 6, y - 17);
-      ctx.quadraticCurveTo(x + 9, y - 17, x + 9, y - 13);
-      ctx.lineTo(x + 8, y - 8);
-      ctx.quadraticCurveTo(x, y - 10, x - 10, y - 6);
+      ctx.arc(x - 1, y - 1, 11.2, Math.PI * 0.98, Math.PI * 1.25);
+      ctx.lineTo(x - 7, y - 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      // 頭頂髮量：圓弧頂、前方微微翹起，下緣停在額頭高度（不蓋到耳朵）
+      ctx.beginPath();
+      ctx.moveTo(x - 10.5, y - 7);
+      ctx.quadraticCurveTo(x - 12, y - 15, x - 5, y - 17.5);
+      ctx.quadraticCurveTo(x + 3, y - 19.5, x + 9, y - 15.5);
+      ctx.quadraticCurveTo(x + 11.5, y - 13, x + 9.5, y - 10);
+      ctx.quadraticCurveTo(x + 2, y - 12.5, x - 4, y - 10.5);
+      ctx.quadraticCurveTo(x - 8, y - 9.5, x - 10.5, y - 7);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-      ctx.lineWidth = 1;
+      // 髮絲紋路（往後梳）
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 0.9;
       ctx.beginPath();
-      ctx.moveTo(x - 6, y - 15);
-      ctx.lineTo(x + 5, y - 15);
+      for (const k of [-5, -1, 3]) {
+        ctx.moveTo(x + k + 4, y - 16.5);
+        ctx.quadraticCurveTo(x + k, y - 15, x + k - 4, y - 12);
+      }
       ctx.stroke();
       return;
     }

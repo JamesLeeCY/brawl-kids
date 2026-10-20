@@ -1,6 +1,7 @@
 // 設定（按鍵綁定、音量）存在 localStorage；讀寫皆包 try/catch。
 import { DEFAULT_BINDINGS, type Binding } from './input/keyboard';
 import { ACTIONS } from './sim/snapshot';
+import type { QualitySetting } from './render/quality';
 
 const KEY = 'brawl-kids.settings.v2';
 
@@ -9,10 +10,12 @@ export interface Settings {
   masterVolume: number;
   sfxVolume: number;
   musicVolume: number;
+  /** 畫質：自動（跑太慢時自動降低）/ 高 / 低 */
+  quality: QualitySetting;
 }
 
 export function defaultSettings(): Settings {
-  return { bindings: DEFAULT_BINDINGS.map((b) => ({ ...b })), masterVolume: 0.8, sfxVolume: 0.8, musicVolume: 0.6 };
+  return { bindings: DEFAULT_BINDINGS.map((b) => ({ ...b })), masterVolume: 0.8, sfxVolume: 0.8, musicVolume: 0.6, quality: 'auto' };
 }
 
 export function loadSettings(): Settings {
@@ -29,6 +32,7 @@ export function loadSettings(): Settings {
     if (typeof j.masterVolume === 'number') s.masterVolume = clamp01(j.masterVolume);
     if (typeof j.sfxVolume === 'number') s.sfxVolume = clamp01(j.sfxVolume);
     if (typeof j.musicVolume === 'number') s.musicVolume = clamp01(j.musicVolume);
+    if (j.quality === 'auto' || j.quality === 'high' || j.quality === 'low') s.quality = j.quality;
   } catch {
     /* 無法讀取時使用預設值 */
   }

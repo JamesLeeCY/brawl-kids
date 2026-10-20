@@ -6,9 +6,17 @@ import { saveSettings } from '../settings';
 import { ACTIONS } from '../sim/snapshot';
 import { Scene, type MenuInput } from './scene';
 import { hint, menuBackground } from './ui';
+import { applyQualitySetting, type QualitySetting } from '../render/quality';
+
+const QUALITIES: { id: QualitySetting; label: string }[] = [
+  { id: 'auto', label: '自動（跑太慢時自動降低）' },
+  { id: 'high', label: '高' },
+  { id: 'low', label: '低（舊手機建議）' },
+];
 
 const VW = CONFIG.view.width;
-const ROWS = ACTIONS.length + 5; // 7 個按鍵 + 主音量 + 音效音量 + 音樂音量 + 恢復預設 + 返回
+const ROWS = ACTIONS.length + 6; // 7 個按鍵 + 主音量 + 音效音量 + 音樂音量 + 畫質 + 恢復預設 + 返回
+const ROW_QUALITY = ACTIONS.length + 3;
 const VOLUME_KEYS = ['masterVolume', 'sfxVolume', 'musicVolume'] as const;
 
 export class SettingsScene extends Scene {
@@ -36,10 +44,18 @@ export class SettingsScene extends Scene {
         this.apply();
         if (key !== 'musicVolume') this.app.sfx.play('hit_light');
       }
-    } else if (this.row === ACTIONS.length + 3 && a.A) {
+    } else if (this.row === ROW_QUALITY) {
+      const step = a.right || a.A ? 1 : a.left ? -1 : 0;
+      if (step) {
+        const i = QUALITIES.findIndex((q) => q.id === s.quality);
+        s.quality = QUALITIES[(i + QUALITIES.length + step) % QUALITIES.length].id;
+        applyQualitySetting(s.quality);
+        this.apply();
+      }
+    } else if (this.row === ACTIONS.length + 4 && a.A) {
       s.bindings = DEFAULT_BINDINGS.map((b) => ({ ...b }));
       this.apply();
-    } else if (this.row === ACTIONS.length + 4 && a.A) this.app.scenes.pop();
+    } else if (this.row === ACTIONS.length + 5 && a.A) this.app.scenes.pop();
   }
 
   private startRebind(): void {
@@ -101,7 +117,7 @@ export class SettingsScene extends Scene {
       ['音樂音量', s.musicVolume],
     ];
     vols.forEach(([label, v], i) => {
-      const y = vy + i * 28;
+      const y = vy + i * 26;
       const sel = this.row === ACTIONS.length + i;
       text(ctx, label, x0 - 20, y + 18, 14, sel ? '#ffd23f' : '#fff', 'right');
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -110,9 +126,15 @@ export class SettingsScene extends Scene {
       ctx.fillRect(x0 + 8, y + 7, 400 * v, 10);
       text(ctx, `${Math.round(v * 100)}%`, x0 + 420, y + 18, 13, '#fff');
     });
-    const by = vy + 90;
-    text(ctx, '恢復預設按鍵', VW / 2 - 90, by + 16, 15, this.row === ACTIONS.length + 3 ? '#ffd23f' : '#fff', 'center');
-    text(ctx, '返回', VW / 2 + 90, by + 16, 15, this.row === ACTIONS.length + 4 ? '#ffd23f' : '#fff', 'center');
+    // 畫質
+    const qy = vy + 78;
+    const qsel = this.row === ROW_QUALITY;
+    const q = QUALITIES.find((x) => x.id === s.quality) ?? QUALITIES[0];
+    text(ctx, '畫質', x0 - 20, qy + 18, 14, qsel ? '#ffd23f' : '#fff', 'right');
+    text(ctx, qsel ? `◀ ${q.label} ▶` : q.label, x0 + 8, qy + 18, 14, qsel ? '#ffd23f' : '#fff', 'left');
+    const by = vy + 104;
+    text(ctx, '恢復預設按鍵', VW / 2 - 90, by + 16, 15, this.row === ACTIONS.length + 4 ? '#ffd23f' : '#fff', 'center');
+    text(ctx, '返回', VW / 2 + 90, by + 16, 15, this.row === ACTIONS.length + 5 ? '#ffd23f' : '#fff', 'center');
     hint(ctx, '方向鍵移動　攻擊鍵 / Enter 重新綁定　左右調整音量　Esc 返回　·　P1 坐左、P2 坐右');
   }
 }

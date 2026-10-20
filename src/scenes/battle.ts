@@ -13,6 +13,8 @@ import { hint, overlay } from './ui';
 
 import { VW, viewOffset } from '../render/view';
 import { resetCampaign } from './campaign';
+import { recordPractice } from '../progress';
+import { progressTotals } from './achievements';
 import { dataVersion } from '../data';
 import { ReplayRecorder } from '../replay/replay';
 import { campaignHealAmount, campaignLength, campaignStageId } from '../sim/world';
@@ -76,9 +78,11 @@ export class BattleScene extends Scene {
           const mv = w.charDef(c).moves.find((m) => m.startFrame === c.frame);
           if (mv) {
             const done = this.practiceDone.get(c.slot) ?? new Set<string>();
+            const before = done.size;
             done.add(mv.command);
             this.practiceDone.set(c.slot, done);
             this.practiceToast = { text: `${c.slot + 1}P ✓ ${mv.name}（${moveLabel(mv.command)}）`, t: 100 };
+            if (before < done.size && done.size === w.charDef(c).moves.length) this.unlockToast(recordPractice({ allMoves: true }, progressTotals(this.app)));
           }
         }
         this.practicePrevFrame.set(c.id, c.state === 'attack' ? c.frame : null);
@@ -90,6 +94,8 @@ export class BattleScene extends Scene {
           this.combo.last = w.tick;
           this.combo.best = Math.max(this.combo.best, this.combo.dmg);
         }
+        // 一段連段結束：記錄最高連段傷害（成就）
+        if (w.tick - this.combo.last === 91 && this.combo.dmg > 0) this.unlockToast(recordPractice({ combo: this.combo.dmg }, progressTotals(this.app)));
         if (w.tick - this.combo.last > 120 && c.hp < c.maxHp) c.hp = c.maxHp;
         if (c.hp < 1000) c.hp = c.maxHp;
         this.combo.hp = c.hp;
@@ -290,6 +296,10 @@ export class BattleScene extends Scene {
       });
       hint(ctx, '↑↓ 選擇　攻擊 / Enter 確定　Esc 繼續', undefined, VW / 2);
     }
+  }
+
+  private unlockToast(news: { name: string }[]): void {
+    if (news.length) this.practiceToast = { text: `★ 成就解鎖：${news.map((a) => a.name).join('、')}`, t: 160 };
   }
 
   /** 練習模式：每位真人玩家的招式表（放出過的打勾）、剛放出的提示、沙包連段傷害 */

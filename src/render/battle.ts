@@ -9,6 +9,7 @@ import { drawStage } from './stage';
 import { FONT, text } from './text';
 
 import { VW, viewOffset } from './view';
+import { lowQuality } from './quality';
 const HZ = CONFIG.view.horizon;
 const FX = CONFIG.fx;
 
@@ -184,9 +185,10 @@ export class BattleRenderer {
     const rx = Math.max(Math.abs(itr.x), Math.abs(itr.x + itr.w));
     const rz = itr.zRange ?? CONFIG.physics.hitZTolerance;
     const color = w.charDef(e).palette.accent;
-    for (let i = 0; i < 3; i++) this.quakes.push({ x: e.x, z: e.z, rx: rx * (1 + i * 0.18), rz: rz * (1 + i * 0.18), t: QUAKE_TICKS + i * 5, color });
+    const rings = lowQuality ? 1 : 3;
+    for (let i = 0; i < rings; i++) this.quakes.push({ x: e.x, z: e.z, rx: rx * (1 + i * 0.18), rz: rz * (1 + i * 0.18), t: QUAKE_TICKS + i * 5, color });
     const rockColors = ['#8b6b4a', '#a1866b', '#6b5440', '#cbb89d'];
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < (lowQuality ? 8 : 22); i++) {
       const a = this.rand() * Math.PI * 2;
       const sp = 2 + this.rand() * 5;
       this.debris.push({
@@ -201,7 +203,7 @@ export class BattleRenderer {
         size: 4 + Math.floor(this.rand() * 6),
       });
     }
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < (lowQuality ? 4 : 12); i++) {
       const side = i % 2 ? 1 : -1;
       this.dust.push({ x: e.x + side * rx * (0.2 + this.rand() * 0.7), z: e.z + (this.rand() - 0.5) * rz, vx: side * (0.6 + this.rand() * 1.4), r: 10 + this.rand() * 12, t: DUST_TICKS });
     }
@@ -250,7 +252,7 @@ export class BattleRenderer {
     }
     this.debris = this.debris.filter((d) => d.t > 0);
     if (this.banner && --this.banner.t <= 0) this.banner = null;
-    if (w.tick % FX.afterimageInterval === 0) {
+    if (!lowQuality && w.tick % FX.afterimageInterval === 0) {
       for (const e of w.entities) {
         if (e.kind === 'char' && e.state === 'falling' && e.freeze === 0)
           this.afterimages.push({ e: { ...e, buffs: [] }, t: FX.afterimageLife });
@@ -363,7 +365,7 @@ export class BattleRenderer {
       ctx.save();
       ctx.strokeStyle = def.palette.accent;
       ctx.shadowColor = def.palette.accent;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = lowQuality ? 0 : 10;
       ctx.lineWidth = 2;
       ctx.beginPath();
       for (let i = 0; i <= 6; i++) {
@@ -471,7 +473,7 @@ export class BattleRenderer {
     const s = def?.size ?? 10;
     ctx.save();
     ctx.shadowColor = color;
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = lowQuality ? 0 : 12;
     const pose = f?.pose ?? 'dart';
     switch (pose) {
       case 'wave':
@@ -593,7 +595,7 @@ export class BattleRenderer {
       }
       case 'paper': {
         // 公文：翻轉的紙張
-        ctx.shadowBlur = 6;
+        ctx.shadowBlur = lowQuality ? 0 : 6;
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(w.tick * 0.35 * p.facing);
@@ -811,7 +813,7 @@ export class BattleRenderer {
       case 'bun':
       case 'pudding':
       case 'sunflower':
-        ctx.shadowBlur = 4;
+        ctx.shadowBlur = lowQuality ? 0 : 4;
         drawIcon(ctx, pose, x, y, 1, p.facing, color, w.tick, p.id);
         break;
       case 'bookdrop':

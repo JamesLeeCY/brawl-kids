@@ -88,7 +88,14 @@ export class TitleScene extends Scene {
     text(ctx, 'TAIWAN BRAWL', VW / 2, 145, 22, '#ffffff', 'center', true, true);
     this.options.forEach((o, i) => button(ctx, o, VW / 2, 222 + i * 40, 200, this.sel === i));
     // 第一次玩：在「新手教學」旁邊安靜地備註（不閃爍）
-    if (this.firstRun) text(ctx, '← 第一次玩？約 30 秒', VW / 2 + 110, 222 + 2 * 40 + 23, 12, '#fde68a', 'left', false, true);
+    if (this.firstRun) {
+      // 深色底，疊在議員席上也看得清楚
+      ctx.fillStyle = 'rgba(15,12,30,0.78)';
+      ctx.beginPath();
+      ctx.roundRect?.(VW / 2 + 104, 222 + 2 * 40 + 7, 138, 22, 11);
+      ctx.fill();
+      text(ctx, '← 第一次玩？約 30 秒', VW / 2 + 114, 222 + 2 * 40 + 23, 12, '#fde68a', 'left', false);
+    }
     if (touchMode()) hint(ctx, '點「攻擊」或選單開始　·　左半邊按住＝搖桿　·　推搖桿方向再點「必殺」放必殺技');
     else hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵、數字鍵 1/2/3　·　必殺技：按住防禦＋方向，再按攻擊或跳躍');
   }

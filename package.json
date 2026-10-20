@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "peerjs": "^1.5.4",
+    "peerjs": "^1.5.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

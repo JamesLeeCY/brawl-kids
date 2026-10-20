@@ -985,7 +985,7 @@ function star(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, co
 }
 
 /** 飛行物與天降攻擊共用的小圖示，(x,y) 為中心 */
-function drawIcon(ctx: CanvasRenderingContext2D, kind: string, x: number, y: number, sc: number, facing: number, color: string, tick: number, seed: number): void {
+export function drawIcon(ctx: CanvasRenderingContext2D, kind: string, x: number, y: number, sc: number, facing: number, color: string, tick: number, seed: number): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(sc * facing, sc);
@@ -1067,6 +1067,69 @@ function drawIcon(ctx: CanvasRenderingContext2D, kind: string, x: number, y: num
       ctx.beginPath();
       ctx.arc(0, -4, 4, 0, Math.PI * 2);
       ctx.fill();
+      break;
+    case 'pill': {
+      ctx.rotate(tick * 0.2 + seed);
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(-3, 0, 4, Math.PI / 2, Math.PI * 1.5);
+      ctx.lineTo(0, -4);
+      ctx.lineTo(0, 4);
+      ctx.fill();
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(3, 0, 4, -Math.PI / 2, Math.PI / 2);
+      ctx.lineTo(0, 4);
+      ctx.lineTo(0, -4);
+      ctx.fill();
+      break;
+    }
+    case 'bearhead': {
+      ctx.fillStyle = '#1f1f1f';
+      for (const ex of [-6, 6]) {
+        ctx.beginPath();
+        ctx.arc(ex, -6, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f5f5f5';
+      ctx.beginPath();
+      ctx.moveTo(-5, 2);
+      ctx.lineTo(0, 5.5);
+      ctx.lineTo(5, 2);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'doc': {
+      ctx.rotate(Math.sin(tick * 0.2 + seed) * 0.4);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-7, -9, 14, 18);
+      ctx.fillStyle = '#93c5fd';
+      for (let r = 0; r < 4; r++) ctx.fillRect(-5, -6 + r * 4, 10, 1.6);
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(4, 6, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'bolt': {
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.moveTo(2, -10);
+      ctx.lineTo(-5, 1);
+      ctx.lineTo(0, 1);
+      ctx.lineTo(-2, 10);
+      ctx.lineTo(6, -2);
+      ctx.lineTo(1, -2);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'star':
+      star(ctx, 0, 0, 8, color);
       break;
     case 'tweet': {
       // 推文對話框

@@ -1,7 +1,6 @@
 import { CONFIG } from '../config';
 import { SLOT_COLORS } from '../render/battle';
-import { drawFigure, roundRect } from '../render/character';
-import { getPose } from '../render/poses';
+import { roundRect } from '../render/character';
 import { text } from '../render/text';
 import type { Entity } from '../sim/entity';
 import { CAMPAIGN_PLAYER_TEAM, type MatchResult, type MatchSetup, type World } from '../sim/world';
@@ -14,6 +13,7 @@ import { ReplayScene } from './replay';
 import type { Replay } from '../replay/replay';
 import { shareReplay } from '../replay/share';
 import { resetCampaign } from './campaign';
+import { drawCelebration } from '../render/celebrate';
 import { recordMatch, type AchievementDef } from '../progress';
 import { progressTotals } from './achievements';
 import { campaignLength } from '../sim/world';
@@ -193,8 +193,8 @@ export class ResultScene extends Scene {
     ws.forEach((c, i) => {
       const def = this.world.charDef(c);
       const x = VW / 2 + (i - (ws.length - 1) / 2) * 170;
-      const pose = getPose(Math.floor(this.t / 25) % 2 ? 'victory' : 'cast_up');
-      drawFigure(ctx, def, { pose, x, y: 222, facing: 1, scale: 1.8, tick: this.t, expression: 'happy', sticker: true });
+      // 各角色專屬的慶祝動作與道具雨（不擋臉）
+      drawCelebration(ctx, def, x, 222, 1.8, this.t);
       text(ctx, def.name, x, 236, 16, '#fff', 'center');
       text(ctx, `「${def.quote}」`, x, 258, 14, def.palette.accent, 'center', true, true);
     });

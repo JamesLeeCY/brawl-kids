@@ -25,7 +25,7 @@ import { AutoQuality, applyQualitySetting, lowQuality, onQualityChange } from '.
 
 const VW = CONFIG.view.width;
 const VH = CONFIG.view.height;
-const STEP = 1000 / CONFIG.tickRate;
+const STEP = 1000 / (CONFIG.tickRate * CONFIG.gameSpeed);
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d', { alpha: false })!;

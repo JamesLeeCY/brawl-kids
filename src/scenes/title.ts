@@ -9,7 +9,8 @@ import { SettingsScene } from './settings';
 import { TutorialScene, tutorialDone } from './tutorial';
 import { AchievementsScene } from './achievements';
 import { touchMode } from './select';
-import { button, hint, menuBackground } from './ui';
+import { button, hint } from './ui';
+import { drawDeskRow, drawLegislature } from '../render/legislature';
 
 const VW = CONFIG.view.width;
 
@@ -50,31 +51,44 @@ export class TitleScene extends Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    menuBackground(ctx, this.t);
+    drawLegislature(ctx);
+    // 立法院議場：角色分成左右兩側、各兩排站在議員席後面，平均分散不擁擠
     const ids = this.app.data.selectable;
-    // 角色分左右兩群站在標題兩側
-    const half = Math.ceil(ids.length / 2);
-    ids.forEach((id, i) => {
-      const def = this.app.data.characters[id];
-      const left = i < half;
-      const k = left ? i : i - half;
-      const x = left ? 40 + k * 46 : VW - 40 - k * 46;
-      const y = 250 + (k % 2) * 26;
-      const cheer = Math.floor(this.t / 40 + i) % 3 === 0;
-      const pose = getPose(cheer ? 'victory' : `idle_${Math.floor(this.t / 30) % 2}`);
-      drawFigure(ctx, def, { pose, x, y: y + 6, facing: left ? 1 : -1, scale: 1.15, tick: this.t, expression: cheer ? 'happy' : 'normal', sticker: true });
-    });
+    const LEFT_BACK = [56, 122, 188, 254];
+    const LEFT_FRONT = [44, 114, 184, 254];
+    const RIGHT_BACK = [546, 612, 678, 744];
+    const RIGHT_FRONT = [556, 636, 716, 776];
+    const seats: { x: number; y: number; s: number; f: 1 | -1; row: 0 | 1 }[] = [];
+    const left = Math.ceil(ids.length / 2);
+    const right = ids.length - left;
+    const pick = (arr: number[], n: number) => arr.slice(0, n);
+    pick(LEFT_BACK, Math.ceil(left / 2)).forEach((x) => seats.push({ x, y: 266, s: 1.0, f: 1, row: 0 }));
+    pick(LEFT_FRONT, Math.floor(left / 2)).forEach((x) => seats.push({ x, y: 356, s: 1.15, f: 1, row: 1 }));
+    pick(RIGHT_BACK, Math.ceil(right / 2)).forEach((x) => seats.push({ x, y: 266, s: 1.0, f: -1, row: 0 }));
+    const rf = Math.floor(right / 2);
+    const rfx = rf === 3 ? [566, 656, 746] : pick(RIGHT_FRONT, rf);
+    rfx.forEach((x) => seats.push({ x, y: 356, s: 1.15, f: -1, row: 1 }));
+    const drawRow = (row: 0 | 1) =>
+      ids.forEach((id, i) => {
+        const seat = seats[i];
+        if (!seat || seat.row !== row) return;
+        const def = this.app.data.characters[id];
+        // 偶爾揮手或拍手（不擋臉），每個人錯開時間
+        const wave = Math.floor(this.t / 50 + i * 1.7) % 5 === 0;
+        const pose = getPose(wave ? (i % 2 ? 'wave2' : 'clap') : `idle_${Math.floor(this.t / 30 + i) % 2}`);
+        drawFigure(ctx, def, { pose, x: seat.x, y: seat.y, facing: seat.f, scale: seat.s, tick: this.t, expression: wave ? 'happy' : 'normal', sticker: true });
+      });
+    drawRow(0);
+    drawDeskRow(ctx, 20, 290, 256, -1);
+    drawDeskRow(ctx, 510, 780, 256, 1);
+    drawRow(1);
+    drawDeskRow(ctx, 8, 292, 348, -1);
+    drawDeskRow(ctx, 508, 792, 348, 1);
     text(ctx, '台灣大亂鬥', VW / 2, 110, 64, '#ffd23f', 'center', true, true);
     text(ctx, 'TAIWAN BRAWL', VW / 2, 145, 22, '#ffffff', 'center', true, true);
     this.options.forEach((o, i) => button(ctx, o, VW / 2, 222 + i * 40, 200, this.sel === i));
-    if (this.firstRun && (this.t >> 4) % 2 === 0) {
-      // 第一次玩：在「新手教學」旁邊閃爍提示
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.roundRect?.(VW / 2 + 108, 222 + 2 * 40 + 6, 120, 24, 12);
-      ctx.fill();
-      text(ctx, '第一次玩？約 30 秒', VW / 2 + 168, 222 + 2 * 40 + 23, 12, '#fff', 'center');
-    }
+    // 第一次玩：在「新手教學」旁邊安靜地備註（不閃爍）
+    if (this.firstRun) text(ctx, '← 第一次玩？約 30 秒', VW / 2 + 110, 222 + 2 * 40 + 23, 12, '#fde68a', 'left', false, true);
     if (touchMode()) hint(ctx, '點「攻擊」或選單開始　·　左半邊按住＝搖桿　·　推搖桿方向再點「必殺」放必殺技');
     else hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵、數字鍵 1/2/3　·　必殺技：按住防禦＋方向，再按攻擊或跳躍');
   }

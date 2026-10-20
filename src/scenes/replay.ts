@@ -201,7 +201,7 @@ export class ReplayScene extends Scene {
 }
 
 function clock(ticks: number): string {
-  const sec = Math.floor(ticks / CONFIG.tickRate);
+  const sec = Math.floor(ticks / (CONFIG.tickRate * CONFIG.gameSpeed));
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 }
 

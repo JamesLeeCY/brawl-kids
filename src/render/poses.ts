@@ -65,6 +65,16 @@ export const POSES: Record<string, Pose> = {
   place: { t: 30, bua: 20, bfa: 30, fua: 60, ffa: 40, bth: -40, bsh: 35, fth: 45, fsh: -35, dy: 8 },
   jet_up: { t: 0, bua: -25, bfa: -15, fua: 25, ffa: 15, bth: -5, bsh: -5, fth: 10, fsh: 0 },
 
+  // 慶祝姿勢：舉起的手往後上方、往前的手停在下巴以下，不擋臉
+  cheer_back: { t: -6, bua: 20, bfa: 40, fua: -150, ffa: -170, bth: -10, bsh: -8, fth: 10, fsh: 8 },
+  wave: { t: -4, bua: -150, bfa: -120, fua: 20, ffa: 35, bth: -8, bsh: -6, fth: 8, fsh: 6 },
+  wave2: { t: -4, bua: -150, bfa: -178, fua: 20, ffa: 35, bth: -8, bsh: -6, fth: 8, fsh: 6, dy: 1 },
+  fist_pump: { t: -8, bua: -160, bfa: -175, fua: 32, ffa: 95, bth: -12, bsh: -6, fth: 14, fsh: 4 },
+  thumbs: { t: -4, bua: 15, bfa: 30, fua: 50, ffa: 85, bth: -10, bsh: -6, fth: 10, fsh: 6 },
+  clap: { t: -2, bua: 45, bfa: 85, fua: 50, ffa: 88, bth: -6, bsh: -6, fth: 6, fsh: 6 },
+  clap2: { t: -2, bua: 32, bfa: 65, fua: 62, ffa: 92, bth: -6, bsh: -6, fth: 6, fsh: 6, dy: 1 },
+  flex: { t: -6, bua: -100, bfa: -175, fua: 20, ffa: 30, bth: -14, bsh: -8, fth: 16, fsh: 6 },
+  hop: { t: -10, bua: -140, bfa: -160, fua: -130, ffa: -150, bth: 30, bsh: -50, fth: 50, fsh: -20, dy: -4 },
   grab: { t: 10, bua: 70, bfa: 60, fua: 80, ffa: 70, ...stance },
   carry: { t: 0, bua: 165, bfa: 175, fua: 160, ffa: 175, bth: -6, bsh: -6, fth: 6, fsh: 6 },
 };

@@ -2,6 +2,8 @@
 
 export const CONFIG = {
   tickRate: 60,
+  /** 整體遊戲速度（實際每秒跑 tickRate × gameSpeed 個 tick）：稍慢一點讓招式比較好打中；只影響時間流速，不影響決定論 */
+  gameSpeed: 0.85,
   maxCatchUpTicks: 5,
 
   view: {

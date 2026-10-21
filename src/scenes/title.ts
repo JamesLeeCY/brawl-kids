@@ -56,17 +56,18 @@ export class TitleScene extends Scene {
     const ids = this.app.data.selectable;
     const LEFT_BACK = [56, 122, 188, 254];
     const LEFT_FRONT = [44, 114, 184, 254];
-    const RIGHT_BACK = [546, 612, 678, 744];
-    const RIGHT_FRONT = [556, 636, 716, 776];
+    // 右側與左側左右對稱
+    const RIGHT_BACK = LEFT_BACK.map((x) => VW - x).reverse();
+    const RIGHT_FRONT = LEFT_FRONT.map((x) => VW - x).reverse();
     const seats: { x: number; y: number; s: number; f: 1 | -1; row: 0 | 1 }[] = [];
     const left = Math.ceil(ids.length / 2);
     const right = ids.length - left;
     const pick = (arr: number[], n: number) => arr.slice(0, n);
     pick(LEFT_BACK, Math.ceil(left / 2)).forEach((x) => seats.push({ x, y: 266, s: 1.0, f: 1, row: 0 }));
     pick(LEFT_FRONT, Math.floor(left / 2)).forEach((x) => seats.push({ x, y: 356, s: 1.15, f: 1, row: 1 }));
-    pick(RIGHT_BACK, Math.ceil(right / 2)).forEach((x) => seats.push({ x, y: 266, s: 1.0, f: -1, row: 0 }));
+    RIGHT_BACK.slice(RIGHT_BACK.length - Math.ceil(right / 2)).forEach((x) => seats.push({ x, y: 266, s: 1.0, f: -1, row: 0 }));
     const rf = Math.floor(right / 2);
-    const rfx = rf === 3 ? [566, 656, 746] : pick(RIGHT_FRONT, rf);
+    const rfx = rf === 3 ? [566, 656, 746] : RIGHT_FRONT.slice(RIGHT_FRONT.length - rf);
     rfx.forEach((x) => seats.push({ x, y: 356, s: 1.15, f: -1, row: 1 }));
     const drawRow = (row: 0 | 1) =>
       ids.forEach((id, i) => {
@@ -88,14 +89,8 @@ export class TitleScene extends Scene {
     text(ctx, 'TAIWAN BRAWL', VW / 2, 145, 22, '#ffffff', 'center', true, true);
     this.options.forEach((o, i) => button(ctx, o, VW / 2, 222 + i * 40, 200, this.sel === i));
     // 第一次玩：在「新手教學」旁邊安靜地備註（不閃爍）
-    if (this.firstRun) {
-      // 深色底，疊在議員席上也看得清楚
-      ctx.fillStyle = 'rgba(15,12,30,0.78)';
-      ctx.beginPath();
-      ctx.roundRect?.(VW / 2 + 104, 222 + 2 * 40 + 7, 138, 22, 11);
-      ctx.fill();
-      text(ctx, '← 第一次玩？約 30 秒', VW / 2 + 114, 222 + 2 * 40 + 23, 12, '#fde68a', 'left', false);
-    }
+    // 第一次玩：在「新手教學」按鈕裡、文字右側小小備註（不閃爍、不擋到旁邊的角色）
+    if (this.firstRun) text(ctx, '第一次玩', VW / 2 + 92, 222 + 2 * 40 + 22, 11, this.sel === 2 ? '#7c2d12' : '#fde68a', 'right', true);
     if (touchMode()) hint(ctx, '點「攻擊」或選單開始　·　左半邊按住＝搖桿　·　推搖桿方向再點「必殺」放必殺技');
     else hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵、數字鍵 1/2/3　·　必殺技：按住防禦＋方向，再按攻擊或跳躍');
   }

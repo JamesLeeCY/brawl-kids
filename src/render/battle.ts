@@ -809,6 +809,8 @@ export class BattleRenderer {
       case 'dumbbell':
       case 'mic':
       case 'candle':
+      case 'cat':
+      case 'dog':
       case 'tweet':
       case 'bun':
       case 'pudding':
@@ -825,7 +827,8 @@ export class BattleRenderer {
       case 'bundrop':
       case 'puddingdrop':
       case 'sunflowerdrop':
-      case 'fireworkdrop': {
+      case 'fireworkdrop':
+      case 'catdrop': {
         const k = f ? p.frameTime / f.duration : 1;
         const by = HZ + p.z - Math.max(0, 1 - k * 2.2) * 260;
         ctx.shadowBlur = 0;
@@ -1131,6 +1134,86 @@ export function drawIcon(ctx: CanvasRenderingContext2D, kind: string, x: number,
     case 'star':
       star(ctx, 0, 0, 8, color);
       break;
+    case 'cat': {
+      // 灰色虎斑貓（想想 / 阿才）：往前撲的姿勢
+      const bob = Math.sin(tick * 0.4 + seed) * 1.2;
+      ctx.translate(0, bob);
+      ctx.fillStyle = '#b9b2a8';
+      ctx.strokeStyle = '#5a4a3e';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(-2, 1, 7, 4.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(3, -4);
+      ctx.lineTo(4.5, -9);
+      ctx.lineTo(6.5, -5.5);
+      ctx.lineTo(9.5, -8);
+      ctx.lineTo(9.5, -3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(6.5, -1.5, 4.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = '#7d7368';
+      ctx.beginPath();
+      ctx.moveTo(-6, -2);
+      ctx.lineTo(-5, 1);
+      ctx.moveTo(-3, -2.6);
+      ctx.lineTo(-2, 0.6);
+      ctx.moveTo(-9, 0);
+      ctx.quadraticCurveTo(-13, -4, -11, -7);
+      ctx.stroke();
+      ctx.fillStyle = '#2b211c';
+      ctx.fillRect(5.4, -2.6, 1, 1.4);
+      ctx.fillRect(8.2, -2.6, 1, 1.4);
+      ctx.fillStyle = '#f29aa3';
+      ctx.fillRect(6.9, -0.8, 1, 0.8);
+      break;
+    }
+    case 'dog': {
+      // 米色狗狗（戴小方巾）：奔跑
+      const step = Math.sin(tick * 0.6 + seed) * 2;
+      ctx.fillStyle = '#e9d3a8';
+      ctx.strokeStyle = '#6b5536';
+      ctx.lineWidth = 1;
+      for (const lx of [-6, -3, 4, 7]) {
+        ctx.fillRect(lx + (lx < 0 ? step : -step) * 0.5, 3, 2.4, 6);
+      }
+      ctx.beginPath();
+      ctx.ellipse(0, 1, 9, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(9, -4, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#c9a774';
+      ctx.beginPath();
+      ctx.ellipse(6, -6, 2, 3.6, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#5fb3a1';
+      ctx.beginPath();
+      ctx.moveTo(5, -1);
+      ctx.lineTo(10, 1);
+      ctx.lineTo(6, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#2b211c';
+      ctx.fillRect(10, -5.5, 1.2, 1.4);
+      ctx.beginPath();
+      ctx.arc(13.6, -3.4, 1.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#6b5536';
+      ctx.beginPath();
+      ctx.moveTo(-9, -1);
+      ctx.quadraticCurveTo(-13, -5, -11, -8);
+      ctx.stroke();
+      break;
+    }
     case 'tweet': {
       // 推文對話框
       ctx.rotate(Math.sin(tick * 0.25 + seed) * 0.15);

@@ -1,0 +1,303 @@
+{
+  "id": "tsai",
+  "name": "蔡英雯",
+  "title": "貓狗大家長",
+  "accessory": "cat",
+  "quote": "想想、阿才，一起加油！",
+  "stats": {
+    "hp": 550,
+    "walkSpeed": 2.6,
+    "runSpeed": 5.7,
+    "jumpPower": 9.0,
+    "weight": 1.0
+  },
+  "palette": {
+    "skin": "#f6d2b8",
+    "main": "#e9e4da",
+    "accent": "#5fb3a1",
+    "hair": "#2a2320"
+  },
+  "look": {
+    "hair": "bob",
+    "glasses": true,
+    "roundGlasses": true
+  },
+  "frames": {
+    "catpounce_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "catpounce_2",
+      "sound": "special"
+    },
+    "catpounce_2": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "catpounce_3",
+      "spawn": [
+        {
+          "id": "cat",
+          "x": 24,
+          "y": 38,
+          "vx": 7.5,
+          "dz": -8
+        }
+      ]
+    },
+    "catpounce_3": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "catpounce_rec",
+      "spawn": [
+        {
+          "id": "cat",
+          "x": 24,
+          "y": 38,
+          "vx": 7.5,
+          "dz": 8
+        }
+      ]
+    },
+    "catpounce_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "dogs_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "dogs_2",
+      "sound": "special"
+    },
+    "dogs_2": {
+      "duration": 16,
+      "pose": "cast",
+      "next": "dogs_rec",
+      "spawn": [
+        {
+          "id": "dog",
+          "x": 26,
+          "y": 12,
+          "vx": 6
+        },
+        {
+          "id": "dog",
+          "x": 10,
+          "y": 12,
+          "vx": 5.2,
+          "dz": 18
+        },
+        {
+          "id": "dog",
+          "x": 10,
+          "y": 12,
+          "vx": 5.2,
+          "dz": -18
+        }
+      ]
+    },
+    "dogs_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "bento_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "sound": "special",
+      "heal": 110
+    },
+    "steady_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "steady_2",
+      "sound": "special"
+    },
+    "steady_2": {
+      "duration": 16,
+      "pose": "dash",
+      "next": "steady_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 10.5
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "steady_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "catrain_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "catrain_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "catdrop",
+          "at": "random",
+          "count": 6,
+          "y": 0
+        }
+      ]
+    },
+    "catrain_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "spicy_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "dmgReduce",
+        "value": 0.5,
+        "duration": 180
+      }
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "想想飛撲",
+      "mp": 60,
+      "startFrame": "catpounce_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "汪汪大隊",
+      "mp": 100,
+      "startFrame": "dogs_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "暖心便當",
+      "mp": 140,
+      "startFrame": "bento_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "穩穩前進",
+      "mp": 80,
+      "startFrame": "steady_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "貓咪雨",
+      "mp": 150,
+      "startFrame": "catrain_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "辣台妹",
+      "mp": 130,
+      "startFrame": "spicy_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "cat": {
+      "life": 60,
+      "size": 11,
+      "hitLimit": 2,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "cat",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -10,
+              "y": -9,
+              "w": 20,
+              "h": 18,
+              "damage": 20,
+              "fall": 16,
+              "dvx": 2,
+              "hitstop": 3
+            }
+          ]
+        }
+      },
+      "homing": 0.06
+    },
+    "dog": {
+      "life": 80,
+      "size": 16,
+      "hitLimit": 3,
+      "startFrame": "run",
+      "frames": {
+        "run": {
+          "duration": 1,
+          "pose": "dog",
+          "next": "run",
+          "itr": [
+            {
+              "x": -16,
+              "y": -12,
+              "w": 32,
+              "h": 24,
+              "damage": 32,
+              "fall": 70,
+              "dvx": 5,
+              "dvy": 5,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    },
+    "catdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "catdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 36,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

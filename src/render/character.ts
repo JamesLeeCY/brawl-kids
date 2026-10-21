@@ -1,5 +1,5 @@
 // 程式繪製的 Q 版角色（約 2 頭身、A 字形身體、彩色線稿），依骨架姿勢畫出，面向左時水平翻轉。
-// 畫風參考 Q 版角色畫法：頭大身小、五官放低、大眼睛加星形亮點、圓胖手腳、描邊用各部位本色的深色；選單可加貼紙風白邊。
+// 畫風：手繪賀卡風的 Q 版（細細的暖褐色描邊、柔和的粉彩配色、豆豆眼、圓臉腮紅）；選單可加貼紙風白邊。
 import type { CharacterDef } from '../data/load';
 import type { ItemDef } from '../data/schema';
 import type { Pose } from './poses';
@@ -71,7 +71,29 @@ let olExtra = 0;
 
 /** 彩色線稿：描邊用該部位本色的深色（比全黑柔和，仍保有輪廓） */
 function outlineOf(color: string): string {
-  return olOverride ?? (color === '#ffffff' ? OUTLINE : shade(color, -0.62));
+  if (olOverride) return olOverride;
+  // 手繪風：線條用本色的深色、再往暖褐色靠，比全黑柔和
+  return mix(color === '#ffffff' ? '#8a7a6a' : shade(color, -0.55), '#4a3a2e', 0.45);
+}
+
+/** 兩色混合（t = 0 → a，1 → b） */
+function mix(a: string, b: string, t: number): string {
+  const p = (c: string) => {
+    if (c.startsWith('#')) {
+      const n = parseInt(c.slice(1), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+    const m = c.match(/\d+(\.\d+)?/g) ?? ['0', '0', '0'];
+    return [Number(m[0]), Number(m[1]), Number(m[2])];
+  };
+  const x = p(a);
+  const y = p(b);
+  return `rgb(${(x[0] + (y[0] - x[0]) * t) | 0},${(x[1] + (y[1] - x[1]) * t) | 0},${(x[2] + (y[2] - x[2]) * t) | 0})`;
+}
+
+/** 粉彩化：往暖白色靠一點，降低飽和度（手繪賀卡的柔和配色） */
+export function pastel(color: string, amt = 0.16): string {
+  return mix(color, '#f6efe4', amt);
 }
 
 /** 肢體：先畫較粗的深色描邊再畫本色 */
@@ -83,7 +105,7 @@ function limb(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number,
   ctx.lineTo(x1, y1);
   ctx.lineTo(x2, y2);
   ctx.strokeStyle = outlineOf(color);
-  ctx.lineWidth = w + 3.2 + olExtra;
+  ctx.lineWidth = w + 2.2 + olExtra;
   ctx.stroke();
   ctx.strokeStyle = color;
   ctx.lineWidth = w;
@@ -97,7 +119,7 @@ function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, 
   ctx.fill();
 }
 
-function circleOl(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, lw = 1.6) {
+function circleOl(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, lw = 1.25) {
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.strokeStyle = outlineOf(color);
@@ -142,11 +164,11 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   const s = o.scale ?? 1;
   const W = o.flash ? '#ffffff' : null;
   const pal = def.palette;
-  const skin = W ?? pal.skin;
-  const main = W ?? pal.main;
-  const hair = W ?? pal.hair;
-  const pants = W ?? shade(pal.main, -0.35);
-  const backMain = W ?? shade(pal.main, -0.18);
+  const skin = W ?? pastel(pal.skin, 0.12);
+  const main = W ?? pastel(pal.main);
+  const hair = W ?? pastel(pal.hair, 0.08);
+  const pants = W ?? pastel(shade(pal.main, -0.35));
+  const backMain = W ?? pastel(shade(pal.main, -0.18));
   const shoeColor = W ?? '#3a3330';
   const acc = def.accessory;
 
@@ -227,7 +249,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   ctx.quadraticCurveTo(-9, -20.5, -6, -20.5);
   ctx.closePath();
   ctx.strokeStyle = W && !silhouette ? OUTLINE : outlineOf(pal.main);
-  ctx.lineWidth = 2.2 + olExtra;
+  ctx.lineWidth = 1.7 + olExtra;
   if (silhouette) ctx.stroke();
   ctx.fillStyle = main;
   ctx.fill();
@@ -345,7 +367,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
       circle(ctx, head.x - 5, head.y - 18, 2.5, '#ef4444');
     }
   } else {
-    circleOl(ctx, head.x, head.y, 11, skin, 2);
+    circleOl(ctx, head.x, head.y, 11, skin, 1.5);
     if (silhouette) drawHair(ctx, head.x, head.y, look.hair, '#ffffff');
     if (!W) {
       ctx.fillStyle = 'rgba(0,0,0,0.12)';
@@ -380,6 +402,9 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   // ---- 前側手臂 ----
   limb(ctx, sh.x, sh.y, fArm.el.x, fArm.el.y, fArm.hand.x, fArm.hand.y, 6.5, armFront);
   circleOl(ctx, fArm.hand.x, fArm.hand.y, 4, skin);
+
+  // ---- 抱在懷裡的貓（配件 cat）----
+  if (acc === 'cat' && !W && !o.held) drawHeldCat(ctx, fArm.hand.x, fArm.hand.y);
 
   // ---- 手持物 ----
   if (o.held) {
@@ -465,6 +490,27 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
       ctx.fillRect(x - 6, y - 9, 6, 3);
       ctx.fillStyle = '#1f1f1f';
       ctx.fillRect(x - 12, y - 2, 5, 5);
+      return;
+    case 'bob':
+      // 蓬鬆的鮑伯短髮：蓋住耳朵、前方有瀏海，髮尾到下巴
+      ctx.beginPath();
+      ctx.moveTo(x - 12.5, y + 8);
+      ctx.quadraticCurveTo(x - 16, y - 6, x - 8, y - 13);
+      ctx.quadraticCurveTo(x + 2, y - 18, x + 11, y - 10.5);
+      ctx.quadraticCurveTo(x + 14, y - 6, x + 12.4, y - 1.5);
+      ctx.quadraticCurveTo(x + 7, y - 6.2, x + 1.5, y - 5);
+      ctx.quadraticCurveTo(x - 3, y - 4, x - 4.5, y + 1);
+      ctx.quadraticCurveTo(x - 5.5, y + 6, x - 7.5, y + 9.5);
+      ctx.quadraticCurveTo(x - 10.5, y + 10.5, x - 12.5, y + 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(x - 7, y - 11);
+      ctx.quadraticCurveTo(x - 1, y - 14.5, x + 5, y - 12);
+      ctx.stroke();
       return;
     case 'swoop':
       // 蓬鬆金髮、往前梳的大瀏海
@@ -562,10 +608,10 @@ function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Exp
     ctx.fill();
   }
   // 腮紅（Q 版：大一點、明顯一點）
-  ctx.fillStyle = 'rgba(255,105,120,0.42)';
+  ctx.fillStyle = 'rgba(255,135,145,0.34)';
   ctx.beginPath();
-  ctx.ellipse(x + 3.6, y + 6.6, 2.5, 1.5, 0, 0, Math.PI * 2);
-  ctx.ellipse(x + 10.4, y + 6.4, 1.6, 1.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 3.4, y + 6.4, 2.3, 1.6, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 10.4, y + 6.2, 1.5, 1.2, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // 眼睛（五官放低：額頭留寬；近眼大、遠眼小）
@@ -606,27 +652,14 @@ function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Exp
       }
       ctx.stroke();
     } else {
-      const ry = (expr === 'attack' || expr === 'focus' ? 2.3 : 2.9) * k;
+      // 豆豆眼：深色小橢圓 + 一個小亮點（手繪賀卡風）
+      const sharp = expr === 'attack' || expr === 'focus';
+      const look = expr === 'attack' ? 0.5 : 0.25;
       ctx.beginPath();
-      ctx.ellipse(cx, cy, 2.4 * k, ry, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
+      ctx.ellipse(cx + look, cy + 0.4, 1.35 * k, (sharp ? 1.35 : 1.85) * k, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#2b211c';
       ctx.fill();
-      ctx.strokeStyle = ink;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-      const look = expr === 'attack' ? 0.7 : 0.4;
-      // 大大的瞳孔：上深下淺的漸層感 + 兩個亮點（大圓點＋小星光）
-      circle(ctx, cx + look, cy + 0.3, 1.75 * k, '#3a2418');
-      circle(ctx, cx + look, cy + 0.9, 1.05 * k, '#6b4329');
-      circle(ctx, cx + look, cy + 0.2, 0.7 * k, '#120a06');
-      circle(ctx, cx + look + 0.65, cy - 0.65, 0.62 * k, '#ffffff');
-      sparkle(ctx, cx + look - 0.75, cy + 1.05, 0.55 * k);
-      // 上眼瞼（睫毛線）
-      ctx.strokeStyle = ink;
-      ctx.lineWidth = 1.3;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, 2.5 * k, ry, 0, Math.PI * 1.08, Math.PI * 1.92);
-      ctx.stroke();
+      circle(ctx, cx + look + 0.45 * k, cy - 0.3 * k, 0.5 * k, '#ffffff');
     }
   }
 
@@ -720,10 +753,23 @@ function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Exp
   }
 
   // 眼鏡（疊在眼睛上）
-  if (look.glasses) {
+  if (look.glasses && look.roundGlasses) {
+    // 細框圓眼鏡
+    ctx.strokeStyle = '#3b3029';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.ellipse(x + 4.6, y + 2.4, 3.3, 3.1, 0, 0, Math.PI * 2);
+    ctx.moveTo(x + 12.4, y + 2.2);
+    ctx.ellipse(x + 10, y + 2.2, 2.4, 2.9, 0, 0, Math.PI * 2);
+    ctx.moveTo(x + 7.9, y + 1.8);
+    ctx.lineTo(x + 7.6, y + 1.8);
+    ctx.moveTo(x + 1.3, y + 1.8);
+    ctx.lineTo(x - 3.6, y + 1);
+    ctx.stroke();
+  } else if (look.glasses) {
     // 招牌眼鏡放大一點（Q 版要凸顯角色特徵）
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#2b2420';
+    ctx.lineWidth = 1.3;
     ctx.beginPath();
     rrPath(ctx, x + 0.9, y - 1.6, 7, 7, 2);
     rrPath(ctx, x + 7.9, y - 1.4, 4.8, 6.6, 1.8);
@@ -737,16 +783,45 @@ function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Exp
   }
 }
 
-/** 四角星形亮點 */
-function sparkle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
-  ctx.fillStyle = '#ffffff';
+/** 抱在手上的小貓（灰虎斑），(x, y) 為手的位置 */
+function drawHeldCat(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+  const fur = '#b9b2a8';
+  const ol = '#5a4a3e';
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = ol;
+  // 身體
+  ctx.fillStyle = fur;
   ctx.beginPath();
-  ctx.moveTo(x, y - r * 1.6);
-  ctx.quadraticCurveTo(x, y, x + r * 1.6, y);
-  ctx.quadraticCurveTo(x, y, x, y + r * 1.6);
-  ctx.quadraticCurveTo(x, y, x - r * 1.6, y);
-  ctx.quadraticCurveTo(x, y, x, y - r * 1.6);
+  ctx.ellipse(x + 1, y - 2, 4.6, 3.6, -0.2, 0, Math.PI * 2);
   ctx.fill();
+  ctx.stroke();
+  // 頭與耳朵
+  ctx.beginPath();
+  ctx.moveTo(x + 2.4, y - 8.2);
+  ctx.lineTo(x + 3.4, y - 11.4);
+  ctx.lineTo(x + 5, y - 9);
+  ctx.lineTo(x + 7.4, y - 10.8);
+  ctx.lineTo(x + 7.6, y - 7.4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x + 5, y - 6.6, 3.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  // 虎斑紋、眼睛、粉紅鼻子
+  ctx.strokeStyle = '#7d7368';
+  ctx.beginPath();
+  ctx.moveTo(x + 4.2, y - 9.6);
+  ctx.lineTo(x + 4.6, y - 8.4);
+  ctx.moveTo(x - 1.5, y - 4.5);
+  ctx.lineTo(x - 0.5, y - 2.5);
+  ctx.moveTo(x + 1, y - 5.2);
+  ctx.lineTo(x + 1.8, y - 3);
+  ctx.stroke();
+  circle(ctx, x + 4.1, y - 6.6, 0.6, '#2b211c');
+  circle(ctx, x + 6.4, y - 6.6, 0.6, '#2b211c');
+  circle(ctx, x + 5.3, y - 5.5, 0.45, '#f29aa3');
 }
 
 function rrPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {

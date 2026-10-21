@@ -26,6 +26,7 @@ const CELEBRATIONS: Record<string, Celebration> = {
   pudding: { poses: ['flex', 'cheer_back'], icon: 'pudding' },
   zelensky: { poses: ['fist_pump', 'wave2'], icon: 'sunflower' },
   kim: { poses: ['clap', 'clap2'], icon: 'firework' },
+  tsai: { poses: ['wave', 'wave2'], icon: 'cat' },
 };
 const DEFAULT: Celebration = { poses: ['cheer_back', 'wave'], icon: 'star' };
 

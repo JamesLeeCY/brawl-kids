@@ -7,6 +7,7 @@ import { BattleScene } from './battle';
 import { ROUTES, randomCampaignRoute } from './campaign';
 import { Scene, type App, type MenuInput } from './scene';
 import { button, hint, menuBackground } from './ui';
+import { speedValue } from '../speed';
 
 const VW = CONFIG.view.width;
 
@@ -39,6 +40,7 @@ export function buildSetup(
     players,
     campaignIndex,
     campaignDifficulty,
+    speed: speedValue(app.settings.speed),
     campaignLength: mode === 'campaign' ? campaignLength : undefined,
     campaignStages: mode === 'campaign' ? campaignStages : undefined,
     campaignRoute: mode === 'campaign' ? campaignRoute : undefined,
@@ -161,7 +163,7 @@ export class ModeScene extends Scene {
     const d = DUMMIES[this.dummyIdx];
     // 站著不動的沙包：設成真人但這個欄位沒有人按鍵，所以不會動
     players.push({ slot: free, charId: this.dummyCharId, team: 2, controller: d.ai ? 'ai' : 'human', difficulty: d.ai ?? 'normal' });
-    return { mode: 'versus', stageId: this.app.data.stageOrder[this.stageIdx], seed: (Date.now() ^ (performance.now() * 1000)) >>> 0, players, practice: true };
+    return { mode: 'versus', stageId: this.app.data.stageOrder[this.stageIdx], seed: (Date.now() ^ (performance.now() * 1000)) >>> 0, players, practice: true, speed: speedValue(this.app.settings.speed) };
   }
 
   private start(): void {

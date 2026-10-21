@@ -9,6 +9,7 @@ import { decodeReplay, replayInputs, type Replay } from '../replay/replay';
 import { campaignLength, World } from '../sim/world';
 import { Scene, type App, type MenuInput } from './scene';
 import { hint, menuBackground, overlay } from './ui';
+import { setGameSpeed, speedValue, tickMs } from '../speed';
 
 const VH = CONFIG.view.height;
 /** 跳轉時每個畫面 tick 最多模擬幾個 tick（避免長比賽一次卡住太久） */
@@ -47,6 +48,7 @@ export class ReplayScene extends Scene {
   ) {
     super(app);
     this.world = new World(app.data, replay.setup);
+    setGameSpeed(replay.setup.speed ?? speedValue(app.settings.speed));
     this.renderer = new BattleRenderer(this.world);
   }
 
@@ -201,7 +203,7 @@ export class ReplayScene extends Scene {
 }
 
 function clock(ticks: number): string {
-  const sec = Math.floor(ticks / (CONFIG.tickRate * CONFIG.gameSpeed));
+  const sec = Math.floor((ticks * tickMs()) / 1000);
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 }
 

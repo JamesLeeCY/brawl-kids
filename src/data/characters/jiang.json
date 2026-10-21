@@ -116,7 +116,8 @@
         "type": "dmgReduce",
         "value": 0.5,
         "duration": 180
-      }
+      },
+      "say": "市民護盾！"
     },
     "truck_1": {
       "duration": 8,
@@ -165,7 +166,8 @@
       "duration": 24,
       "pose": "cast_up",
       "sound": "special",
-      "heal": 100
+      "heal": 100,
+      "say": "市民便當！"
     }
   },
   "moves": [

@@ -179,7 +179,8 @@
           "count": 6,
           "y": 0
         }
-      ]
+      ],
+      "say": "股災落雷！"
     },
     "crash_rec": {
       "duration": 10,
@@ -193,7 +194,8 @@
         "type": "dmgReduce",
         "value": 0.5,
         "duration": 180
-      }
+      },
+      "say": "停損護盾！"
     }
   },
   "moves": [

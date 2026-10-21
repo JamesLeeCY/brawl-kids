@@ -5,7 +5,7 @@
   "accessory": "stethoscope",
   "quote": "醫生建議：多休息！",
   "stats": {
-    "hp": 510,
+    "hp": 495,
     "walkSpeed": 2.3,
     "runSpeed": 5.0,
     "jumpPower": 8.5,
@@ -69,7 +69,8 @@
         "type": "dmgReduce",
         "value": 0.3,
         "duration": 90
-      }
+      },
+      "say": "仁心回春！"
     },
     "slam_1": {
       "duration": 10,
@@ -167,7 +168,8 @@
         "type": "dmgReduce",
         "value": 0.5,
         "duration": 180
-      }
+      },
+      "say": "定錨護體！"
     }
   },
   "moves": [

@@ -59,7 +59,8 @@
           "count": 6,
           "y": 0
         }
-      ]
+      ],
+      "say": "白色力量！"
     },
     "white_rec": {
       "duration": 10,
@@ -172,7 +173,8 @@
         "type": "blockProjectile",
         "value": 1,
         "duration": 240
-      }
+      },
+      "say": "數據護盾！"
     }
   },
   "moves": [

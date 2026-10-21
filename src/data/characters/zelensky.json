@@ -90,7 +90,8 @@
         "type": "dmgReduce",
         "value": 0.5,
         "duration": 180
-      }
+      },
+      "say": "綠 T 硬漢！"
     },
     "servant_1": {
       "duration": 5,
@@ -138,7 +139,8 @@
           "count": 6,
           "y": 0
         }
-      ]
+      ],
+      "say": "向日葵花海！"
     },
     "field_rec": {
       "duration": 10,

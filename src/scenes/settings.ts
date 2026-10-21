@@ -7,6 +7,7 @@ import { ACTIONS } from '../sim/snapshot';
 import { Scene, type MenuInput } from './scene';
 import { hint, menuBackground } from './ui';
 import { applyQualitySetting, type QualitySetting } from '../render/quality';
+import { SPEEDS, setGameSpeed, speedValue } from '../speed';
 
 const QUALITIES: { id: QualitySetting; label: string }[] = [
   { id: 'auto', label: '自動（跑太慢時自動降低）' },
@@ -15,8 +16,9 @@ const QUALITIES: { id: QualitySetting; label: string }[] = [
 ];
 
 const VW = CONFIG.view.width;
-const ROWS = ACTIONS.length + 6; // 7 個按鍵 + 主音量 + 音效音量 + 音樂音量 + 畫質 + 恢復預設 + 返回
+const ROWS = ACTIONS.length + 7; // 7 個按鍵 + 主音量 + 音效音量 + 音樂音量 + 畫質 + 遊戲速度 + 恢復預設 + 返回
 const ROW_QUALITY = ACTIONS.length + 3;
+const ROW_SPEED = ACTIONS.length + 4;
 const VOLUME_KEYS = ['masterVolume', 'sfxVolume', 'musicVolume'] as const;
 
 export class SettingsScene extends Scene {
@@ -52,10 +54,18 @@ export class SettingsScene extends Scene {
         applyQualitySetting(s.quality);
         this.apply();
       }
-    } else if (this.row === ACTIONS.length + 4 && a.A) {
+    } else if (this.row === ROW_SPEED) {
+      const step = a.right || a.A ? 1 : a.left ? -1 : 0;
+      if (step) {
+        const i = SPEEDS.findIndex((x) => x.id === s.speed);
+        s.speed = SPEEDS[(i + SPEEDS.length + step) % SPEEDS.length].id;
+        setGameSpeed(speedValue(s.speed));
+        this.apply();
+      }
+    } else if (this.row === ACTIONS.length + 5 && a.A) {
       s.bindings = DEFAULT_BINDINGS.map((b) => ({ ...b }));
       this.apply();
-    } else if (this.row === ACTIONS.length + 5 && a.A) this.app.scenes.pop();
+    } else if (this.row === ACTIONS.length + 6 && a.A) this.app.scenes.pop();
   }
 
   private startRebind(): void {
@@ -99,7 +109,7 @@ export class SettingsScene extends Scene {
     for (let p = 0; p < HUMAN_PLAYERS; p++) text(ctx, `${p + 1}P`, x0 + p * cw + cw / 2, 80, 15, ['#ff5a5a', '#4da6ff'][p], 'center');
     const s = this.app.settings;
     ACTIONS.forEach((a, r) => {
-      const y = 92 + r * 28;
+      const y = 90 + r * 26;
       text(ctx, ACTION_LABELS[a], x0 - 20, y + 19, 14, '#fff', 'right');
       for (let p = 0; p < HUMAN_PLAYERS; p++) {
         const sel = this.row === r && this.col === p;
@@ -110,14 +120,14 @@ export class SettingsScene extends Scene {
         text(ctx, label, x0 + p * cw + cw / 2, y + 17, 13, sel ? '#111' : '#fff', 'center');
       }
     });
-    const vy = 92 + ACTIONS.length * 28 + 8;
+    const vy = 90 + ACTIONS.length * 26 + 6;
     const vols: [string, number][] = [
       ['主音量', s.masterVolume],
       ['音效音量', s.sfxVolume],
       ['音樂音量', s.musicVolume],
     ];
     vols.forEach(([label, v], i) => {
-      const y = vy + i * 26;
+      const y = vy + i * 24;
       const sel = this.row === ACTIONS.length + i;
       text(ctx, label, x0 - 20, y + 18, 14, sel ? '#ffd23f' : '#fff', 'right');
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
@@ -127,14 +137,21 @@ export class SettingsScene extends Scene {
       text(ctx, `${Math.round(v * 100)}%`, x0 + 420, y + 18, 13, '#fff');
     });
     // 畫質
-    const qy = vy + 78;
+    const qy = vy + 72;
     const qsel = this.row === ROW_QUALITY;
     const q = QUALITIES.find((x) => x.id === s.quality) ?? QUALITIES[0];
     text(ctx, '畫質', x0 - 20, qy + 18, 14, qsel ? '#ffd23f' : '#fff', 'right');
     text(ctx, qsel ? `◀ ${q.label} ▶` : q.label, x0 + 8, qy + 18, 14, qsel ? '#ffd23f' : '#fff', 'left');
-    const by = vy + 104;
-    text(ctx, '恢復預設按鍵', VW / 2 - 90, by + 16, 15, this.row === ACTIONS.length + 4 ? '#ffd23f' : '#fff', 'center');
-    text(ctx, '返回', VW / 2 + 90, by + 16, 15, this.row === ACTIONS.length + 5 ? '#ffd23f' : '#fff', 'center');
+    // 遊戲速度
+    const sy = vy + 96;
+    const ssel = this.row === ROW_SPEED;
+    const sp = SPEEDS.find((x) => x.id === s.speed) ?? SPEEDS[1];
+    text(ctx, '遊戲速度', x0 - 20, sy + 18, 14, ssel ? '#ffd23f' : '#fff', 'right');
+    text(ctx, ssel ? `◀ ${sp.label} ▶` : sp.label, x0 + 8, sy + 18, 14, ssel ? '#ffd23f' : '#fff', 'left');
+    text(ctx, '連線時以房主的設定為準', x0 + 330, sy + 18, 11, 'rgba(255,255,255,0.55)', 'left', false);
+    const by = vy + 120;
+    text(ctx, '恢復預設按鍵', VW / 2 - 90, by + 16, 15, this.row === ACTIONS.length + 5 ? '#ffd23f' : '#fff', 'center');
+    text(ctx, '返回', VW / 2 + 90, by + 16, 15, this.row === ACTIONS.length + 6 ? '#ffd23f' : '#fff', 'center');
     hint(ctx, '方向鍵移動　攻擊鍵 / Enter 重新綁定　左右調整音量　Esc 返回　·　P1 坐左、P2 坐右');
   }
 }

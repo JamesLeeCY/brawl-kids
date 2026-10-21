@@ -22,10 +22,11 @@ import { emptySnapshot, pressedEdges, type Snapshot } from './sim/snapshot';
 import type { World } from './sim/world';
 import type { NetSession } from './net/session';
 import { AutoQuality, applyQualitySetting, lowQuality, onQualityChange } from './render/quality';
+import { setGameSpeed, speedValue, tickMs } from './speed';
 
 const VW = CONFIG.view.width;
 const VH = CONFIG.view.height;
-const STEP = 1000 / (CONFIG.tickRate * CONFIG.gameSpeed);
+// 一個邏輯 tick 的毫秒數依目前的遊戲速度（快 / 中 / 慢）而定
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d', { alpha: false })!;
@@ -120,6 +121,7 @@ function resize(): void {
 }
 window.addEventListener('resize', resize);
 applyQualitySetting(app.settings.quality);
+setGameSpeed(speedValue(app.settings.speed));
 onQualityChange(resize);
 resize();
 const autoQuality = new AutoQuality();
@@ -158,6 +160,7 @@ function tick(codes: string[]): void {
 }
 
 function frame(now: number): void {
+  const STEP = tickMs();
   acc += Math.min(now - last, STEP * CONFIG.maxCatchUpTicks);
   last = now;
   let n = 0;

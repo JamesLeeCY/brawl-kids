@@ -1,0 +1,294 @@
+{
+  "id": "howhow",
+  "name": "豪豪",
+  "title": "業配之王",
+  "accessory": "none",
+  "quote": "這集不是業配……其實是業配！",
+  "stats": {
+    "hp": 510,
+    "walkSpeed": 2.7,
+    "runSpeed": 6.0,
+    "jumpPower": 9.4,
+    "weight": 1.0
+  },
+  "palette": {
+    "skin": "#f2c9a4",
+    "main": "#f59e0b",
+    "accent": "#8b5cf6",
+    "hair": "#1f1a17"
+  },
+  "look": {
+    "hair": "sidepart"
+  },
+  "frames": {
+    "ad_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "ad_2",
+      "sound": "special",
+      "say": "業配！"
+    },
+    "ad_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "ad_rec",
+      "spawn": [
+        {
+          "id": "ad",
+          "x": 24,
+          "y": 36,
+          "vx": 7
+        }
+      ]
+    },
+    "ad_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "song_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "song_2",
+      "sound": "special",
+      "say": "洗腦神曲！"
+    },
+    "song_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "song_rec",
+      "spawn": [
+        {
+          "id": "song",
+          "x": 40,
+          "y": 30,
+          "vx": 2.2
+        }
+      ]
+    },
+    "song_rec": {
+      "duration": 10,
+      "pose": "cast"
+    },
+    "bonus_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "buff": {
+        "type": "dmgReduce",
+        "value": 0.5,
+        "duration": 180
+      },
+      "say": "業主加碼！"
+    },
+    "placement_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "placement_2",
+      "sound": "special"
+    },
+    "placement_2": {
+      "duration": 16,
+      "pose": "dash",
+      "next": "placement_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11.5
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "placement_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "gifts_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "gifts_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "giftdrop",
+          "at": "random",
+          "count": 6,
+          "y": 0
+        }
+      ],
+      "say": "置入性行銷！"
+    },
+    "gifts_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "notejump_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "notejump_2",
+      "sound": "special"
+    },
+    "notejump_2": {
+      "duration": 12,
+      "pose": "jet_up",
+      "hover": true,
+      "selfVel": {
+        "vx": 0,
+        "vy": 7
+      },
+      "buff": {
+        "type": "hover",
+        "value": 1,
+        "duration": 84
+      }
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "業配連發",
+      "mp": 60,
+      "startFrame": "ad_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "洗腦神曲",
+      "mp": 110,
+      "startFrame": "song_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "業主加碼",
+      "mp": 130,
+      "startFrame": "bonus_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "置入衝刺",
+      "mp": 80,
+      "startFrame": "placement_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "置入性行銷",
+      "mp": 150,
+      "startFrame": "gifts_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "音符跳躍",
+      "mp": 60,
+      "startFrame": "notejump_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "ad": {
+      "life": 42,
+      "size": 18,
+      "hitLimit": 4,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "ad",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -16,
+              "y": -16,
+              "w": 32,
+              "h": 32,
+              "damage": 30,
+              "fall": 60,
+              "dvx": 5,
+              "dvy": 4,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    },
+    "song": {
+      "life": 120,
+      "size": 22,
+      "pull": 1.6,
+      "pullRadius": 140,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "spin",
+      "frames": {
+        "spin": {
+          "duration": 1,
+          "pose": "notes",
+          "next": "spin",
+          "itr": [
+            {
+              "x": -20,
+              "y": -26,
+              "w": 40,
+              "h": 52,
+              "damage": 8,
+              "fall": 6,
+              "dvx": 0,
+              "hitstop": 2,
+              "rehit": 15,
+              "zRange": 20
+            }
+          ]
+        }
+      }
+    },
+    "giftdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "giftdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 34,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

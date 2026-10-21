@@ -160,7 +160,8 @@
           "count": 6,
           "y": 0
         }
-      ]
+      ],
+      "say": "包子雨！"
     },
     "bunrain_rec": {
       "duration": 10,
@@ -170,7 +171,8 @@
       "duration": 24,
       "pose": "cast_up",
       "sound": "special",
-      "heal": 100
+      "heal": 100,
+      "say": "蜂蜜補給！"
     }
   },
   "moves": [

@@ -505,13 +505,8 @@
           "enemies": [
             {
               "char": "guardbot",
-              "count": 2,
+              "count": 3,
               "difficulty": "normal"
-            },
-            {
-              "char": "random_main",
-              "count": 1,
-              "difficulty": "easy"
             }
           ]
         },

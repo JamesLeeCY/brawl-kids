@@ -4,11 +4,12 @@
 //   2. 中繼：直連建立不起來時（行動網路的電信級 NAT、公司 / 學校防火牆），改經公用 MQTT broker（WebSocket / 443）轉送。
 // 兩者都不需要自架伺服器或註冊帳號。
 import Peer from 'peerjs';
-import { CONFIG, type Difficulty } from '../config';
+import type { Difficulty } from '../config';
 import type { MatchSetup } from '../sim/world';
 import { Lockstep, MAX_SLOTS, type InputPacket } from './lockstep';
 import { MiniMqtt } from './mqtt';
 import { fetchLatestBuild, reloadToBuild } from '../version';
+import { tickMs } from '../speed';
 
 export interface LobbySlot {
   kind: 'empty' | 'human' | 'ai';
@@ -1129,8 +1130,7 @@ export class NetSession {
       }
     }
     const relay = live.some((l) => l.conn.kind === 'relay');
-    const tickMs = 1000 / (CONFIG.tickRate * CONFIG.gameSpeed);
-    return Math.max(3, Math.min(relay ? 30 : 14, Math.ceil(path / tickMs) + 2));
+    return Math.max(3, Math.min(relay ? 30 : 14, Math.ceil(path / tickMs()) + 2));
   }
 
   sendInput(pkt: InputPacket): void {

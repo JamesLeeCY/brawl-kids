@@ -179,7 +179,8 @@
         "type": "dmgReduce",
         "value": 0.5,
         "duration": 180
-      }
+      },
+      "say": "堅守質詢台！"
     }
   },
   "moves": [

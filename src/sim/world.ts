@@ -40,6 +40,8 @@ export interface MatchSetup {
   campaignIndex?: number;
   /** 闖關難度（預設普通） */
   campaignDifficulty?: Difficulty;
+  /** 遊戲速度倍率（只影響實際時間流速；連線時由房主決定、所有人一致） */
+  speed?: number;
   /** 練習模式（只由畫面層處理：無限 MP、不會倒下、沙包自動回血；模擬本身照對戰規則跑） */
   practice?: boolean;
   /** 闖關總關數（1～campaign 模板數；沒有就是 4 關） */

@@ -86,7 +86,8 @@
         "type": "dmgReduce",
         "value": 0.5,
         "duration": 180
-      }
+      },
+      "say": "肌肉充血！"
     },
     "bulldoze_1": {
       "duration": 5,
@@ -154,7 +155,8 @@
       "duration": 24,
       "pose": "cast_up",
       "sound": "special",
-      "heal": 120
+      "heal": 120,
+      "say": "蛋白粉補給！"
     }
   },
   "moves": [

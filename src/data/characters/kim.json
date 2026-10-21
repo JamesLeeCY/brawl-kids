@@ -79,7 +79,8 @@
       "duration": 24,
       "pose": "cast_up",
       "sound": "special",
-      "heal": 110
+      "heal": 110,
+      "say": "冷麵補給！"
     },
     "belly_1": {
       "duration": 5,
@@ -127,7 +128,8 @@
           "count": 5,
           "y": 0
         }
-      ]
+      ],
+      "say": "煙火大會！"
     },
     "show_rec": {
       "duration": 10,

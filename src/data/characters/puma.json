@@ -49,7 +49,8 @@
       "duration": 8,
       "pose": "cast_ready",
       "next": "vortex_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "反滲透漩渦！"
     },
     "vortex_2": {
       "duration": 12,
@@ -124,7 +125,8 @@
           "count": 5,
           "y": 0
         }
-      ]
+      ],
+      "say": "黑熊雨！"
     },
     "bearrain_rec": {
       "duration": 10,

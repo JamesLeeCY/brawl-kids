@@ -104,7 +104,8 @@
         "type": "blockProjectile",
         "value": 1,
         "duration": 240
-      }
+      },
+      "say": "築一道高牆！"
     },
     "golf_1": {
       "duration": 5,
@@ -152,7 +153,8 @@
           "count": 4,
           "y": 0
         }
-      ]
+      ],
+      "say": "金色大樓從天降！"
     },
     "tower_rec": {
       "duration": 10,

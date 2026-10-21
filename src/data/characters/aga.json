@@ -72,7 +72,8 @@
       "duration": 10,
       "pose": "slam_ready",
       "next": "market_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "夜市震地！"
     },
     "market_2": {
       "duration": 10,
@@ -165,7 +166,8 @@
           "count": 5,
           "y": 0
         }
-      ]
+      ],
+      "say": "拖鞋雨！"
     },
     "slipperrain_rec": {
       "duration": 10,

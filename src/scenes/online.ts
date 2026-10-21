@@ -16,6 +16,7 @@ import { DIFF_LABEL, TEAM_LABEL, moveLabel, touchMode } from './select';
 import { button, hint, menuBackground } from './ui';
 import { ROUTES, randomCampaignRoute } from './campaign';
 import { DEFAULT_CAMPAIGN_LENGTH, defaultCampaignRoute } from '../sim/world';
+import { SPEEDS, speedValue } from '../speed';
 
 const VW = CONFIG.view.width;
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard'];
@@ -500,6 +501,8 @@ export class OnlineSelectScene extends Scene {
     const campaignStages = route === 'random' ? randomCampaignRoute(this.app, this.len) : route === 'custom' ? [...this.stages] : undefined;
     const setup: MatchSetup = {
       mode: o.mode,
+      // 連線比賽用房主的遊戲速度，大家一致
+      speed: speedValue(this.app.settings.speed),
       stageId: o.mode === 'campaign' ? (campaignStages?.[0] ?? this.stages[0]) : o.stageId!,
       campaignLength: o.mode === 'campaign' ? this.len : undefined,
       campaignStages,
@@ -596,7 +599,9 @@ export class OnlineSelectScene extends Scene {
       def.moves.forEach((m, mi) => text(ctx, `${moveLabel(m.command)} ${m.name}`, x + 8 + (mi % 2) * 90, y + 144 + Math.floor(mi / 2) * 14, fs, 'rgba(255,255,255,0.8)', 'left', false));
       if (editing) text(ctx, '方向鍵選角 跳躍換隊 攻擊改難度', x + 94, y + CARD_H - 6, 10, '#fff', 'center');
     }
-    const modeLabel = o.mode === 'campaign' ? `${o.label}・${this.len} 關・${ROUTES[this.routeIdx].label}` : o.label;
+    const sp = SPEEDS.find((x) => x.id === this.app.settings.speed)?.label.slice(0, 1) ?? '中';
+    const speedTag = this.isHost ? `・速度${sp}` : '';
+    const modeLabel = (o.mode === 'campaign' ? `${o.label}・${this.len} 關・${ROUTES[this.routeIdx].label}` : o.label) + speedTag;
     const hostPick = this.isHost && !this.me.ready;
     button(ctx, hostPick ? `模式：${modeLabel}（${this.onMode ? '←→ 切換' : '↓ 到這裡切換'}）` : `模式：${modeLabel}`, VW / 2, MODE_Y, 460, hostPick && this.onMode);
     if (this.routeCursor >= 0) this.renderRouteEditor(ctx);

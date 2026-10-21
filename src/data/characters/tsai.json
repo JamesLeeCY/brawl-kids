@@ -106,7 +106,8 @@
       "duration": 24,
       "pose": "cast_up",
       "sound": "special",
-      "heal": 110
+      "heal": 110,
+      "say": "暖心便當！"
     },
     "steady_1": {
       "duration": 5,

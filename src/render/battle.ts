@@ -728,6 +728,14 @@ export class BattleRenderer {
         ctx.fill();
         ctx.restore();
         break;
+      case 'notes': {
+        // 洗腦神曲：一圈繞著轉的音符
+        for (let i = 0; i < 6; i++) {
+          const a = w.tick * 0.12 + (i / 6) * Math.PI * 2;
+          drawIcon(ctx, 'note', x + Math.cos(a) * 20, y + Math.sin(a) * 10 - 6, 1.1, 1, i % 2 ? '#8b5cf6' : '#ec4899', w.tick, i);
+        }
+        break;
+      }
       case 'shock': {
         // ECMO 電擊球
         ctx.fillStyle = '#e0f7ff';
@@ -861,9 +869,11 @@ export class BattleRenderer {
       case 'talk':
       case 'fired':
       case 'joke':
-      case 'shout': {
+      case 'shout':
+      case 'score':
+      case 'ad': {
         // 文字聲波：哈哈 / 讚啦 / 質詢 / 你被開除！ / 哈！
-        const words: Record<string, string> = { laugh: '哈哈', zan: '讚啦', talk: '質詢！', fired: '你被開除！', joke: '哈！', shout: '說清楚！' };
+        const words: Record<string, string> = { laugh: '哈哈', zan: '讚啦', talk: '質詢！', fired: '你被開除！', joke: '哈！', shout: '說清楚！', score: '10分！', ad: '業配！' };
         const word = words[pose] ?? '！';
         ctx.strokeStyle = color;
         ctx.lineWidth = 2.5;
@@ -892,6 +902,7 @@ export class BattleRenderer {
       case 'candle':
       case 'cat':
       case 'dog':
+      case 'box':
       case 'coin':
       case 'cabbage':
       case 'fish':
@@ -915,7 +926,9 @@ export class BattleRenderer {
       case 'fireworkdrop':
       case 'catdrop':
       case 'coindrop':
-      case 'evidencedrop': {
+      case 'evidencedrop':
+      case 'boxdrop':
+      case 'giftdrop': {
         const k = f ? p.frameTime / f.duration : 1;
         const by = HZ + p.z - Math.max(0, 1 - k * 2.2) * 260;
         ctx.shadowBlur = 0;
@@ -1221,6 +1234,47 @@ export function drawIcon(ctx: CanvasRenderingContext2D, kind: string, x: number,
     case 'star':
       star(ctx, 0, 0, 8, color);
       break;
+    case 'box': {
+      // 開箱用的紙箱（膠帶十字）
+      ctx.rotate(Math.sin(tick * 0.25 + seed) * 0.3);
+      ctx.fillStyle = '#c8935a';
+      ctx.strokeStyle = '#7a5530';
+      ctx.lineWidth = 1.2;
+      ctx.fillRect(-8, -7, 16, 14);
+      ctx.strokeRect(-8, -7, 16, 14);
+      ctx.fillStyle = '#e8d7b5';
+      ctx.fillRect(-1.5, -7, 3, 14);
+      ctx.fillStyle = '#7a5530';
+      ctx.fillRect(-8, -7, 16, 2.4);
+      break;
+    }
+    case 'gift': {
+      ctx.rotate(Math.sin(tick * 0.25 + seed) * 0.3);
+      ctx.fillStyle = seed % 2 ? '#8b5cf6' : '#ec4899';
+      ctx.fillRect(-8, -6, 16, 13);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(-1.6, -6, 3.2, 13);
+      ctx.fillRect(-8, -1, 16, 3);
+      ctx.beginPath();
+      ctx.ellipse(-3, -8, 3.4, 2, -0.5, 0, Math.PI * 2);
+      ctx.ellipse(3, -8, 3.4, 2, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'note': {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(-2, 5, 4, 3, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(1.2, -9, 1.8, 14);
+      ctx.beginPath();
+      ctx.moveTo(3, -9);
+      ctx.quadraticCurveTo(9, -7, 7, -2);
+      ctx.lineTo(3, -5);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
     case 'chili': {
       ctx.rotate(Math.sin(tick * 0.2 + seed) * 0.5);
       ctx.fillStyle = '#dc2626';

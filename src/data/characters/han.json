@@ -5,7 +5,7 @@
   "accessory": "none",
   "quote": "大家一起發大財！",
   "stats": {
-    "hp": 500,
+    "hp": 480,
     "walkSpeed": 2.4,
     "runSpeed": 5.4,
     "jumpPower": 8.6,

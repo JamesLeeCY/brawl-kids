@@ -1,0 +1,330 @@
+{
+  "id": "joeman",
+  "name": "揪門",
+  "title": "開箱達人",
+  "accessory": "none",
+  "quote": "今天我們來開箱這個！",
+  "stats": {
+    "hp": 560,
+    "walkSpeed": 2.6,
+    "runSpeed": 5.8,
+    "jumpPower": 9.0,
+    "weight": 1.05
+  },
+  "palette": {
+    "skin": "#f1c8a2",
+    "main": "#1f2937",
+    "accent": "#ef4444",
+    "hair": "#1a1a1a"
+  },
+  "look": {
+    "hair": "short",
+    "glasses": true
+  },
+  "frames": {
+    "unbox_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "unbox_2",
+      "sound": "special",
+      "say": "開箱！"
+    },
+    "unbox_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "unbox_rec",
+      "spawn": [
+        {
+          "id": "box",
+          "x": 24,
+          "y": 40,
+          "vx": 7
+        }
+      ]
+    },
+    "unbox_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "eat_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "eat_2",
+      "sound": "special",
+      "say": "大胃王！"
+    },
+    "eat_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "eat_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -100,
+          "y": 0,
+          "w": 200,
+          "h": 60,
+          "damage": 50,
+          "fall": 80,
+          "dvx": 5,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 56,
+          "radial": true
+        }
+      ]
+    },
+    "eat_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "taste_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "sound": "special",
+      "heal": 100,
+      "say": "好吃！"
+    },
+    "queue_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "queue_2",
+      "sound": "special"
+    },
+    "queue_2": {
+      "duration": 16,
+      "pose": "run_attack",
+      "next": "queue_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 11
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 42,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "queue_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "boxrain_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "boxrain_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "boxdrop",
+          "at": "random",
+          "count": 6,
+          "y": 0
+        }
+      ],
+      "say": "開箱雨！"
+    },
+    "boxrain_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "score_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "score_2",
+      "sound": "special",
+      "say": "十分滿分！"
+    },
+    "score_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "score_rec",
+      "spawn": [
+        {
+          "id": "score",
+          "x": 24,
+          "y": 36,
+          "vx": 7.5
+        }
+      ]
+    },
+    "score_rec": {
+      "duration": 8,
+      "pose": "cast"
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "開箱炸彈",
+      "mp": 70,
+      "startFrame": "unbox_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "大胃王震地",
+      "mp": 100,
+      "startFrame": "eat_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "試吃補血",
+      "mp": 140,
+      "startFrame": "taste_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "衝去排隊",
+      "mp": 80,
+      "startFrame": "queue_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "開箱雨",
+      "mp": 150,
+      "startFrame": "boxrain_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "十分滿分",
+      "mp": 90,
+      "startFrame": "score_1",
+      "role": "ranged"
+    }
+  ],
+  "projectiles": {
+    "box": {
+      "life": 48,
+      "size": 12,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "box",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -10,
+              "y": -9,
+              "w": 20,
+              "h": 18,
+              "damage": 14,
+              "fall": 10,
+              "dvx": 2,
+              "hitstop": 3
+            }
+          ]
+        }
+      },
+      "onHit": "boxboom",
+      "onExpire": "boxboom"
+    },
+    "boxboom": {
+      "life": 30,
+      "size": 34,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "boom",
+      "frames": {
+        "boom": {
+          "duration": 16,
+          "pose": "spark_burst",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -32,
+              "y": -32,
+              "w": 64,
+              "h": 64,
+              "damage": 42,
+              "fall": 75,
+              "dvx": 5,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 28
+            }
+          ]
+        }
+      }
+    },
+    "boxdrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "boxdrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 34,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    },
+    "score": {
+      "life": 42,
+      "size": 18,
+      "hitLimit": 4,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "score",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -16,
+              "y": -16,
+              "w": 32,
+              "h": 32,
+              "damage": 30,
+              "fall": 60,
+              "dvx": 5,
+              "dvy": 4,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    }
+  }
+}

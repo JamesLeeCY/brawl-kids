@@ -117,7 +117,8 @@
         "type": "dmgReduce",
         "value": 0.5,
         "duration": 180
-      }
+      },
+      "say": "赤膊硬漢！"
     },
     "pudrain_1": {
       "duration": 24,
@@ -131,7 +132,8 @@
           "count": 5,
           "y": 0
         }
-      ]
+      ],
+      "say": "天降布丁！"
     },
     "pudrain_rec": {
       "duration": 10,

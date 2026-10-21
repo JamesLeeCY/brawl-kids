@@ -18,6 +18,7 @@ import { progressTotals } from './achievements';
 import { dataVersion } from '../data';
 import { ReplayRecorder } from '../replay/replay';
 import { campaignHealAmount, campaignLength, campaignStageId } from '../sim/world';
+import { setGameSpeed, speedValue } from '../speed';
 const PAUSE_ITEMS = ['繼續', '重新開始', '回選角', '按鍵說明'];
 const NET_MENU_ITEMS = ['繼續', '按鍵說明', '離開連線'];
 const HASH_INTERVAL = 120;
@@ -50,6 +51,7 @@ export class BattleScene extends Scene {
     super(app);
     this.world = new World(app.data, setup);
     this.renderer = new BattleRenderer(this.world);
+    setGameSpeed(setup.speed ?? speedValue(app.settings.speed));
     this.recorder = setup.practice ? null : new ReplayRecorder(setup, dataVersion());
     if (setup.practice) this.initPractice();
   }

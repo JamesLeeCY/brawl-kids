@@ -61,6 +61,11 @@ interface Dust {
   t: number;
 }
 
+/** 飛行物圖示的放大倍率（貓狗畫大一點才看得出是貓狗） */
+const ICON_SCALE: Record<string, number> = { cat: 1.55, dog: 1.45 };
+/** 天降攻擊圖示的放大倍率 */
+const DROP_SCALE: Record<string, number> = { catdrop: 2.7 };
+
 /** 震波圈持續時間（tick） */
 const QUAKE_TICKS = 34;
 const DUST_TICKS = 40;
@@ -136,6 +141,8 @@ export class BattleRenderer {
   debris: Debris[] = [];
   quakes: Quake[] = [];
   dust: Dust[] = [];
+  /** 招式喊話泡泡 */
+  callouts: { text: string; id: number; t: number; color: string }[] = [];
   /** 震地瞬間的白色閃光（剩餘 tick） */
   flash = 0;
   private lastFrame = new Map<number, string | null>();
@@ -221,8 +228,14 @@ export class BattleRenderer {
         const fr = c.state === 'attack' && c.frame ? w.charDef(c).frames[c.frame] : undefined;
         const quake = fr?.itr?.find((it) => it.radial);
         if (quake) this.spawnQuake(w, c, quake);
+        if (fr?.say) {
+          this.callouts = this.callouts.filter((k) => k.id !== c.id);
+          this.callouts.push({ text: fr.say, id: c.id, t: 80, color: w.charDef(c).palette.accent });
+        }
       }
     }
+    for (const k of this.callouts) k.t--;
+    this.callouts = this.callouts.filter((k) => k.t > 0);
     for (const q of this.quakes) q.t--;
     this.quakes = this.quakes.filter((q) => q.t > 0);
     for (const d of this.dust) {
@@ -313,6 +326,10 @@ export class BattleRenderer {
       ctx.fillRect(d.x - cam - sz / 2, HZ + d.z - d.y - sz / 2, sz, sz * 0.85);
     }
     for (const s of this.sparks) this.drawSpark(ctx, s, cam);
+    for (const k of this.callouts) {
+      const e = w.get(k.id);
+      if (e) this.drawCallout(ctx, k, e, cam);
+    }
     ctx.restore();
     if (this.flash > 0) {
       ctx.fillStyle = `rgba(255,250,230,${0.07 * this.flash})`;
@@ -335,7 +352,8 @@ export class BattleRenderer {
     else if (e.invuln > 0 && e.state !== 'rolling' && e.state !== 'attack' && (w.tick >> 2) % 2 === 0) alpha = 0.4;
 
     // 增益效果
-    if (hasBuff(e, 'dmgReduce')) {
+    if (hasBuff(e, 'dmgReduce') && def.buffFx?.dmgReduce === 'spicy') this.drawSpicyAura(ctx, x, y, w.tick);
+    else if (hasBuff(e, 'dmgReduce')) {
       ctx.fillStyle = 'rgba(255,215,90,0.22)';
       ctx.strokeStyle = 'rgba(255,215,90,0.8)';
       ctx.lineWidth = 2;
@@ -439,6 +457,68 @@ export class BattleRenderer {
     }
     ctx.stroke();
     ctx.restore();
+  }
+
+  /** 招式喊話：角色頭上的白色對話泡泡，往上飄並淡出 */
+  private drawCallout(ctx: CanvasRenderingContext2D, k: { text: string; t: number; color: string }, e: Entity, cam: number): void {
+    const age = 80 - k.t;
+    const x = e.x - cam;
+    const y = screenY(e) - 92 - Math.min(14, age * 0.5);
+    const pop = age < 8 ? 0.6 + age * 0.05 : 1;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, k.t / 18);
+    ctx.translate(x, y);
+    ctx.scale(pop, pop);
+    ctx.font = `900 17px ${FONT}`;
+    const tw = ctx.measureText(k.text).width + 18;
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = k.color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect?.(-tw / 2, -15, tw, 28, 14);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-5, 12);
+    ctx.lineTo(0, 20);
+    ctx.lineTo(5, 12);
+    ctx.fill();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1a1530';
+    ctx.fillText(k.text, 0, 5);
+    ctx.restore();
+  }
+
+  /** 「辣台妹」減傷：紅橘色火焰光環 + 繞著轉的小辣椒 */
+  private drawSpicyAura(ctx: CanvasRenderingContext2D, x: number, y: number, tick: number): void {
+    ctx.save();
+    const g = ctx.createRadialGradient(x, y - 38, 6, x, y - 38, 52);
+    g.addColorStop(0, 'rgba(255,170,60,0.05)');
+    g.addColorStop(0.6, 'rgba(255,90,40,0.28)');
+    g.addColorStop(1, 'rgba(220,30,30,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(x, y - 38, 40, 54, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 搖曳的火焰
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2;
+      const fx = x + Math.cos(a) * 30;
+      const fy = y - 30 + Math.sin(a) * 12;
+      const h = 14 + Math.sin(tick * 0.4 + i * 1.7) * 5;
+      ctx.fillStyle = i % 2 ? 'rgba(255,120,30,0.75)' : 'rgba(255,200,60,0.75)';
+      ctx.beginPath();
+      ctx.moveTo(fx - 5, fy);
+      ctx.quadraticCurveTo(fx - 4, fy - h * 0.6, fx, fy - h);
+      ctx.quadraticCurveTo(fx + 4, fy - h * 0.6, fx + 5, fy);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    for (let i = 0; i < 3; i++) {
+      const a = tick * 0.08 + (i / 3) * Math.PI * 2;
+      drawIcon(ctx, 'chili', x + Math.cos(a) * 34, y - 46 + Math.sin(a) * 22, 1.1, 1, '#ef4444', tick, i);
+    }
   }
 
   /** 落地後的震波：擴散到超過命中範圍並淡出 */
@@ -780,9 +860,10 @@ export class BattleRenderer {
       case 'zan':
       case 'talk':
       case 'fired':
-      case 'joke': {
+      case 'joke':
+      case 'shout': {
         // 文字聲波：哈哈 / 讚啦 / 質詢 / 你被開除！ / 哈！
-        const words: Record<string, string> = { laugh: '哈哈', zan: '讚啦', talk: '質詢！', fired: '你被開除！', joke: '哈！' };
+        const words: Record<string, string> = { laugh: '哈哈', zan: '讚啦', talk: '質詢！', fired: '你被開除！', joke: '哈！', shout: '說清楚！' };
         const word = words[pose] ?? '！';
         ctx.strokeStyle = color;
         ctx.lineWidth = 2.5;
@@ -811,12 +892,16 @@ export class BattleRenderer {
       case 'candle':
       case 'cat':
       case 'dog':
+      case 'coin':
+      case 'cabbage':
+      case 'fish':
+      case 'evidence':
       case 'tweet':
       case 'bun':
       case 'pudding':
       case 'sunflower':
         ctx.shadowBlur = lowQuality ? 0 : 4;
-        drawIcon(ctx, pose, x, y, 1, p.facing, color, w.tick, p.id);
+        drawIcon(ctx, pose, x, y, ICON_SCALE[pose] ?? 1, p.facing, color, w.tick, p.id);
         break;
       case 'bookdrop':
       case 'slipperdrop':
@@ -828,11 +913,13 @@ export class BattleRenderer {
       case 'puddingdrop':
       case 'sunflowerdrop':
       case 'fireworkdrop':
-      case 'catdrop': {
+      case 'catdrop':
+      case 'coindrop':
+      case 'evidencedrop': {
         const k = f ? p.frameTime / f.duration : 1;
         const by = HZ + p.z - Math.max(0, 1 - k * 2.2) * 260;
         ctx.shadowBlur = 0;
-        drawIcon(ctx, pose.replace('drop', ''), x, by - 16, 1.8, 1, color, w.tick, p.id);
+        drawIcon(ctx, pose.replace('drop', ''), x, by - 16, DROP_SCALE[pose] ?? 1.8, 1, color, w.tick, p.id);
         if (k > 0.45) {
           ctx.strokeStyle = color;
           ctx.lineWidth = 2;
@@ -1134,6 +1221,88 @@ export function drawIcon(ctx: CanvasRenderingContext2D, kind: string, x: number,
     case 'star':
       star(ctx, 0, 0, 8, color);
       break;
+    case 'chili': {
+      ctx.rotate(Math.sin(tick * 0.2 + seed) * 0.5);
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.moveTo(-6, -3);
+      ctx.quadraticCurveTo(2, -4, 7, 4);
+      ctx.quadraticCurveTo(0, 2, -6, 1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(-8, -3, 3, 3);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(-3, -2.6, 4, 1);
+      break;
+    }
+    case 'coin': {
+      const sq = Math.abs(Math.cos(tick * 0.2 + seed));
+      ctx.scale(Math.max(0.25, sq), 1);
+      ctx.fillStyle = '#facc15';
+      ctx.strokeStyle = '#a16207';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#a16207';
+      ctx.font = `900 9px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('$', 0, 3.5);
+      break;
+    }
+    case 'cabbage': {
+      ctx.rotate(tick * 0.25 + seed);
+      ctx.fillStyle = '#86efac';
+      ctx.strokeStyle = '#15803d';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-6, -2);
+      ctx.quadraticCurveTo(0, -7, 6, -2);
+      ctx.moveTo(-5, 3);
+      ctx.quadraticCurveTo(0, -1, 5, 3);
+      ctx.stroke();
+      break;
+    }
+    case 'fish': {
+      const wag = Math.sin(tick * 0.5 + seed) * 2;
+      ctx.fillStyle = '#60a5fa';
+      ctx.strokeStyle = '#1e3a8a';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 9, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.lineTo(-14, -5 + wag);
+      ctx.lineTo(-14, 5 + wag);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#111';
+      ctx.fillRect(4, -2, 1.6, 1.6);
+      break;
+    }
+    case 'evidence': {
+      // 證據資料夾
+      ctx.rotate(Math.sin(tick * 0.3 + seed) * 0.35);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(-9, -7, 18, 14);
+      ctx.fillRect(-9, -9, 7, 3);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-6, -4, 12, 8);
+      ctx.fillStyle = '#dc2626';
+      ctx.font = `900 6px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('證據', 0, 2);
+      break;
+    }
     case 'cat': {
       // 灰色虎斑貓（想想 / 阿才）：往前撲的姿勢
       const bob = Math.sin(tick * 0.4 + seed) * 1.2;

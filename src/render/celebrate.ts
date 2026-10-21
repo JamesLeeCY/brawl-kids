@@ -27,6 +27,8 @@ const CELEBRATIONS: Record<string, Celebration> = {
   zelensky: { poses: ['fist_pump', 'wave2'], icon: 'sunflower' },
   kim: { poses: ['clap', 'clap2'], icon: 'firework' },
   tsai: { poses: ['wave', 'wave2'], icon: 'cat' },
+  han: { poses: ['fist_pump', 'wave2'], icon: 'coin' },
+  huang: { poses: ['thumbs', 'fist_pump'], icon: 'evidence' },
 };
 const DEFAULT: Celebration = { poses: ['cheer_back', 'wave'], icon: 'star' };
 

@@ -1,0 +1,295 @@
+{
+  "id": "han",
+  "name": "韓國魚",
+  "title": "議場院長",
+  "accessory": "none",
+  "quote": "大家一起發大財！",
+  "stats": {
+    "hp": 500,
+    "walkSpeed": 2.4,
+    "runSpeed": 5.4,
+    "jumpPower": 8.6,
+    "weight": 1.2
+  },
+  "palette": {
+    "skin": "#f0c09a",
+    "main": "#1f3a68",
+    "accent": "#facc15",
+    "hair": "#3a2a20"
+  },
+  "look": {
+    "hair": "none",
+    "tie": "#b91c1c"
+  },
+  "frames": {
+    "cabbage_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "cabbage_2",
+      "sound": "special"
+    },
+    "cabbage_2": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "cabbage_3",
+      "spawn": [
+        {
+          "id": "cabbage",
+          "x": 24,
+          "y": 38,
+          "vx": 7,
+          "dz": -8
+        }
+      ]
+    },
+    "cabbage_3": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "cabbage_4",
+      "spawn": [
+        {
+          "id": "cabbage",
+          "x": 24,
+          "y": 40,
+          "vx": 7.5
+        }
+      ]
+    },
+    "cabbage_4": {
+      "duration": 6,
+      "pose": "cast",
+      "next": "cabbage_rec",
+      "spawn": [
+        {
+          "id": "cabbage",
+          "x": 24,
+          "y": 38,
+          "vx": 7,
+          "dz": 8
+        }
+      ]
+    },
+    "cabbage_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "bald_1": {
+      "duration": 10,
+      "pose": "slam_ready",
+      "next": "bald_2",
+      "sound": "special",
+      "say": "光頭閃光！"
+    },
+    "bald_2": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "bald_rec",
+      "shake": true,
+      "itr": [
+        {
+          "x": -100,
+          "y": 0,
+          "w": 200,
+          "h": 60,
+          "damage": 50,
+          "fall": 80,
+          "dvx": 5,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 56,
+          "radial": true
+        }
+      ]
+    },
+    "bald_rec": {
+      "duration": 14,
+      "pose": "slam"
+    },
+    "rich_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "next": "rich_rec",
+      "sound": "special",
+      "spawn": [
+        {
+          "id": "coindrop",
+          "at": "random",
+          "count": 5,
+          "y": 0
+        }
+      ],
+      "say": "發大財！"
+    },
+    "rich_rec": {
+      "duration": 10,
+      "pose": "victory"
+    },
+    "market_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "market_2",
+      "sound": "special"
+    },
+    "market_2": {
+      "duration": 16,
+      "pose": "dash",
+      "next": "market_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 10.5
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 42,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "market_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "fishjump_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "fishjump_2",
+      "sound": "special"
+    },
+    "fishjump_2": {
+      "duration": 12,
+      "pose": "jet_up",
+      "hover": true,
+      "selfVel": {
+        "vx": 0,
+        "vy": 7
+      },
+      "buff": {
+        "type": "hover",
+        "value": 1,
+        "duration": 84
+      }
+    },
+    "lurou_1": {
+      "duration": 24,
+      "pose": "cast_up",
+      "sound": "special",
+      "heal": 90,
+      "say": "滷肉飯！"
+    }
+  },
+  "moves": [
+    {
+      "command": "D>A",
+      "name": "高麗菜飛彈",
+      "mp": 60,
+      "startFrame": "cabbage_1",
+      "role": "ranged"
+    },
+    {
+      "command": "DvA",
+      "name": "光頭閃光",
+      "mp": 100,
+      "startFrame": "bald_1",
+      "role": "burst"
+    },
+    {
+      "command": "D^A",
+      "name": "滷肉飯補給",
+      "mp": 140,
+      "startFrame": "lurou_1",
+      "role": "buff"
+    },
+    {
+      "command": "D>J",
+      "name": "北農衝刺",
+      "mp": 80,
+      "startFrame": "market_1",
+      "role": "rush"
+    },
+    {
+      "command": "DvJ",
+      "name": "發大財",
+      "mp": 150,
+      "startFrame": "rich_1",
+      "role": "area"
+    },
+    {
+      "command": "D^J",
+      "name": "魚躍龍門",
+      "mp": 60,
+      "startFrame": "fishjump_1",
+      "role": "buff"
+    }
+  ],
+  "projectiles": {
+    "cabbage": {
+      "life": 55,
+      "size": 11,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "cabbage",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -9,
+              "y": -9,
+              "w": 18,
+              "h": 18,
+              "damage": 18,
+              "fall": 16,
+              "dvx": 2,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "coindrop": {
+      "life": 60,
+      "size": 16,
+      "hitLimit": 99,
+      "blockable": false,
+      "startFrame": "warn",
+      "frames": {
+        "warn": {
+          "duration": 30,
+          "pose": "bolt_warn",
+          "next": "strike"
+        },
+        "strike": {
+          "duration": 14,
+          "pose": "coindrop",
+          "next": "expire",
+          "sound": "hit_heavy",
+          "itr": [
+            {
+              "x": -18,
+              "y": 0,
+              "w": 36,
+              "h": 120,
+              "damage": 34,
+              "fall": 80,
+              "dvx": 2,
+              "dvy": 6,
+              "hitstop": 6,
+              "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      }
+    }
+  }
+}

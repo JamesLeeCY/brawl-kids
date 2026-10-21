@@ -446,8 +446,18 @@ function drawHair(ctx: CanvasRenderingContext2D, x: number, y: number, style: st
   ctx.lineWidth = 1.6 + olExtra / HEAD_SCALE;
   ctx.lineJoin = 'round';
   switch (style) {
-    case 'none':
+    case 'none': {
+      // 光頭：頭頂一道亮光
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(x - 1, y - 1, 8, Math.PI * 1.2, Math.PI * 1.55);
+      ctx.stroke();
+      ctx.restore();
       return;
+    }
     case 'receding':
       // 前額高、只剩後腦與兩側
       ctx.beginPath();
@@ -784,7 +794,14 @@ function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Exp
 }
 
 /** 抱在手上的小貓（灰虎斑），(x, y) 為手的位置 */
-function drawHeldCat(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+function drawHeldCat(ctx: CanvasRenderingContext2D, hx: number, hy: number): void {
+  // 放大約 1.7 倍：小了看起來像老鼠
+  ctx.save();
+  ctx.translate(hx, hy);
+  ctx.scale(1.7, 1.7);
+  ctx.translate(-hx, -hy + 1.2);
+  const x = hx;
+  const y = hy;
   const fur = '#b9b2a8';
   const ol = '#5a4a3e';
   ctx.lineWidth = 1;
@@ -822,6 +839,22 @@ function drawHeldCat(ctx: CanvasRenderingContext2D, x: number, y: number): void 
   circle(ctx, x + 4.1, y - 6.6, 0.6, '#2b211c');
   circle(ctx, x + 6.4, y - 6.6, 0.6, '#2b211c');
   circle(ctx, x + 5.3, y - 5.5, 0.45, '#f29aa3');
+  // 鬍鬚與尾巴（讓牠一看就是貓）
+  ctx.strokeStyle = '#7d7368';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(x + 6.6, y - 5.3);
+  ctx.lineTo(x + 9.6, y - 5.8);
+  ctx.moveTo(x + 6.6, y - 4.9);
+  ctx.lineTo(x + 9.4, y - 4.4);
+  ctx.stroke();
+  ctx.strokeStyle = '#5a4a3e';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x - 3.2, y - 1);
+  ctx.quadraticCurveTo(x - 7, y - 2, x - 6.2, y - 6.5);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function rrPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {

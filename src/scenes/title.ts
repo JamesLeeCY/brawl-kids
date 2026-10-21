@@ -54,21 +54,22 @@ export class TitleScene extends Scene {
     drawLegislature(ctx);
     // 立法院議場：角色分成左右兩側、各兩排站在議員席後面，平均分散不擁擠
     const ids = this.app.data.selectable;
-    const LEFT_BACK = [56, 122, 188, 254];
-    const LEFT_FRONT = [44, 114, 184, 254];
-    // 右側與左側左右對稱
-    const RIGHT_BACK = LEFT_BACK.map((x) => VW - x).reverse();
-    const RIGHT_FRONT = LEFT_FRONT.map((x) => VW - x).reverse();
+    // 每排的座位平均分散在 x0～x1 之間；右側與左側左右對稱
+    const spread = (n: number, x0: number, x1: number) => Array.from({ length: n }, (_, k) => (n === 1 ? (x0 + x1) / 2 : x0 + ((x1 - x0) * k) / (n - 1)));
     const seats: { x: number; y: number; s: number; f: 1 | -1; row: 0 | 1 }[] = [];
     const left = Math.ceil(ids.length / 2);
     const right = ids.length - left;
-    const pick = (arr: number[], n: number) => arr.slice(0, n);
-    pick(LEFT_BACK, Math.ceil(left / 2)).forEach((x) => seats.push({ x, y: 266, s: 1.0, f: 1, row: 0 }));
-    pick(LEFT_FRONT, Math.floor(left / 2)).forEach((x) => seats.push({ x, y: 356, s: 1.15, f: 1, row: 1 }));
-    RIGHT_BACK.slice(RIGHT_BACK.length - Math.ceil(right / 2)).forEach((x) => seats.push({ x, y: 266, s: 1.0, f: -1, row: 0 }));
-    const rf = Math.floor(right / 2);
-    const rfx = rf === 3 ? [566, 656, 746] : RIGHT_FRONT.slice(RIGHT_FRONT.length - rf);
-    rfx.forEach((x) => seats.push({ x, y: 356, s: 1.15, f: -1, row: 1 }));
+    const sideSeats = (n: number, f: 1 | -1) => {
+      const back = Math.ceil(n / 2);
+      const front = n - back;
+      // 人多時縮小一點，避免擠在一起
+      const sc = n > 8 ? 0.92 : 1;
+      const mirror = (x: number) => (f === 1 ? x : VW - x);
+      spread(back, 44, 262).forEach((x) => seats.push({ x: mirror(x), y: 266, s: sc, f, row: 0 }));
+      spread(front, 46, 258).forEach((x) => seats.push({ x: mirror(x), y: 356, s: sc * 1.15, f, row: 1 }));
+    };
+    sideSeats(left, 1);
+    sideSeats(right, -1);
     const drawRow = (row: 0 | 1) =>
       ids.forEach((id, i) => {
         const seat = seats[i];

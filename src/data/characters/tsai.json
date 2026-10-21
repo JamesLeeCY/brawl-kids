@@ -22,6 +22,9 @@
     "glasses": true,
     "roundGlasses": true
   },
+  "buffFx": {
+    "dmgReduce": "spicy"
+  },
   "frames": {
     "catpounce_1": {
       "duration": 7,
@@ -65,7 +68,8 @@
       "duration": 8,
       "pose": "cast_ready",
       "next": "dogs_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "汪汪大隊！"
     },
     "dogs_2": {
       "duration": 16,
@@ -147,10 +151,11 @@
         {
           "id": "catdrop",
           "at": "random",
-          "count": 6,
+          "count": 8,
           "y": 0
         }
-      ]
+      ],
+      "say": "貓咪雨！"
     },
     "catrain_rec": {
       "duration": 10,
@@ -164,7 +169,8 @@
         "type": "dmgReduce",
         "value": 0.5,
         "duration": 180
-      }
+      },
+      "say": "辣台妹！"
     }
   },
   "moves": [

@@ -71,6 +71,8 @@ export const FrameSchema = z.object({
   shake: z.boolean().optional(),
   /** 進入本幀時回復 HP */
   heal: z.number().positive().optional(),
+  /** 進入本幀時角色頭上冒出的喊話（純畫面效果，例如「辣台妹！」） */
+  say: z.string().optional(),
 });
 export type FrameDef = z.infer<typeof FrameSchema>;
 
@@ -139,6 +141,8 @@ export const CharacterSchema = z.object({
     })
     .prefault({}),
   body: BoxSchema.optional(),
+  /** 增益效果的專屬外觀（例如 dmgReduce → spicy 火焰辣椒光環）；沒有就用預設的金色光環 */
+  buffFx: z.record(z.string(), z.string()).optional(),
   frames: z.record(z.string(), FrameSchema).default({}),
   moves: z.array(MoveSchema).max(6).default([]),
   projectiles: z.record(z.string(), ProjectileSchema).default({}),

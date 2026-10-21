@@ -26,7 +26,8 @@
       "duration": 5,
       "pose": "cast_ready",
       "next": "frogshot_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "呱呱！"
     },
     "frogshot_2": {
       "duration": 12,
@@ -82,7 +83,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "swim_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "蛙泳！"
     },
     "swim_2": {
       "duration": 16,

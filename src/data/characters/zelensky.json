@@ -26,7 +26,8 @@
       "duration": 7,
       "pose": "cast_ready",
       "next": "flower_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "向日葵！"
     },
     "flower_2": {
       "duration": 6,
@@ -75,7 +76,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "servant_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "人民公僕！"
     },
     "servant_2": {
       "duration": 16,

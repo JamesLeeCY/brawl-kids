@@ -27,7 +27,8 @@
       "duration": 4,
       "pose": "cast_ready",
       "next": "kline_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "K 線！"
     },
     "kline_2": {
       "duration": 6,
@@ -78,7 +79,8 @@
       "duration": 10,
       "pose": "slam_ready",
       "next": "limitdown_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "跌停！"
     },
     "limitdown_2": {
       "duration": 10,

@@ -27,7 +27,8 @@
       "duration": 6,
       "pose": "cast_ready",
       "next": "pill_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "處方籤！"
     },
     "pill_2": {
       "duration": 14,

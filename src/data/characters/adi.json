@@ -26,7 +26,8 @@
       "duration": 4,
       "pose": "cast_ready",
       "next": "card_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "單字卡！"
     },
     "card_2": {
       "duration": 6,
@@ -81,13 +82,15 @@
         "type": "blockProjectile",
         "value": 1,
         "duration": 240
-      }
+      },
+      "say": "滿分護盾！"
     },
     "bell_1": {
       "duration": 5,
       "pose": "crouch",
       "next": "bell_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "下課啦！"
     },
     "bell_2": {
       "duration": 16,
@@ -164,7 +167,8 @@
       "duration": 4,
       "pose": "crouch",
       "next": "skip_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "跳級生！"
     },
     "skip_2": {
       "duration": 18,

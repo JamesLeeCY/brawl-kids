@@ -27,7 +27,8 @@
       "duration": 8,
       "pose": "cast_ready",
       "next": "dumbbell_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "接好啞鈴！"
     },
     "dumbbell_2": {
       "duration": 14,
@@ -51,7 +52,8 @@
       "duration": 10,
       "pose": "slam_ready",
       "next": "squat_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "深蹲！"
     },
     "squat_2": {
       "duration": 10,
@@ -93,7 +95,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "bulldoze_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "猛男衝撞！"
     },
     "bulldoze_2": {
       "duration": 16,

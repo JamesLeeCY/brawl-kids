@@ -26,7 +26,8 @@
       "duration": 7,
       "pose": "cast_ready",
       "next": "cabbage_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "高麗菜！"
     },
     "cabbage_2": {
       "duration": 6,
@@ -96,7 +97,8 @@
       "duration": 4,
       "pose": "crouch",
       "next": "fishjump_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "魚躍龍門！"
     },
     "fishjump_2": {
       "duration": 12,

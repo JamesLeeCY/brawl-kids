@@ -28,7 +28,8 @@
       "duration": 6,
       "pose": "cast_ready",
       "next": "ecmo_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "ECMO！"
     },
     "ecmo_2": {
       "duration": 12,
@@ -70,7 +71,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "er_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "急診！"
     },
     "er_2": {
       "duration": 16,
@@ -104,7 +106,8 @@
       "duration": 5,
       "pose": "cast_ready",
       "next": "scalpel_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "手術刀！"
     },
     "scalpel_2": {
       "duration": 12,

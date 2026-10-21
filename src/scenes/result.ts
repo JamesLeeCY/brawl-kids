@@ -1,7 +1,8 @@
 import { CONFIG } from '../config';
 import { SLOT_COLORS } from '../render/battle';
 import { roundRect } from '../render/character';
-import { text } from '../render/text';
+import { FONT, text } from '../render/text';
+import { fitQuote } from '../render/quote';
 import type { Entity } from '../sim/entity';
 import { CAMPAIGN_PLAYER_TEAM, type MatchResult, type MatchSetup, type World } from '../sim/world';
 import type { NetSession } from '../net/session';
@@ -196,7 +197,14 @@ export class ResultScene extends Scene {
       // 各角色專屬的慶祝動作與道具雨（不擋臉）
       drawCelebration(ctx, def, x, 222, 1.8, this.t);
       text(ctx, def.name, x, 236, 16, '#fff', 'center');
-      text(ctx, `「${def.quote}」`, x, 258, 14, def.palette.accent, 'center', true, true);
+      // 長台詞：縮字、換行，雙人以上勝利時還放不下就用短版
+      const maxW = ws.length > 1 ? 160 : 600;
+      const fit = fitQuote(def.quote, def.shortQuote, maxW, (s, size) => {
+        ctx.font = `900 ${size}px ${FONT}`;
+        return ctx.measureText(s).width;
+      });
+      const y0 = fit.lines.length > 1 ? 253 : 258;
+      fit.lines.forEach((l, li) => text(ctx, l, x, y0 + li * (fit.size + 2), fit.size, def.palette.accent, 'center', true, true));
     });
     if (!ws.length) text(ctx, this.setup.mode === 'campaign' ? '保全機器人守住了陣地…' : '無人存活', VW / 2, 180, 18, '#fff', 'center');
 

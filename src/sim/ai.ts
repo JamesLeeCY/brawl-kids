@@ -103,6 +103,12 @@ function decide(w: World, e: Entity, ai: AIState): void {
     queueMove(e, ai, rush, target);
     return;
   }
+  // 大絕（200 MP 以上，例如颱風假）：存夠就有機會放，不必再多留 150 MP
+  const ult = findMove(w, e, (m) => m.mp >= 200);
+  if (ult && r.chance(0.1)) {
+    queueMove(e, ai, ult, target);
+    return;
+  }
   const extra = findMove(w, e, (m) => (m.role === 'buff' || m.role === 'area') && e.mp >= m.mp + 150);
   if (extra && r.chance(0.08)) {
     queueMove(e, ai, extra, target);

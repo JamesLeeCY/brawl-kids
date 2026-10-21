@@ -4,6 +4,7 @@
   "title": "柔道黑帶",
   "accessory": "judo",
   "quote": "原不原諒恐怖分子是上帝的事，我的責任是送他們去見上帝",
+  "shortQuote": "送他們去見上帝",
   "stats": {
     "hp": 610,
     "walkSpeed": 2.7,
@@ -25,7 +26,8 @@
       "duration": 7,
       "pose": "cast_ready",
       "next": "pud_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "布丁彈！"
     },
     "pud_2": {
       "duration": 14,
@@ -48,7 +50,8 @@
       "duration": 10,
       "pose": "slam_ready",
       "next": "ice_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "冰原震地！"
     },
     "ice_2": {
       "duration": 10,

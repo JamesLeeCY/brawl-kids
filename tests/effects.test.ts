@@ -362,6 +362,16 @@ describe('台詞', () => {
   it('每名可選角色都有勝利口頭禪', () => {
     for (const id of data.selectable) expect(data.characters[id].quote.length, id).toBeGreaterThan(0);
   });
+  it('每一招放出時都會喊話', () => {
+    for (const id of data.selectable) {
+      const c = data.characters[id];
+      for (const m of c.moves) {
+        const key = m.startFrame.slice(0, m.startFrame.lastIndexOf('_') + 1);
+        const said = Object.entries(c.frames).some(([k, f]) => k.startsWith(key) && f.say);
+        expect(said, `${id} ${m.name}`).toBe(true);
+      }
+    }
+  });
   it('習大包與揪門有被 KO 台詞', () => {
     expect(data.characters.xi.koQuote).toBe('我們懷念他');
     expect(data.characters.joeman.koQuote).toBe('對不起！');

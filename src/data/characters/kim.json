@@ -25,7 +25,8 @@
       "duration": 7,
       "pose": "cast_ready",
       "next": "rocket_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "火箭人！"
     },
     "rocket_2": {
       "duration": 14,
@@ -48,7 +49,8 @@
       "duration": 10,
       "pose": "slam_ready",
       "next": "clap_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "熱烈鼓掌！"
     },
     "clap_2": {
       "duration": 10,
@@ -91,7 +93,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "belly_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "肚子攻擊！"
     },
     "belly_2": {
       "duration": 16,

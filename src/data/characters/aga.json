@@ -25,7 +25,8 @@
       "duration": 5,
       "pose": "cast_ready",
       "next": "slipper_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "藍白拖！"
     },
     "slipper_2": {
       "duration": 12,
@@ -81,7 +82,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "scooter_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "騎車囉！"
     },
     "scooter_2": {
       "duration": 16,

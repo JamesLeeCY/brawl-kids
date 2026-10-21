@@ -60,7 +60,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "placement_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "置入！"
     },
     "placement_2": {
       "duration": 16,

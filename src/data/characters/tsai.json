@@ -30,7 +30,8 @@
       "duration": 7,
       "pose": "cast_ready",
       "next": "catpounce_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "想想，上！"
     },
     "catpounce_2": {
       "duration": 6,

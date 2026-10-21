@@ -203,6 +203,8 @@ export const CharacterSchema = z.object({
   accessory: z.string().default('none'),
   /** 勝利畫面的招牌口頭禪 */
   quote: z.string().default(''),
+  /** 口頭禪太長時，結算畫面放不下改用的短版 */
+  shortQuote: z.string().optional(),
   /** 被 KO 時頭上冒出的台詞 */
   koQuote: z.string().optional(),
   stats: z.object({

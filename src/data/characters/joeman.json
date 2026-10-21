@@ -5,7 +5,7 @@
   "accessory": "none",
   "quote": "我要扣分嘍！",
   "stats": {
-    "hp": 600,
+    "hp": 540,
     "walkSpeed": 2.6,
     "runSpeed": 5.8,
     "jumpPower": 9.0,
@@ -33,7 +33,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "queue_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "排隊排隊！"
     },
     "queue_2": {
       "duration": 16,
@@ -189,6 +190,13 @@
   },
   "moves": [
     {
+      "command": "D^J",
+      "name": "我要扣分嘍！",
+      "mp": 70,
+      "startFrame": "minus_1",
+      "role": "ranged"
+    },
+    {
       "command": "D>A",
       "name": "開箱翻車",
       "mp": 70,
@@ -222,13 +230,6 @@
       "mp": 150,
       "startFrame": "boxrain_1",
       "role": "area"
-    },
-    {
-      "command": "D^J",
-      "name": "我要扣分嘍！",
-      "mp": 70,
-      "startFrame": "minus_1",
-      "role": "ranged"
     }
   ],
   "projectiles": {
@@ -340,7 +341,7 @@
               "y": -10,
               "w": 20,
               "h": 20,
-              "damage": 30,
+              "damage": 36,
               "fall": 45,
               "dvx": 3,
               "dvy": 0,

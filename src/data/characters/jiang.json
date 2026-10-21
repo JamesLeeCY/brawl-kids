@@ -27,7 +27,8 @@
       "duration": 4,
       "pose": "cast_ready",
       "next": "doc_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "公文來了！"
     },
     "doc_2": {
       "duration": 6,
@@ -78,7 +79,8 @@
       "duration": 8,
       "pose": "cast_ready",
       "next": "truck_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "垃圾車來囉～"
     },
     "truck_2": {
       "duration": 14,
@@ -101,7 +103,8 @@
       "duration": 4,
       "pose": "crouch",
       "next": "jump101_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "101 跳躍！"
     },
     "jump101_2": {
       "duration": 12,

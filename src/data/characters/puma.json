@@ -26,7 +26,8 @@
       "duration": 8,
       "pose": "cast_ready",
       "next": "bear_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "黑熊出擊！"
     },
     "bear_2": {
       "duration": 14,
@@ -77,13 +78,15 @@
         "type": "reflect",
         "value": 1,
         "duration": 240
-      }
+      },
+      "say": "識讀護盾！"
     },
     "bearjump_1": {
       "duration": 4,
       "pose": "crouch",
       "next": "bearjump_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "熊熊跳！"
     },
     "bearjump_2": {
       "duration": 12,

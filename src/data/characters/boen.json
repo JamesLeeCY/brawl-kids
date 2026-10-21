@@ -82,7 +82,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "punchline_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "笑點來了！"
     },
     "punchline_2": {
       "duration": 16,
@@ -116,7 +117,8 @@
       "duration": 5,
       "pose": "cast_ready",
       "next": "micthrow_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "麥克風給你！"
     },
     "micthrow_2": {
       "duration": 10,

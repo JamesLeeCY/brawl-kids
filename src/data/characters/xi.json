@@ -26,7 +26,8 @@
       "duration": 7,
       "pose": "cast_ready",
       "next": "bun_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "包子！"
     },
     "bun_2": {
       "duration": 6,
@@ -77,7 +78,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "road_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "一帶一路！"
     },
     "road_2": {
       "duration": 18,

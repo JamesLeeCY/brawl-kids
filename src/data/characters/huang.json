@@ -93,7 +93,8 @@
       "duration": 7,
       "pose": "cast_ready",
       "next": "evid_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "證據在這！"
     },
     "evid_2": {
       "duration": 6,
@@ -131,7 +132,8 @@
       "duration": 5,
       "pose": "crouch",
       "next": "chase_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "我還沒問完！"
     },
     "chase_2": {
       "duration": 16,

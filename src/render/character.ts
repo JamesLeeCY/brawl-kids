@@ -959,6 +959,39 @@ export function drawItemShape(
   ctx.save();
   ctx.translate(x, y);
   switch (def.id) {
+    case 'cabbage': {
+      const cy = inHand ? 0 : -s / 2;
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(0, cy, s / 2 + 1, 0, Math.PI * 2);
+      ctx.fill();
+      if (!white) {
+        ctx.strokeStyle = '#4d7c0f';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-s / 2 + 2, cy);
+        ctx.quadraticCurveTo(0, cy - s / 2, s / 2 - 2, cy);
+        ctx.moveTo(0, cy - s / 2);
+        ctx.lineTo(0, cy + s / 2 - 1);
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'desk':
+      // 議事桌：桌面 + 兩支桌腳
+      ctx.fillStyle = c;
+      ctx.fillRect(-s / 2, -s * 0.75, s, s * 0.22);
+      ctx.fillRect(-s / 2 + 2, -s * 0.55, 4, s * 0.55);
+      ctx.fillRect(s / 2 - 6, -s * 0.55, 4, s * 0.55);
+      if (!white) {
+        ctx.strokeStyle = shade(def.color, -0.45);
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(-s / 2, -s * 0.75, s, s * 0.22);
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillRect(-4, -s * 0.72, 8, 3);
+      }
+      break;
     case 'crate':
       ctx.fillStyle = c;
       ctx.fillRect(-s / 2, -s, s, s);

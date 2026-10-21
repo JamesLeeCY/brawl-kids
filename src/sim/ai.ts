@@ -1,7 +1,8 @@
 // 電腦對手：不直接操控角色，而是每 tick 產生一份與玩家相同格式的虛擬按鍵快照。
 import { CONFIG } from '../config';
 import type { MoveDef } from '../data/schema';
-import { isAlive, type AIState, type Entity } from './entity';
+import { effTeam, isAlive, type AIState, type Entity } from './entity';
+import { canUseMove } from './fsm';
 import { emptySnapshot, snapshotFrom, type Snapshot } from './snapshot';
 import type { World } from './world';
 
@@ -23,7 +24,7 @@ function nearestEnemy(w: World, e: Entity): Entity | undefined {
   let best: Entity | undefined;
   let bd = Infinity;
   for (const c of w.chars()) {
-    if (c.team === e.team || !isAlive(c)) continue;
+    if (effTeam(c) === effTeam(e) || !isAlive(c)) continue;
     const d = Math.abs(c.x - e.x) + Math.abs(c.z - e.z) * 2;
     if (d < bd) {
       bd = d;
@@ -36,7 +37,7 @@ function nearestEnemy(w: World, e: Entity): Entity | undefined {
 function incomingProjectile(w: World, e: Entity): boolean {
   for (const p of w.entities) {
     if (p.kind !== 'proj' && !(p.kind === 'item' && p.itemState === 'flying')) continue;
-    if (p.team === e.team || p.removed) continue;
+    if (p.team === effTeam(e) || p.removed) continue;
     const dx = e.x - p.x;
     if (Math.abs(dx) < 170 && Math.sign(dx) === Math.sign(p.vx) && Math.abs(p.z - e.z) < 18) return true;
   }
@@ -44,7 +45,7 @@ function incomingProjectile(w: World, e: Entity): boolean {
 }
 
 function findMove(w: World, e: Entity, pred: (m: MoveDef) => boolean): MoveDef | undefined {
-  return w.charDef(e).moves.find((m) => pred(m) && e.mp >= m.mp);
+  return w.charDef(e).moves.find((m) => pred(m) && canUseMove(e, m));
 }
 
 function nearbyItem(w: World, e: Entity): Entity | undefined {

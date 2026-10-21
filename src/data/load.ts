@@ -138,6 +138,9 @@ export function validateCharacterRefs(def: CharacterDef, items: Record<string, I
       if (f.onA && !frames[f.onA]) errs.push(`欄位 ${where}${name}.onA — 幀 "${f.onA}" 不存在`);
       for (const s of f.spawn ?? [])
         if (!def.projectiles[s.id]) errs.push(`欄位 ${where}${name}.spawn — 飛行物 "${s.id}" 不存在`);
+      for (const n of [...(f.nextRandom ?? []), ...(f.onHitNext ? [f.onHitNext] : [])])
+        if (!frames[n]) errs.push(`欄位 ${where}${name} — 接續的幀 "${n}" 不存在`);
+      for (const it of f.items ?? []) if (!items[it.id]) errs.push(`欄位 ${where}${name}.items — 道具 "${it.id}" 不存在`);
     }
   };
   checkFrames(def.frames, 'frames.');

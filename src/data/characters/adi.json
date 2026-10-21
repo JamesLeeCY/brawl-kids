@@ -3,7 +3,7 @@
   "name": "阿低",
   "title": "英文老師",
   "accessory": "book",
-  "quote": "今天的單字：K.O.！",
+  "quote": "你真的是來學英文的嗎？",
   "stats": {
     "hp": 470,
     "walkSpeed": 2.7,
@@ -73,30 +73,6 @@
       "duration": 8,
       "pose": "cast"
     },
-    "vortex_1": {
-      "duration": 8,
-      "pose": "cast_ready",
-      "next": "vortex_2",
-      "sound": "special",
-      "say": "文法漩渦！"
-    },
-    "vortex_2": {
-      "duration": 12,
-      "pose": "cast",
-      "next": "vortex_rec",
-      "spawn": [
-        {
-          "id": "vortex",
-          "x": 40,
-          "y": 30,
-          "vx": 2.2
-        }
-      ]
-    },
-    "vortex_rec": {
-      "duration": 8,
-      "pose": "cast"
-    },
     "fullmark_1": {
       "duration": 20,
       "pose": "cast_up",
@@ -141,26 +117,6 @@
       "pose": "punch_ready",
       "friction": 0.7
     },
-    "skip_1": {
-      "duration": 4,
-      "pose": "crouch",
-      "next": "skip_2",
-      "sound": "special"
-    },
-    "skip_2": {
-      "duration": 12,
-      "pose": "jet_up",
-      "hover": true,
-      "selfVel": {
-        "vx": 0,
-        "vy": 7
-      },
-      "buff": {
-        "type": "hover",
-        "value": 1,
-        "duration": 84
-      }
-    },
     "quiz_1": {
       "duration": 24,
       "pose": "cast_up",
@@ -174,11 +130,64 @@
           "y": 0
         }
       ],
-      "say": "隨堂考！"
+      "say": "期末考！"
     },
     "quiz_rec": {
       "duration": 10,
       "pose": "victory"
+    },
+    "english_1": {
+      "duration": 6,
+      "pose": "cast_ready",
+      "next": "english_2",
+      "sound": "special",
+      "say": "你真的是來學英文的嗎？"
+    },
+    "english_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "english_rec",
+      "spawn": [
+        {
+          "id": "english",
+          "x": 22,
+          "y": 36,
+          "vx": 5.5
+        }
+      ]
+    },
+    "english_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "skip_1": {
+      "duration": 4,
+      "pose": "crouch",
+      "next": "skip_2",
+      "sound": "special"
+    },
+    "skip_2": {
+      "duration": 18,
+      "pose": "flykick",
+      "hover": true,
+      "selfVel": {
+        "vx": 7,
+        "vy": 5
+      },
+      "friction": 1,
+      "itr": [
+        {
+          "x": 0,
+          "y": 10,
+          "w": 30,
+          "h": 40,
+          "damage": 30,
+          "fall": 60,
+          "dvx": 5,
+          "dvy": 4,
+          "hitstop": 5
+        }
+      ]
     }
   },
   "moves": [
@@ -191,9 +200,9 @@
     },
     {
       "command": "DvA",
-      "name": "文法漩渦",
-      "mp": 110,
-      "startFrame": "vortex_1",
+      "name": "你真的是來學英文的嗎？",
+      "mp": 100,
+      "startFrame": "english_1",
       "role": "burst"
     },
     {
@@ -212,14 +221,14 @@
     },
     {
       "command": "D^J",
-      "name": "跳級",
+      "name": "跳級生",
       "mp": 60,
       "startFrame": "skip_1",
-      "role": "buff"
+      "role": "rush"
     },
     {
       "command": "DvJ",
-      "name": "隨堂考",
+      "name": "期末考",
       "mp": 150,
       "startFrame": "quiz_1",
       "role": "area"
@@ -247,36 +256,6 @@
               "dvx": 3,
               "dvy": 0,
               "hitstop": 3
-            }
-          ]
-        }
-      }
-    },
-    "vortex": {
-      "life": 120,
-      "size": 22,
-      "pull": 1.6,
-      "pullRadius": 140,
-      "hitLimit": 99,
-      "blockable": false,
-      "startFrame": "spin",
-      "frames": {
-        "spin": {
-          "duration": 1,
-          "pose": "vortex",
-          "next": "spin",
-          "itr": [
-            {
-              "x": -20,
-              "y": -26,
-              "w": 40,
-              "h": 52,
-              "damage": 8,
-              "fall": 6,
-              "dvx": 0,
-              "hitstop": 2,
-              "rehit": 15,
-              "zRange": 20
             }
           ]
         }
@@ -311,7 +290,43 @@
               "dvy": 6,
               "hitstop": 6,
               "radial": true,
-              "zRange": 18
+              "zRange": 18,
+              "inflict": {
+                "type": "vuln",
+                "value": 0.2,
+                "duration": 120
+              }
+            }
+          ]
+        }
+      }
+    },
+    "english": {
+      "life": 24,
+      "size": 20,
+      "hitLimit": 3,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "english",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -18,
+              "y": -18,
+              "w": 36,
+              "h": 36,
+              "damage": 22,
+              "fall": 10,
+              "dvx": 2,
+              "dvy": 0,
+              "hitstop": 4,
+              "inflict": {
+                "type": "reverse",
+                "value": 1,
+                "duration": 60
+              }
             }
           ]
         }

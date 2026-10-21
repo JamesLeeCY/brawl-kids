@@ -3,7 +3,7 @@
   "name": "來清德",
   "title": "醫師元首",
   "accessory": "stethoscope",
-  "quote": "醫生建議：多休息！",
+  "quote": "一個字！空！",
   "stats": {
     "hp": 495,
     "walkSpeed": 2.3,
@@ -72,76 +72,12 @@
       },
       "say": "仁心回春！"
     },
-    "slam_1": {
-      "duration": 10,
-      "pose": "slam_ready",
-      "next": "slam_2",
-      "sound": "special"
-    },
-    "slam_2": {
-      "duration": 10,
-      "pose": "slam",
-      "next": "slam_rec",
-      "shake": true,
-      "itr": [
-        {
-          "x": -100,
-          "y": 0,
-          "w": 200,
-          "h": 60,
-          "damage": 50,
-          "fall": 80,
-          "dvx": 5,
-          "dvy": 7,
-          "hitstop": 6,
-          "zRange": 56,
-          "radial": true
-        }
-      ]
-    },
-    "slam_rec": {
-      "duration": 14,
-      "pose": "slam"
-    },
-    "push_1": {
-      "duration": 5,
-      "pose": "crouch",
-      "next": "push_2",
-      "sound": "special"
-    },
-    "push_2": {
-      "duration": 16,
-      "pose": "dash",
-      "next": "push_rec",
-      "friction": 1,
-      "invuln": true,
-      "selfVel": {
-        "vx": 10
-      },
-      "itr": [
-        {
-          "x": -4,
-          "y": 10,
-          "w": 32,
-          "h": 44,
-          "damage": 42,
-          "fall": 75,
-          "dvx": 6,
-          "dvy": 5,
-          "hitstop": 6
-        }
-      ]
-    },
-    "push_rec": {
-      "duration": 10,
-      "pose": "punch_ready",
-      "friction": 0.7
-    },
     "syringe_1": {
       "duration": 6,
       "pose": "cast_ready",
       "next": "syringe_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "打疫苗！"
     },
     "syringe_2": {
       "duration": 12,
@@ -170,6 +106,59 @@
         "duration": 180
       },
       "say": "定錨護體！"
+    },
+    "kong_1": {
+      "duration": 10,
+      "pose": "cast_ready",
+      "next": "kong_2",
+      "sound": "special",
+      "say": "一個字！空！"
+    },
+    "kong_2": {
+      "duration": 16,
+      "pose": "cast_up",
+      "next": "kong_rec",
+      "shake": true,
+      "aura": {
+        "radius": 220,
+        "drainMp": 500
+      },
+      "spawn": [
+        {
+          "id": "kongword",
+          "x": 0,
+          "y": 110,
+          "vx": 0
+        }
+      ]
+    },
+    "kong_rec": {
+      "duration": 10,
+      "pose": "cast"
+    },
+    "ticket_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "ticket_2",
+      "sound": "special",
+      "say": "掛號！"
+    },
+    "ticket_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "ticket_rec",
+      "spawn": [
+        {
+          "id": "ticket",
+          "x": 24,
+          "y": 40,
+          "vx": 8
+        }
+      ]
+    },
+    "ticket_rec": {
+      "duration": 8,
+      "pose": "cast"
     }
   },
   "moves": [
@@ -189,17 +178,17 @@
     },
     {
       "command": "DvA",
-      "name": "穩健震地",
-      "mp": 100,
-      "startFrame": "slam_1",
+      "name": "空！",
+      "mp": 140,
+      "startFrame": "kong_1",
       "role": "burst"
     },
     {
       "command": "D>J",
-      "name": "穩健推進",
-      "mp": 80,
-      "startFrame": "push_1",
-      "role": "rush"
+      "name": "掛號",
+      "mp": 90,
+      "startFrame": "ticket_1",
+      "role": "ranged"
     },
     {
       "command": "DvJ",
@@ -261,7 +250,52 @@
               "damage": 34,
               "fall": 40,
               "dvx": 4,
-              "hitstop": 4
+              "hitstop": 4,
+              "healAlly": 60
+            }
+          ]
+        }
+      }
+    },
+    "kongword": {
+      "life": 40,
+      "size": 40,
+      "blockable": false,
+      "startFrame": "show",
+      "frames": {
+        "show": {
+          "duration": 1,
+          "pose": "kong",
+          "next": "show"
+        }
+      }
+    },
+    "ticket": {
+      "life": 60,
+      "size": 10,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "ticket",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -9,
+              "y": -8,
+              "w": 18,
+              "h": 16,
+              "damage": 8,
+              "fall": 5,
+              "dvx": 1,
+              "dvy": 0,
+              "hitstop": 3,
+              "inflict": {
+                "type": "bomb",
+                "value": 52,
+                "duration": 180
+              }
             }
           ]
         }

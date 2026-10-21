@@ -102,7 +102,9 @@ export type GameEvent =
   | { type: 'ko'; id: number }
   | { type: 'break'; x: number; y: number; z: number; color: string }
   | { type: 'pickup'; x: number; y: number; z: number }
-  | { type: 'wave'; index: number; total: number };
+  | { type: 'wave'; index: number; total: number }
+  /** 頭上冒出的文字（status：狀態提示，用紅色泡泡） */
+  | { type: 'say'; id: number; text: string; status?: boolean };
 
 export type Outcome = 'win' | 'lose' | 'stageClear';
 

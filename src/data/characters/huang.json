@@ -3,7 +3,7 @@
   "name": "黃國嗆",
   "title": "嗆聲教授",
   "accessory": "none",
-  "quote": "這件事情，請你說清楚！",
+  "quote": "非常遺憾",
   "stats": {
     "hp": 550,
     "walkSpeed": 2.7,
@@ -73,6 +73,15 @@
           "hitstop": 6,
           "zRange": 56,
           "radial": true
+        }
+      ],
+      "items": [
+        {
+          "id": "desk",
+          "x": 30,
+          "y": 10,
+          "vx": 2.5,
+          "vy": 7
         }
       ]
     },
@@ -171,16 +180,20 @@
       "duration": 10,
       "pose": "victory"
     },
-    "hold_1": {
+    "interp_1": {
       "duration": 20,
       "pose": "cast_up",
       "sound": "special",
-      "buff": {
-        "type": "dmgReduce",
-        "value": 0.5,
-        "duration": 180
-      },
-      "say": "堅守質詢台！"
+      "say": "質詢時間到！",
+      "aura": {
+        "radius": 9999,
+        "nearest": true,
+        "inflict": {
+          "type": "mark",
+          "value": 45,
+          "duration": 180
+        }
+      }
     }
   },
   "moves": [
@@ -221,9 +234,9 @@
     },
     {
       "command": "D^J",
-      "name": "堅守質詢台",
-      "mp": 130,
-      "startFrame": "hold_1",
+      "name": "質詢時間到",
+      "mp": 110,
+      "startFrame": "interp_1",
       "role": "buff"
     }
   ],

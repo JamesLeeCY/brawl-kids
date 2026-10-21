@@ -1,7 +1,8 @@
 // 戰鬥畫面繪製：相機、z 排序、陰影、特效、HUD。
 import { CONFIG } from '../config';
 import type { CharacterDef } from '../data/load';
-import { hasBuff, type Entity } from '../sim/entity';
+import { clonePos } from '../sim/combat';
+import { getBuff, hasBuff, type Entity } from '../sim/entity';
 import { ENEMY_TEAM, type GameEvent, type World } from '../sim/world';
 import { OUTLINE, drawFigure, drawItemShape, roundRect, shade, type Expression } from './character';
 import { getPose, withCarryArms } from './poses';
@@ -10,6 +11,7 @@ import { FONT, text } from './text';
 
 import { VW, viewOffset } from './view';
 import { lowQuality } from './quality';
+import { EXTRA_POSES, drawBuffBack, drawBuffFront, drawExtraProjectile, drawPropBack, drawPropFront, drawRedCap } from './status';
 const HZ = CONFIG.view.horizon;
 const FX = CONFIG.fx;
 
@@ -146,6 +148,10 @@ export class BattleRenderer {
   /** 震地瞬間的白色閃光（剩餘 tick） */
   flash = 0;
   private lastFrame = new Map<number, string | null>();
+  /** 模擬送出的喊話（狀態提示、反擊……）與 KO，等下一個 tick 有世界資料時再處理 */
+  private pendingSays: { id: number; text: string; status?: boolean }[] = [];
+  private pendingKo: number[] = [];
+  private openingDone = false;
   private fxSeed = 1;
   hpLag = new Map<number, number>();
   banner: { text: string; t: number } | null = null;
@@ -175,6 +181,10 @@ export class BattleRenderer {
       } else if (ev.type === 'break') {
         for (let i = 0; i < 8; i++)
           this.debris.push({ x: ev.x, y: ev.y + 10, z: ev.z, vx: Math.cos(i * 0.8) * (2 + (i % 3)), vy: 3 + (i % 4), t: 30, color: ev.color });
+      } else if (ev.type === 'say') {
+        this.pendingSays.push(ev);
+      } else if (ev.type === 'ko') {
+        this.pendingKo.push(ev.id);
       } else if (ev.type === 'wave') {
         this.banner = { text: `第 ${ev.index + 1} / ${ev.total} 波`, t: 90 };
       }
@@ -220,7 +230,30 @@ export class BattleRenderer {
   }
 
   /** 每個邏輯 tick 呼叫一次 */
+  private say(id: number, text: string, color: string): void {
+    this.callouts = this.callouts.filter((k) => k.id !== id);
+    this.callouts.push({ text, id, t: 80, color });
+  }
+
   tick(w: World): void {
+    if (!this.openingDone) {
+      this.openingDone = true;
+      // 彩蛋：川噗對上金正嗯
+      const chars = w.chars();
+      for (const t of chars.filter((c) => c.charId === 'trump'))
+        if (chars.some((k) => k.charId === 'kim' && k.team !== t.team)) this.say(t.id, '小火箭人！', w.charDef(t).palette.accent);
+    }
+    for (const s of this.pendingSays) {
+      const e = w.get(s.id);
+      if (e) this.say(s.id, s.text, s.status ? '#dc2626' : w.charDef(e).palette.accent);
+    }
+    this.pendingSays = [];
+    for (const id of this.pendingKo) {
+      const e = w.get(id);
+      const q = e && w.charDef(e).koQuote;
+      if (e && q) this.say(id, q, '#64748b');
+    }
+    this.pendingKo = [];
     for (const c of w.chars()) {
       const prev = this.lastFrame.get(c.id);
       if (c.frame !== prev) {
@@ -345,6 +378,8 @@ export class BattleRenderer {
     if (held?.kind === 'heavy' && (e.state === 'idle' || e.state === 'walk')) pose = withCarryArms(pose);
     if (e.state === 'rolling') pose = { ...pose, rot: (e.stateTime / CONFIG.combat.rollTicks) * 360 };
     if (e.state === 'dizzy' || e.state === 'broken') pose = { ...pose, t: pose.t + Math.sin(w.tick * 0.2) * 8 };
+    const stun = getBuff(e, 'stun');
+    if (stun?.value === 3) pose = { ...pose, t: pose.t + Math.sin(w.tick * 0.35) * 14 };
     const x = e.x - cam;
     const y = screenY(e);
     let alpha = 1;
@@ -362,8 +397,16 @@ export class BattleRenderer {
       ctx.fill();
       ctx.stroke();
     }
+    drawBuffBack(ctx, e, x, y, w.tick);
     // 震地類招式：地面畫出實際的命中範圍（擴散的震波），看得出打得到哪裡
     const fr = e.state === 'attack' && e.frame ? def.frames[e.frame] : undefined;
+    if (fr?.prop) drawPropBack(ctx, fr.prop, x, y, e.facing, w.tick);
+    // 傳承精神：半透明的分身
+    if (hasBuff(e, 'clone') && e.state !== 'dead') {
+      const c = clonePos(e);
+      drawFigure(ctx, def, { pose, x: c.x - cam, y: HZ + c.z - e.y, facing: e.facing, alpha: 0.42, tick: w.tick, airborne: e.y > 0, tint: '#93c5fd' });
+    }
+    const scale = hasBuff(e, 'power') ? 1.18 : 1;
     const quake = fr?.itr?.find((it) => it.radial);
     if (fr && quake) this.drawQuake(ctx, x, HZ + e.z, quake, Math.min(1, e.frameTime / fr.duration), def.palette.accent);
     drawFigure(ctx, def, {
@@ -378,7 +421,11 @@ export class BattleRenderer {
       airborne: e.y > 0,
       glow: e.boss ? '#ff2a2a' : undefined,
       expression: expressionFor(w, e),
+      scale,
     });
+    if (scale > 1) drawRedCap(ctx, x, y, e.facing, scale);
+    if (fr?.prop) drawPropFront(ctx, fr.prop, x, y, e.facing, w.tick);
+    drawBuffFront(ctx, e, x, y, w.tick, scale);
     if (hasBuff(e, 'blockProjectile')) {
       ctx.save();
       ctx.strokeStyle = def.palette.accent;
@@ -555,6 +602,11 @@ export class BattleRenderer {
     ctx.shadowColor = color;
     ctx.shadowBlur = lowQuality ? 0 : 12;
     const pose = f?.pose ?? 'dart';
+    if (EXTRA_POSES.has(pose)) {
+      drawExtraProjectile(ctx, w, p, pose, x, y, HZ + p.z, color);
+      ctx.restore();
+      return;
+    }
     switch (pose) {
       case 'wave':
         ctx.strokeStyle = color;

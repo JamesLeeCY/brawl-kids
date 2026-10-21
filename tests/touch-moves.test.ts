@@ -34,6 +34,8 @@ type Stick = 'up' | 'down' | 'right' | 'left' | null;
 /** 推住搖桿數個 tick 後點必殺鈕；回傳施放當下的角色 */
 function castByTouch(charId: string, stick: Stick, fin: 'A' | 'J', lastHorizontal: 'left' | 'right' = 'right') {
   const { w, me } = arena(charId);
+  // 有血量條件的招（例如爆氣摔器材）：先把血壓低
+  if (data.characters[charId].moves.some((m) => m.hpBelow)) me.hp = me.maxHp * 0.2;
   const held: Partial<Snapshot> = stick ? { [stick]: true } : {};
   for (let i = 0; i < 3; i++) w.step([snapshotFrom(held), undefined]);
   const press: Partial<Snapshot> = { ...held, D: true, [fin]: true };

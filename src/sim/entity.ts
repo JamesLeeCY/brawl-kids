@@ -1,5 +1,6 @@
 // 角色 / 道具 / 飛行物共用的實體結構。全部為純資料，可序列化以計算世界雜湊。
 import type { Difficulty } from '../config';
+import type { BUFF_TYPES } from '../data/schema';
 import { emptySnapshot, type Snapshot } from './snapshot';
 
 export type EntityKind = 'char' | 'item' | 'proj';
@@ -21,12 +22,16 @@ export type CharState =
   | 'rolling'
   | 'dead';
 
-export type BuffType = 'dmgReduce' | 'blockProjectile' | 'hover';
+export type BuffType = (typeof BUFF_TYPES)[number];
 
 export interface Buff {
   type: BuffType;
   value: number;
   time: number;
+  /** 施加者的實體 id（狀態類用來記傷害） */
+  src: number;
+  /** 層數 / 剩餘次數 */
+  n: number;
 }
 
 export interface CmdEvent {
@@ -104,6 +109,8 @@ export interface Entity {
   boss: boolean;
   koDone: boolean;
   ai: AIState | null;
+  /** 蓄力招式按住了幾 tick */
+  charge: number;
 
   // ---- 道具 ----
   itemId: string;
@@ -164,6 +171,7 @@ export function createEntity(id: number, kind: EntityKind): Entity {
     boss: false,
     koDone: false,
     ai: null,
+    charge: 0,
     itemId: '',
     itemState: 'ground',
     uses: 0,
@@ -178,6 +186,17 @@ export function createEntity(id: number, kind: EntityKind): Entity {
 
 export function hasBuff(e: Entity, type: BuffType): boolean {
   return e.buffs.some((b) => b.type === type);
+}
+
+export function getBuff(e: Entity, type: BuffType): Buff | undefined {
+  return e.buffs.find((b) => b.type === type);
+}
+
+/** 戰鬥用的陣營：被策反時暫時算在策反者那一隊 */
+export function effTeam(e: Entity): number {
+  if (e.kind !== 'char') return e.team;
+  const c = getBuff(e, 'charm');
+  return c ? c.value : e.team;
 }
 
 export function buffValue(e: Entity, type: BuffType): number {

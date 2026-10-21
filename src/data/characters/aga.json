@@ -3,7 +3,7 @@
   "name": "菜阿嘎",
   "title": "台語網紅",
   "accessory": "slipper",
-  "quote": "讚啦！",
+  "quote": "好吃～好吃～",
   "stats": {
     "hp": 520,
     "walkSpeed": 2.6,
@@ -42,29 +42,6 @@
       ]
     },
     "slipper_rec": {
-      "duration": 8,
-      "pose": "cast"
-    },
-    "zan_1": {
-      "duration": 8,
-      "pose": "cast_ready",
-      "next": "zan_2",
-      "sound": "special"
-    },
-    "zan_2": {
-      "duration": 14,
-      "pose": "cast",
-      "next": "zan_rec",
-      "spawn": [
-        {
-          "id": "zan",
-          "x": 26,
-          "y": 36,
-          "vx": 6.5
-        }
-      ]
-    },
-    "zan_rec": {
       "duration": 8,
       "pose": "cast"
     },
@@ -134,26 +111,6 @@
       "pose": "punch_ready",
       "friction": 0.7
     },
-    "agajump_1": {
-      "duration": 4,
-      "pose": "crouch",
-      "next": "agajump_2",
-      "sound": "special"
-    },
-    "agajump_2": {
-      "duration": 12,
-      "pose": "jet_up",
-      "hover": true,
-      "selfVel": {
-        "vx": 0,
-        "vy": 7
-      },
-      "buff": {
-        "type": "hover",
-        "value": 1,
-        "duration": 84
-      }
-    },
     "slipperrain_1": {
       "duration": 24,
       "pose": "cast_up",
@@ -172,6 +129,48 @@
     "slipperrain_rec": {
       "duration": 10,
       "pose": "victory"
+    },
+    "zan_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "zan_2",
+      "sound": "special",
+      "say": "嗆！"
+    },
+    "zan_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "zan_rec",
+      "spawn": [
+        {
+          "id": "wordwall",
+          "x": 40,
+          "y": 22,
+          "vx": 0
+        }
+      ]
+    },
+    "zan_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "yummy_1": {
+      "duration": 12,
+      "pose": "victory",
+      "next": "yummy_rec",
+      "sound": "special",
+      "say": "好吃～好吃～",
+      "hold": {
+        "btn": "J",
+        "max": 150
+      },
+      "holdHeal": 7,
+      "heal": 20,
+      "prop": "food"
+    },
+    "yummy_rec": {
+      "duration": 8,
+      "pose": "thumbs"
     }
   },
   "moves": [
@@ -187,7 +186,7 @@
       "name": "台語嗆聲",
       "mp": 80,
       "startFrame": "zan_1",
-      "role": "ranged"
+      "role": "buff"
     },
     {
       "command": "DvA",
@@ -205,9 +204,9 @@
     },
     {
       "command": "D^J",
-      "name": "阿嘎跳",
-      "mp": 60,
-      "startFrame": "agajump_1",
+      "name": "好吃好吃",
+      "mp": 90,
+      "startFrame": "yummy_1",
       "role": "buff"
     },
     {
@@ -246,32 +245,6 @@
       },
       "gravity": 0.25
     },
-    "zan": {
-      "life": 70,
-      "size": 18,
-      "hitLimit": 3,
-      "startFrame": "fly",
-      "frames": {
-        "fly": {
-          "duration": 1,
-          "pose": "zan",
-          "next": "fly",
-          "itr": [
-            {
-              "x": -13.0,
-              "y": -16.0,
-              "w": 26,
-              "h": 32,
-              "damage": 42,
-              "fall": 45,
-              "dvx": 3,
-              "dvy": 0,
-              "hitstop": 3
-            }
-          ]
-        }
-      }
-    },
     "slipperdrop": {
       "life": 60,
       "size": 16,
@@ -304,6 +277,24 @@
               "zRange": 18
             }
           ]
+        }
+      }
+    },
+    "wordwall": {
+      "life": 240,
+      "size": 24,
+      "blockable": false,
+      "wall": {
+        "w": 18,
+        "h": 56,
+        "blockChars": false
+      },
+      "startFrame": "stand",
+      "frames": {
+        "stand": {
+          "duration": 1,
+          "pose": "wordwall",
+          "next": "stand"
         }
       }
     }

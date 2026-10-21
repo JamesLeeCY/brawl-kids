@@ -3,7 +3,7 @@
   "name": "神伯洋",
   "title": "黑熊教頭",
   "accessory": "bear",
-  "quote": "熊熊出擊，收工！",
+  "quote": "最短的捷徑是繞遠路",
   "stats": {
     "hp": 460,
     "walkSpeed": 2.8,
@@ -74,63 +74,10 @@
       "pose": "cast_up",
       "sound": "special",
       "buff": {
-        "type": "blockProjectile",
+        "type": "reflect",
         "value": 1,
         "duration": 240
       }
-    },
-    "paw_1": {
-      "duration": 5,
-      "pose": "crouch",
-      "next": "paw_2",
-      "sound": "special"
-    },
-    "paw_2": {
-      "duration": 16,
-      "pose": "run_attack",
-      "next": "paw_rec",
-      "friction": 1,
-      "invuln": true,
-      "selfVel": {
-        "vx": 11.5
-      },
-      "itr": [
-        {
-          "x": -4,
-          "y": 10,
-          "w": 32,
-          "h": 44,
-          "damage": 40,
-          "fall": 75,
-          "dvx": 6,
-          "dvy": 5,
-          "hitstop": 6
-        }
-      ]
-    },
-    "paw_rec": {
-      "duration": 10,
-      "pose": "punch_ready",
-      "friction": 0.7
-    },
-    "bearrain_1": {
-      "duration": 24,
-      "pose": "cast_up",
-      "next": "bearrain_rec",
-      "sound": "special",
-      "spawn": [
-        {
-          "id": "beardrop",
-          "at": "random",
-          "count": 5,
-          "y": 0
-        }
-      ],
-      "say": "黑熊雨！"
-    },
-    "bearrain_rec": {
-      "duration": 10,
-      "pose": "victory"
     },
     "bearjump_1": {
       "duration": 4,
@@ -151,6 +98,85 @@
         "value": 1,
         "duration": 84
       }
+    },
+    "detour_1": {
+      "duration": 10,
+      "pose": "dash",
+      "next": "detour_2",
+      "sound": "special",
+      "selfVel": {
+        "vx": -7
+      },
+      "friction": 1,
+      "invuln": true
+    },
+    "detour_2": {
+      "duration": 6,
+      "pose": "crouch",
+      "next": "detour_3",
+      "teleport": "behind",
+      "invuln": true,
+      "say": "繞遠路！"
+    },
+    "detour_3": {
+      "duration": 10,
+      "pose": "punch_extend",
+      "next": "detour_rec",
+      "itr": [
+        {
+          "x": 0,
+          "y": 10,
+          "w": 34,
+          "h": 44,
+          "damage": 44,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "detour_rec": {
+      "duration": 10,
+      "pose": "punch_ready"
+    },
+    "academy_1": {
+      "duration": 10,
+      "pose": "cast_up",
+      "next": "academy_2",
+      "sound": "special",
+      "say": "黑熊學院開課！"
+    },
+    "academy_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "academy_rec",
+      "spawn": [
+        {
+          "id": "minibear",
+          "x": 20,
+          "y": 0,
+          "vx": 5,
+          "dz": -16
+        },
+        {
+          "id": "minibear",
+          "x": 26,
+          "y": 0,
+          "vx": 5.5
+        },
+        {
+          "id": "minibear",
+          "x": 20,
+          "y": 0,
+          "vx": 5,
+          "dz": 16
+        }
+      ]
+    },
+    "academy_rec": {
+      "duration": 10,
+      "pose": "victory"
     }
   },
   "moves": [
@@ -177,16 +203,16 @@
     },
     {
       "command": "D>J",
-      "name": "熊掌突擊",
-      "mp": 80,
-      "startFrame": "paw_1",
+      "name": "繞遠路",
+      "mp": 100,
+      "startFrame": "detour_1",
       "role": "rush"
     },
     {
       "command": "DvJ",
-      "name": "黑熊雨",
-      "mp": 160,
-      "startFrame": "bearrain_1",
+      "name": "黑熊學院開課",
+      "mp": 150,
+      "startFrame": "academy_1",
       "role": "area"
     },
     {
@@ -253,36 +279,27 @@
         }
       }
     },
-    "beardrop": {
-      "life": 60,
-      "size": 16,
-      "hitLimit": 99,
-      "blockable": false,
-      "startFrame": "warn",
+    "minibear": {
+      "life": 110,
+      "size": 12,
+      "hitLimit": 1,
+      "startFrame": "fly",
       "frames": {
-        "warn": {
-          "duration": 30,
-          "pose": "bolt_warn",
-          "next": "strike"
-        },
-        "strike": {
-          "duration": 14,
-          "pose": "beardrop",
-          "next": "expire",
-          "sound": "hit_heavy",
+        "fly": {
+          "duration": 1,
+          "pose": "minibear",
+          "next": "fly",
           "itr": [
             {
-              "x": -18,
+              "x": -12,
               "y": 0,
-              "w": 36,
-              "h": 120,
-              "damage": 40,
-              "fall": 80,
-              "dvx": 2,
-              "dvy": 6,
-              "hitstop": 6,
-              "radial": true,
-              "zRange": 18
+              "w": 24,
+              "h": 30,
+              "damage": 34,
+              "fall": 70,
+              "dvx": 4,
+              "dvy": 5,
+              "hitstop": 5
             }
           ]
         }

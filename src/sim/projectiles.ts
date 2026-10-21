@@ -1,7 +1,8 @@
 // 飛行物：本身也是帶 frames 的實體。
 import { CONFIG } from '../config';
 import type { SpawnDef } from '../data/schema';
-import { isAlive, type Entity } from './entity';
+import { projectileHitsWall } from './effects';
+import { effTeam, isAlive, type Entity } from './entity';
 import type { World } from './world';
 
 export function spawnFromFrame(w: World, owner: Entity, spawns: readonly SpawnDef[]): void {
@@ -46,7 +47,7 @@ export function spawnProjectile(
   p.projId = key;
   p.charId = owner.charId;
   p.ownerId = owner.kind === 'char' ? owner.id : owner.ownerId;
-  p.team = owner.team;
+  p.team = effTeam(owner);
   p.facing = vx < 0 ? -1 : vx > 0 ? 1 : owner.facing;
   p.x = Math.max(0, Math.min(w.stage.width, x));
   p.y = Math.max(0, y);
@@ -66,7 +67,7 @@ export function spawnProjectile(
     let best: Entity | null = null;
     let bd = Infinity;
     for (const c of w.chars()) {
-      if (c.team === p.team || !isAlive(c)) continue;
+      if (effTeam(c) === p.team || !isAlive(c)) continue;
       const d = Math.abs(c.x - p.x) + Math.abs(c.z - p.z) * 2;
       if (d < bd) {
         bd = d;
@@ -119,7 +120,7 @@ export function updateProjectile(w: World, p: Entity): void {
 
   if (def.pull > 0) {
     for (const c of w.chars()) {
-      if (c.team === p.team || !isAlive(c) || c.invuln > 0 || c.state === 'lying' || c.state === 'grabbed') continue;
+      if (effTeam(c) === p.team || !isAlive(c) || c.invuln > 0 || c.state === 'lying' || c.state === 'grabbed') continue;
       const ddx = p.x - c.x;
       const ddz = p.z - c.z;
       if (Math.sqrt(ddx * ddx + 4 * ddz * ddz) > def.pullRadius) continue;
@@ -135,19 +136,21 @@ export function updateProjectile(w: World, p: Entity): void {
   p.z = Math.max(CONFIG.physics.zMin, Math.min(CONFIG.physics.zMax, p.z + p.vz));
   if (p.y < 0) {
     p.y = 0;
-    p.vy = 0;
+    p.vy = def.bounce;
   }
   if (p.x < -50 || p.x > w.stage.width + 50) {
     p.removed = true;
     return;
   }
+  if (projectileHitsWall(w, p)) return;
   if (--p.life <= 0) expireProjectile(w, p);
 }
 
 function spawnChild(w: World, p: Entity, childId: string): void {
   const owner = w.get(p.ownerId);
   if (!owner) return;
-  spawnProjectile(w, owner, `${p.charId}.${childId}`, p.x, p.y, p.z, 0, 0, 0);
+  const l = w.data.projectiles[`${p.charId}.${childId}`]?.launch;
+  spawnProjectile(w, owner, `${p.charId}.${childId}`, p.x, p.y, p.z, (l?.vx ?? 0) * p.facing, l?.vy ?? 0, 0);
 }
 
 export function expireProjectile(w: World, p: Entity): void {

@@ -3,7 +3,7 @@
   "name": "金正嗯",
   "title": "髮型大師",
   "accessory": "maosuit",
-  "quote": "鼓掌！大家一起熱烈鼓掌！",
+  "quote": "老糊塗！",
   "stats": {
     "hp": 600,
     "walkSpeed": 2.2,
@@ -67,7 +67,12 @@
           "dvy": 7,
           "hitstop": 6,
           "zRange": 56,
-          "radial": true
+          "radial": true,
+          "inflict": {
+            "type": "stun",
+            "value": 2,
+            "duration": 60
+          }
         }
       ]
     },
@@ -135,41 +140,43 @@
       "duration": 10,
       "pose": "victory"
     },
-    "swirl_1": {
-      "duration": 8,
-      "pose": "cast_ready",
-      "next": "swirl_2",
-      "sound": "special"
+    "dunk_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "dunk_2",
+      "sound": "special",
+      "say": "灌籃！"
     },
-    "swirl_2": {
-      "duration": 12,
-      "pose": "cast",
-      "next": "swirl_rec",
-      "spawn": [
+    "dunk_2": {
+      "duration": 120,
+      "pose": "flykick",
+      "leap": 9,
+      "itr": [
         {
-          "id": "swirl",
-          "x": 40,
-          "y": 30,
-          "vx": 2.2
+          "x": -16,
+          "y": -8,
+          "w": 32,
+          "h": 30,
+          "damage": 50,
+          "fall": 90,
+          "dvx": 3,
+          "dvy": 6,
+          "hitstop": 7
         }
       ]
-    },
-    "swirl_rec": {
-      "duration": 10,
-      "pose": "cast"
     }
   },
   "moves": [
     {
       "command": "D>A",
-      "name": "煙火火箭",
+      "name": "火箭人",
       "mp": 70,
       "startFrame": "rocket_1",
       "role": "ranged"
     },
     {
       "command": "DvA",
-      "name": "熱烈鼓掌震波",
+      "name": "熱烈鼓掌",
       "mp": 100,
       "startFrame": "clap_1",
       "role": "burst"
@@ -197,10 +204,10 @@
     },
     {
       "command": "D^J",
-      "name": "髮型旋風",
+      "name": "灌籃",
       "mp": 110,
-      "startFrame": "swirl_1",
-      "role": "burst"
+      "startFrame": "dunk_1",
+      "role": "rush"
     }
   ],
   "projectiles": {
@@ -223,7 +230,12 @@
               "damage": 14,
               "fall": 10,
               "dvx": 2,
-              "hitstop": 3
+              "hitstop": 3,
+              "bonusVs": {
+                "char": "trump",
+                "mul": 1.1,
+                "say": "老糊塗！"
+              }
             }
           ]
         }
@@ -291,36 +303,6 @@
               "hitstop": 6,
               "radial": true,
               "zRange": 18
-            }
-          ]
-        }
-      }
-    },
-    "swirl": {
-      "life": 120,
-      "size": 22,
-      "pull": 1.6,
-      "pullRadius": 140,
-      "hitLimit": 99,
-      "blockable": false,
-      "startFrame": "spin",
-      "frames": {
-        "spin": {
-          "duration": 1,
-          "pose": "vortex",
-          "next": "spin",
-          "itr": [
-            {
-              "x": -20,
-              "y": -26,
-              "w": 40,
-              "h": 52,
-              "damage": 8,
-              "fall": 6,
-              "dvx": 0,
-              "hitstop": 2,
-              "rehit": 15,
-              "zRange": 20
             }
           ]
         }

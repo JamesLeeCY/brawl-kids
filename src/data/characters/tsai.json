@@ -3,7 +3,7 @@
   "name": "蔡英雯",
   "title": "貓狗大家長",
   "accessory": "cat",
-  "quote": "想想、阿才，一起加油！",
+  "quote": "謙卑，謙卑，再謙卑。",
   "stats": {
     "hp": 550,
     "walkSpeed": 2.6,
@@ -109,40 +109,6 @@
       "heal": 110,
       "say": "暖心便當！"
     },
-    "steady_1": {
-      "duration": 5,
-      "pose": "crouch",
-      "next": "steady_2",
-      "sound": "special"
-    },
-    "steady_2": {
-      "duration": 16,
-      "pose": "dash",
-      "next": "steady_rec",
-      "friction": 1,
-      "invuln": true,
-      "selfVel": {
-        "vx": 10.5
-      },
-      "itr": [
-        {
-          "x": -4,
-          "y": 10,
-          "w": 34,
-          "h": 46,
-          "damage": 40,
-          "fall": 75,
-          "dvx": 6,
-          "dvy": 5,
-          "hitstop": 6
-        }
-      ]
-    },
-    "steady_rec": {
-      "duration": 10,
-      "pose": "punch_ready",
-      "friction": 0.7
-    },
     "catrain_1": {
       "duration": 24,
       "pose": "cast_up",
@@ -156,7 +122,7 @@
           "y": 0
         }
       ],
-      "say": "貓咪雨！"
+      "say": "貓咪踩踩！"
     },
     "catrain_rec": {
       "duration": 10,
@@ -172,6 +138,84 @@
         "duration": 180
       },
       "say": "辣台妹！"
+    },
+    "humble_1": {
+      "duration": 14,
+      "pose": "crouch",
+      "next": "humble_2",
+      "sound": "special",
+      "say": "謙卑！",
+      "bdy": [
+        {
+          "x": -11,
+          "y": 0,
+          "w": 22,
+          "h": 24
+        }
+      ],
+      "selfVel": {
+        "vx": 2.5
+      },
+      "friction": 1
+    },
+    "humble_2": {
+      "duration": 14,
+      "pose": "crouch",
+      "next": "humble_3",
+      "say": "謙卑！",
+      "bdy": [
+        {
+          "x": -11,
+          "y": 0,
+          "w": 22,
+          "h": 24
+        }
+      ],
+      "selfVel": {
+        "vx": 2.5
+      },
+      "friction": 1
+    },
+    "humble_3": {
+      "duration": 8,
+      "pose": "crouch",
+      "next": "humble_4",
+      "say": "再謙卑！",
+      "bdy": [
+        {
+          "x": -11,
+          "y": 0,
+          "w": 22,
+          "h": 24
+        }
+      ]
+    },
+    "humble_4": {
+      "duration": 10,
+      "pose": "dash",
+      "next": "humble_rec",
+      "selfVel": {
+        "vx": 7
+      },
+      "friction": 1,
+      "itr": [
+        {
+          "x": 0,
+          "y": 14,
+          "w": 30,
+          "h": 40,
+          "damage": 44,
+          "fall": 80,
+          "dvx": 8,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ]
+    },
+    "humble_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
     }
   },
   "moves": [
@@ -198,14 +242,14 @@
     },
     {
       "command": "D>J",
-      "name": "穩穩前進",
-      "mp": 80,
-      "startFrame": "steady_1",
+      "name": "再謙卑",
+      "mp": 90,
+      "startFrame": "humble_1",
       "role": "rush"
     },
     {
       "command": "DvJ",
-      "name": "貓咪雨",
+      "name": "貓咪踩踩",
       "mp": 150,
       "startFrame": "catrain_1",
       "role": "area"
@@ -300,6 +344,36 @@
               "dvy": 6,
               "hitstop": 6,
               "radial": true,
+              "zRange": 18
+            }
+          ]
+        }
+      },
+      "onExpire": "catpaw"
+    },
+    "catpaw": {
+      "life": 60,
+      "size": 20,
+      "blockable": false,
+      "hitLimit": 99,
+      "startFrame": "stomp",
+      "frames": {
+        "stomp": {
+          "duration": 1,
+          "pose": "catpaw",
+          "next": "stomp",
+          "itr": [
+            {
+              "x": -22,
+              "y": 0,
+              "w": 44,
+              "h": 40,
+              "damage": 6,
+              "fall": 6,
+              "dvx": 0,
+              "dvy": 0,
+              "hitstop": 1,
+              "rehit": 12,
               "zRange": 18
             }
           ]

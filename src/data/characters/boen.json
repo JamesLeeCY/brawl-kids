@@ -3,7 +3,7 @@
   "name": "搏恩",
   "title": "脫口秀之王",
   "accessory": "mic",
-  "quote": "謝謝大家，晚安！",
+  "quote": "vs 中間沒有點",
   "stats": {
     "hp": 500,
     "walkSpeed": 2.6,
@@ -22,29 +22,6 @@
     "tie": "#a855f7"
   },
   "frames": {
-    "laugh_1": {
-      "duration": 8,
-      "pose": "cast_ready",
-      "next": "laugh_2",
-      "sound": "special"
-    },
-    "laugh_2": {
-      "duration": 14,
-      "pose": "cast",
-      "next": "laugh_rec",
-      "spawn": [
-        {
-          "id": "laugh",
-          "x": 26,
-          "y": 36,
-          "vx": 6.5
-        }
-      ]
-    },
-    "laugh_rec": {
-      "duration": 8,
-      "pose": "cast"
-    },
     "canned_1": {
       "duration": 24,
       "pose": "cast_up",
@@ -68,7 +45,8 @@
       "duration": 10,
       "pose": "slam_ready",
       "next": "coldjoke_2",
-      "sound": "special"
+      "sound": "special",
+      "say": "冷笑話……"
     },
     "coldjoke_2": {
       "duration": 10,
@@ -82,12 +60,17 @@
           "w": 200,
           "h": 60,
           "damage": 30,
-          "fall": 45,
-          "dvx": 5,
+          "fall": 0,
+          "dvx": 1,
           "dvy": 0,
           "hitstop": 6,
           "zRange": 56,
-          "radial": true
+          "radial": true,
+          "inflict": {
+            "type": "stun",
+            "value": 1,
+            "duration": 60
+          }
         }
       ]
     },
@@ -129,13 +112,6 @@
       "pose": "punch_ready",
       "friction": 0.7
     },
-    "ovation_1": {
-      "duration": 24,
-      "pose": "cast_up",
-      "sound": "special",
-      "heal": 100,
-      "say": "起立鼓掌！"
-    },
     "micthrow_1": {
       "duration": 5,
       "pose": "cast_ready",
@@ -158,14 +134,62 @@
     "micthrow_rec": {
       "duration": 8,
       "pose": "cast"
+    },
+    "vs_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "vs_2",
+      "sound": "special",
+      "say": "vs 中間沒有點！"
+    },
+    "vs_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "vs_rec",
+      "spawn": [
+        {
+          "id": "vs",
+          "x": 24,
+          "y": 40,
+          "vx": 7
+        }
+      ]
+    },
+    "vs_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "quiet_1": {
+      "duration": 10,
+      "pose": "cast_ready",
+      "next": "quiet_2",
+      "sound": "special",
+      "say": "全場安靜！"
+    },
+    "quiet_2": {
+      "duration": 18,
+      "pose": "cast_up",
+      "next": "quiet_rec",
+      "aura": {
+        "radius": 260,
+        "inflict": {
+          "type": "silence",
+          "value": 1,
+          "duration": 120
+        }
+      }
+    },
+    "quiet_rec": {
+      "duration": 8,
+      "pose": "cast"
     }
   },
   "moves": [
     {
       "command": "D>A",
-      "name": "脫口秀衝擊",
+      "name": "vs 中間沒有點",
       "mp": 75,
-      "startFrame": "laugh_1",
+      "startFrame": "vs_1",
       "role": "ranged"
     },
     {
@@ -178,7 +202,7 @@
     {
       "command": "DvA",
       "name": "冷笑話",
-      "mp": 90,
+      "mp": 100,
       "startFrame": "coldjoke_1",
       "role": "burst"
     },
@@ -191,10 +215,10 @@
     },
     {
       "command": "D^J",
-      "name": "起立鼓掌",
-      "mp": 140,
-      "startFrame": "ovation_1",
-      "role": "buff"
+      "name": "全場安靜",
+      "mp": 130,
+      "startFrame": "quiet_1",
+      "role": "area"
     },
     {
       "command": "DvJ",
@@ -205,32 +229,6 @@
     }
   ],
   "projectiles": {
-    "laugh": {
-      "life": 70,
-      "size": 18,
-      "hitLimit": 3,
-      "startFrame": "fly",
-      "frames": {
-        "fly": {
-          "duration": 1,
-          "pose": "laugh",
-          "next": "fly",
-          "itr": [
-            {
-              "x": -13.0,
-              "y": -16.0,
-              "w": 26,
-              "h": 32,
-              "damage": 42,
-              "fall": 45,
-              "dvx": 3,
-              "dvy": 0,
-              "hitstop": 3
-            }
-          ]
-        }
-      }
-    },
     "laughdrop": {
       "life": 60,
       "size": 16,
@@ -284,6 +282,64 @@
               "h": 12,
               "damage": 30,
               "fall": 40,
+              "dvx": 3,
+              "dvy": 0,
+              "hitstop": 3
+            }
+          ]
+        }
+      }
+    },
+    "vs": {
+      "life": 60,
+      "size": 22,
+      "hitLimit": 1,
+      "onHit": "dot",
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "vs",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -16,
+              "y": -16,
+              "w": 32,
+              "h": 32,
+              "damage": 40,
+              "fall": 50,
+              "dvx": 4,
+              "dvy": 0,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    },
+    "dot": {
+      "life": 45,
+      "size": 8,
+      "gravity": 0.35,
+      "hitLimit": 1,
+      "launch": {
+        "vx": 4.5,
+        "vy": 6
+      },
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "dot",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -6,
+              "y": -6,
+              "w": 12,
+              "h": 12,
+              "damage": 12,
+              "fall": 30,
               "dvx": 3,
               "dvy": 0,
               "hitstop": 3

@@ -3,9 +3,9 @@
   "name": "遊挺好",
   "title": "財經評論員",
   "accessory": "chart",
-  "quote": "投資一定有風險！",
+  "quote": "少操無用的心，多操心愛的人",
   "stats": {
-    "hp": 480,
+    "hp": 465,
     "walkSpeed": 2.5,
     "runSpeed": 5.6,
     "jumpPower": 9.0,
@@ -74,34 +74,6 @@
       "duration": 8,
       "pose": "cast"
     },
-    "limitup_1": {
-      "duration": 6,
-      "pose": "crouch",
-      "next": "limitup_2",
-      "sound": "special"
-    },
-    "limitup_2": {
-      "duration": 14,
-      "pose": "cast_up",
-      "next": "idle",
-      "selfVel": {
-        "vx": 2,
-        "vy": 7
-      },
-      "itr": [
-        {
-          "x": 0,
-          "y": 20,
-          "w": 30,
-          "h": 50,
-          "damage": 45,
-          "fall": 85,
-          "dvx": 2,
-          "dvy": 11,
-          "hitstop": 6
-        }
-      ]
-    },
     "limitdown_1": {
       "duration": 10,
       "pose": "slam_ready",
@@ -133,40 +105,6 @@
       "duration": 14,
       "pose": "slam"
     },
-    "chase_1": {
-      "duration": 5,
-      "pose": "crouch",
-      "next": "chase_2",
-      "sound": "special"
-    },
-    "chase_2": {
-      "duration": 16,
-      "pose": "dash",
-      "next": "chase_rec",
-      "friction": 1,
-      "invuln": true,
-      "selfVel": {
-        "vx": 11
-      },
-      "itr": [
-        {
-          "x": -4,
-          "y": 10,
-          "w": 32,
-          "h": 44,
-          "damage": 40,
-          "fall": 75,
-          "dvx": 6,
-          "dvy": 5,
-          "hitstop": 6
-        }
-      ]
-    },
-    "chase_rec": {
-      "duration": 10,
-      "pose": "punch_ready",
-      "friction": 0.7
-    },
     "crash_1": {
       "duration": 24,
       "pose": "cast_up",
@@ -186,16 +124,68 @@
       "duration": 10,
       "pose": "victory"
     },
-    "stoploss_1": {
+    "limitup_1": {
       "duration": 20,
       "pose": "cast_up",
       "sound": "special",
+      "say": "漲停板！",
+      "buff": {
+        "type": "rage",
+        "value": 1,
+        "duration": 360
+      }
+    },
+    "dca_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "dca_2",
+      "sound": "special",
+      "say": "定期定額！"
+    },
+    "dca_2": {
+      "duration": 18,
+      "pose": "dash",
+      "next": "dca_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 10
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 30,
+          "fall": 70,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6,
+          "inflict": {
+            "type": "dot",
+            "value": 4,
+            "duration": 240
+          }
+        }
+      ]
+    },
+    "dca_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "care_1": {
+      "duration": 20,
+      "pose": "cast_up",
+      "sound": "special",
+      "say": "多操心愛的人！",
       "buff": {
         "type": "dmgReduce",
         "value": 0.5,
-        "duration": 180
-      },
-      "say": "停損護盾！"
+        "duration": 300,
+        "to": "allies"
+      }
     }
   },
   "moves": [
@@ -209,9 +199,9 @@
     {
       "command": "D^A",
       "name": "漲停板",
-      "mp": 80,
+      "mp": 120,
       "startFrame": "limitup_1",
-      "role": "burst"
+      "role": "buff"
     },
     {
       "command": "DvA",
@@ -222,9 +212,9 @@
     },
     {
       "command": "D>J",
-      "name": "追高衝刺",
+      "name": "定期定額",
       "mp": 80,
-      "startFrame": "chase_1",
+      "startFrame": "dca_1",
       "role": "rush"
     },
     {
@@ -236,9 +226,9 @@
     },
     {
       "command": "D^J",
-      "name": "停損護盾",
+      "name": "操心愛的人",
       "mp": 130,
-      "startFrame": "stoploss_1",
+      "startFrame": "care_1",
       "role": "buff"
     }
   ],

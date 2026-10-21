@@ -3,7 +3,7 @@
   "name": "豪豪",
   "title": "業配之王",
   "accessory": "none",
-  "quote": "這集不是業配……其實是業配！",
+  "quote": "叛徒啦叛徒",
   "stats": {
     "hp": 510,
     "walkSpeed": 2.7,
@@ -45,38 +45,14 @@
       "duration": 8,
       "pose": "cast"
     },
-    "song_1": {
-      "duration": 8,
-      "pose": "cast_ready",
-      "next": "song_2",
-      "sound": "special",
-      "say": "洗腦神曲！"
-    },
-    "song_2": {
-      "duration": 12,
-      "pose": "cast",
-      "next": "song_rec",
-      "spawn": [
-        {
-          "id": "song",
-          "x": 40,
-          "y": 30,
-          "vx": 2.2
-        }
-      ]
-    },
-    "song_rec": {
-      "duration": 10,
-      "pose": "cast"
-    },
     "bonus_1": {
       "duration": 20,
       "pose": "cast_up",
       "sound": "special",
       "buff": {
-        "type": "dmgReduce",
-        "value": 0.5,
-        "duration": 180
+        "type": "mpRegen",
+        "value": 1,
+        "duration": 360
       },
       "say": "業主加碼！"
     },
@@ -133,25 +109,53 @@
       "duration": 10,
       "pose": "victory"
     },
-    "notejump_1": {
-      "duration": 4,
-      "pose": "crouch",
-      "next": "notejump_2",
-      "sound": "special"
+    "song_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "song_2",
+      "sound": "special",
+      "say": "洗腦神曲～"
     },
-    "notejump_2": {
-      "duration": 12,
-      "pose": "jet_up",
-      "hover": true,
-      "selfVel": {
-        "vx": 0,
-        "vy": 7
-      },
-      "buff": {
-        "type": "hover",
-        "value": 1,
-        "duration": 84
+    "song_2": {
+      "duration": 20,
+      "pose": "wave",
+      "next": "song_rec",
+      "aura": {
+        "radius": 170,
+        "inflict": {
+          "type": "stun",
+          "value": 3,
+          "duration": 60
+        }
       }
+    },
+    "song_rec": {
+      "duration": 10,
+      "pose": "wave2"
+    },
+    "traitor_1": {
+      "duration": 7,
+      "pose": "cast_ready",
+      "next": "traitor_2",
+      "sound": "special",
+      "say": "叛徒啦叛徒！"
+    },
+    "traitor_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "traitor_rec",
+      "spawn": [
+        {
+          "id": "traitor",
+          "x": 24,
+          "y": 38,
+          "vx": 7
+        }
+      ]
+    },
+    "traitor_rec": {
+      "duration": 8,
+      "pose": "cast"
     }
   },
   "moves": [
@@ -192,10 +196,10 @@
     },
     {
       "command": "D^J",
-      "name": "音符跳躍",
-      "mp": 60,
-      "startFrame": "notejump_1",
-      "role": "buff"
+      "name": "叛徒啦叛徒",
+      "mp": 120,
+      "startFrame": "traitor_1",
+      "role": "ranged"
     }
   ],
   "projectiles": {
@@ -220,36 +224,6 @@
               "dvx": 5,
               "dvy": 4,
               "hitstop": 5
-            }
-          ]
-        }
-      }
-    },
-    "song": {
-      "life": 120,
-      "size": 22,
-      "pull": 1.6,
-      "pullRadius": 140,
-      "hitLimit": 99,
-      "blockable": false,
-      "startFrame": "spin",
-      "frames": {
-        "spin": {
-          "duration": 1,
-          "pose": "notes",
-          "next": "spin",
-          "itr": [
-            {
-              "x": -20,
-              "y": -26,
-              "w": 40,
-              "h": 52,
-              "damage": 8,
-              "fall": 6,
-              "dvx": 0,
-              "hitstop": 2,
-              "rehit": 15,
-              "zRange": 20
             }
           ]
         }
@@ -285,6 +259,37 @@
               "hitstop": 6,
               "radial": true,
               "zRange": 18
+            }
+          ]
+        }
+      }
+    },
+    "traitor": {
+      "life": 50,
+      "size": 18,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "traitor",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -16,
+              "y": -16,
+              "w": 32,
+              "h": 32,
+              "damage": 16,
+              "fall": 10,
+              "dvx": 2,
+              "dvy": 0,
+              "hitstop": 4,
+              "inflict": {
+                "type": "charm",
+                "value": 0,
+                "duration": 120
+              }
             }
           ]
         }

@@ -68,6 +68,28 @@
         "mp": 150
       },
       "weight": 0
+    },
+    {
+      "id": "cabbage",
+      "name": "高麗菜",
+      "kind": "light",
+      "color": "#8bc34a",
+      "size": 14,
+      "throwDamage": 30,
+      "throwFall": 55,
+      "bounces": 1,
+      "weight": 0
+    },
+    {
+      "id": "desk",
+      "name": "議事桌",
+      "kind": "heavy",
+      "color": "#9a6a3c",
+      "size": 28,
+      "throwDamage": 55,
+      "throwFall": 80,
+      "breakOnLand": true,
+      "weight": 0
     }
   ]
 }

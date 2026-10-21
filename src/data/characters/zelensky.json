@@ -3,7 +3,7 @@
   "name": "則倫斯基",
   "title": "喜劇總統",
   "accessory": "none",
-  "quote": "下一個笑點，馬上來！",
+  "quote": "英雄是烏克蘭，不是我",
   "stats": {
     "hp": 530,
     "walkSpeed": 2.8,
@@ -59,29 +59,6 @@
       "duration": 8,
       "pose": "cast"
     },
-    "joke_1": {
-      "duration": 7,
-      "pose": "cast_ready",
-      "next": "joke_2",
-      "sound": "special"
-    },
-    "joke_2": {
-      "duration": 14,
-      "pose": "cast",
-      "next": "joke_rec",
-      "spawn": [
-        {
-          "id": "joke",
-          "x": 24,
-          "y": 36,
-          "vx": 7
-        }
-      ]
-    },
-    "joke_rec": {
-      "duration": 8,
-      "pose": "cast"
-    },
     "tee_1": {
       "duration": 20,
       "pose": "cast_up",
@@ -89,7 +66,8 @@
       "buff": {
         "type": "dmgReduce",
         "value": 0.5,
-        "duration": 180
+        "duration": 180,
+        "to": "team"
       },
       "say": "綠 T 硬漢！"
     },
@@ -146,25 +124,194 @@
       "duration": 10,
       "pose": "victory"
     },
-    "stage_1": {
+    "joke_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "nextRandom": [
+        "joke_stun",
+        "joke_blast",
+        "joke_heal"
+      ],
+      "sound": "special",
+      "say": "即興喜劇！"
+    },
+    "joke_stun": {
+      "duration": 14,
+      "pose": "clap",
+      "next": "joke_rec",
+      "say": "笑到不能動！",
+      "aura": {
+        "radius": 130,
+        "inflict": {
+          "type": "stun",
+          "value": 5,
+          "duration": 70
+        }
+      }
+    },
+    "joke_blast": {
+      "duration": 10,
+      "pose": "slam",
+      "next": "joke_rec",
+      "shake": true,
+      "say": "哈！",
+      "itr": [
+        {
+          "x": -80,
+          "y": 0,
+          "w": 160,
+          "h": 60,
+          "damage": 44,
+          "fall": 80,
+          "dvx": 6,
+          "dvy": 7,
+          "hitstop": 6,
+          "zRange": 46,
+          "radial": true
+        }
+      ]
+    },
+    "joke_heal": {
+      "duration": 18,
+      "pose": "victory",
+      "next": "joke_rec",
+      "heal": 80,
+      "say": "自己笑一下！"
+    },
+    "joke_rec": {
+      "duration": 10,
+      "pose": "cast"
+    },
+    "spin_1": {
       "duration": 4,
       "pose": "crouch",
-      "next": "stage_2",
-      "sound": "special"
+      "next": "spin_2",
+      "sound": "special",
+      "say": "舞王旋轉！"
     },
-    "stage_2": {
-      "duration": 12,
-      "pose": "jet_up",
-      "hover": true,
-      "selfVel": {
-        "vx": 0,
-        "vy": 7
-      },
-      "buff": {
-        "type": "hover",
-        "value": 1,
-        "duration": 84
-      }
+    "spin_2": {
+      "duration": 6,
+      "pose": "kick",
+      "next": "spin_3",
+      "friction": 0.9,
+      "itr": [
+        {
+          "x": -30,
+          "y": 6,
+          "w": 60,
+          "h": 50,
+          "damage": 9,
+          "fall": 10,
+          "dvx": 1,
+          "dvy": 0,
+          "hitstop": 3,
+          "zRange": 20
+        }
+      ]
+    },
+    "spin_3": {
+      "duration": 6,
+      "pose": "flykick",
+      "next": "spin_4",
+      "friction": 0.9,
+      "itr": [
+        {
+          "x": -30,
+          "y": 6,
+          "w": 60,
+          "h": 50,
+          "damage": 9,
+          "fall": 10,
+          "dvx": 1,
+          "dvy": 0,
+          "hitstop": 3,
+          "zRange": 20
+        }
+      ]
+    },
+    "spin_4": {
+      "duration": 6,
+      "pose": "kick",
+      "next": "spin_5",
+      "friction": 0.9,
+      "itr": [
+        {
+          "x": -30,
+          "y": 6,
+          "w": 60,
+          "h": 50,
+          "damage": 9,
+          "fall": 10,
+          "dvx": 1,
+          "dvy": 0,
+          "hitstop": 3,
+          "zRange": 20
+        }
+      ]
+    },
+    "spin_5": {
+      "duration": 6,
+      "pose": "flykick",
+      "next": "spin_6",
+      "friction": 0.9,
+      "itr": [
+        {
+          "x": -30,
+          "y": 6,
+          "w": 60,
+          "h": 50,
+          "damage": 9,
+          "fall": 10,
+          "dvx": 1,
+          "dvy": 0,
+          "hitstop": 3,
+          "zRange": 20
+        }
+      ]
+    },
+    "spin_6": {
+      "duration": 6,
+      "pose": "kick",
+      "next": "spin_7",
+      "friction": 0.9,
+      "itr": [
+        {
+          "x": -30,
+          "y": 6,
+          "w": 60,
+          "h": 50,
+          "damage": 9,
+          "fall": 10,
+          "dvx": 1,
+          "dvy": 0,
+          "hitstop": 3,
+          "zRange": 20
+        }
+      ]
+    },
+    "spin_7": {
+      "duration": 6,
+      "pose": "flykick",
+      "next": "spin_rec",
+      "friction": 0.9,
+      "itr": [
+        {
+          "x": -30,
+          "y": 6,
+          "w": 60,
+          "h": 50,
+          "damage": 18,
+          "fall": 60,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 3,
+          "zRange": 20
+        }
+      ]
+    },
+    "spin_rec": {
+      "duration": 10,
+      "pose": "punch_ready"
     }
   },
   "moves": [
@@ -205,10 +352,10 @@
     },
     {
       "command": "D^J",
-      "name": "舞台飛躍",
-      "mp": 60,
-      "startFrame": "stage_1",
-      "role": "buff"
+      "name": "舞王旋轉",
+      "mp": 100,
+      "startFrame": "spin_1",
+      "role": "burst"
     }
   ],
   "projectiles": {
@@ -232,32 +379,6 @@
               "fall": 16,
               "dvx": 2,
               "hitstop": 3
-            }
-          ]
-        }
-      }
-    },
-    "joke": {
-      "life": 42,
-      "size": 18,
-      "hitLimit": 4,
-      "startFrame": "fly",
-      "frames": {
-        "fly": {
-          "duration": 1,
-          "pose": "joke",
-          "next": "fly",
-          "itr": [
-            {
-              "x": -16,
-              "y": -16,
-              "w": 32,
-              "h": 32,
-              "damage": 30,
-              "fall": 60,
-              "dvx": 5,
-              "dvy": 4,
-              "hitstop": 5
             }
           ]
         }

@@ -3,7 +3,7 @@
   "name": "韓國魚",
   "title": "議場院長",
   "accessory": "none",
-  "quote": "大家一起發大財！",
+  "quote": "貨出得去，人進得來，高雄發大財！",
   "stats": {
     "hp": 480,
     "walkSpeed": 2.4,
@@ -73,38 +73,6 @@
       "duration": 8,
       "pose": "cast"
     },
-    "bald_1": {
-      "duration": 10,
-      "pose": "slam_ready",
-      "next": "bald_2",
-      "sound": "special",
-      "say": "光頭閃光！"
-    },
-    "bald_2": {
-      "duration": 10,
-      "pose": "slam",
-      "next": "bald_rec",
-      "shake": true,
-      "itr": [
-        {
-          "x": -100,
-          "y": 0,
-          "w": 200,
-          "h": 60,
-          "damage": 50,
-          "fall": 80,
-          "dvx": 5,
-          "dvy": 7,
-          "hitstop": 6,
-          "zRange": 56,
-          "radial": true
-        }
-      ]
-    },
-    "bald_rec": {
-      "duration": 14,
-      "pose": "slam"
-    },
     "rich_1": {
       "duration": 24,
       "pose": "cast_up",
@@ -123,40 +91,6 @@
     "rich_rec": {
       "duration": 10,
       "pose": "victory"
-    },
-    "market_1": {
-      "duration": 5,
-      "pose": "crouch",
-      "next": "market_2",
-      "sound": "special"
-    },
-    "market_2": {
-      "duration": 16,
-      "pose": "dash",
-      "next": "market_rec",
-      "friction": 1,
-      "invuln": true,
-      "selfVel": {
-        "vx": 10.5
-      },
-      "itr": [
-        {
-          "x": -4,
-          "y": 10,
-          "w": 34,
-          "h": 46,
-          "damage": 42,
-          "fall": 75,
-          "dvx": 6,
-          "dvy": 5,
-          "hitstop": 6
-        }
-      ]
-    },
-    "market_rec": {
-      "duration": 10,
-      "pose": "punch_ready",
-      "friction": 0.7
     },
     "fishjump_1": {
       "duration": 4,
@@ -184,22 +118,149 @@
       "sound": "special",
       "heal": 90,
       "say": "滷肉飯！"
+    },
+    "moon_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "moon_2",
+      "sound": "special",
+      "say": "禿子跟著月亮走！"
+    },
+    "moon_2": {
+      "duration": 14,
+      "pose": "cast_up",
+      "next": "moon_rec",
+      "spawn": [
+        {
+          "id": "moon",
+          "x": 18,
+          "y": 56,
+          "vx": 4
+        }
+      ]
+    },
+    "moon_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "cart_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "cart_2",
+      "sound": "special",
+      "say": "貨出得去！"
+    },
+    "cart_2": {
+      "duration": 12,
+      "pose": "dash",
+      "next": "cart_3",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 8
+      },
+      "prop": "cart",
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 40,
+          "h": 46,
+          "damage": 32,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ],
+      "onHitNext": "cart_rec",
+      "items": [
+        {
+          "id": "cabbage",
+          "x": -24,
+          "y": 26,
+          "vx": -1,
+          "vy": 3
+        }
+      ]
+    },
+    "cart_3": {
+      "duration": 12,
+      "pose": "dash",
+      "next": "cart_4",
+      "friction": 1,
+      "selfVel": {
+        "vx": 8
+      },
+      "prop": "cart",
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 40,
+          "h": 46,
+          "damage": 32,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ],
+      "onHitNext": "cart_rec",
+      "items": [
+        {
+          "id": "cabbage",
+          "x": -24,
+          "y": 26,
+          "vx": -1,
+          "vy": 3
+        }
+      ]
+    },
+    "cart_4": {
+      "duration": 12,
+      "pose": "dash",
+      "next": "cart_rec",
+      "friction": 1,
+      "selfVel": {
+        "vx": 8
+      },
+      "prop": "cart",
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 40,
+          "h": 46,
+          "damage": 32,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ],
+      "onHitNext": "cart_rec"
+    },
+    "cart_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
     }
   },
   "moves": [
     {
       "command": "D>A",
       "name": "高麗菜飛彈",
-      "mp": 60,
+      "mp": 70,
       "startFrame": "cabbage_1",
       "role": "ranged"
     },
     {
       "command": "DvA",
-      "name": "光頭閃光",
-      "mp": 100,
-      "startFrame": "bald_1",
-      "role": "burst"
+      "name": "禿子跟著月亮走",
+      "mp": 130,
+      "startFrame": "moon_1",
+      "role": "ranged"
     },
     {
       "command": "D^A",
@@ -210,9 +271,9 @@
     },
     {
       "command": "D>J",
-      "name": "北農衝刺",
-      "mp": 80,
-      "startFrame": "market_1",
+      "name": "貨出得去",
+      "mp": 90,
+      "startFrame": "cart_1",
       "role": "rush"
     },
     {
@@ -247,7 +308,7 @@
               "y": -9,
               "w": 18,
               "h": 18,
-              "damage": 18,
+              "damage": 15,
               "fall": 16,
               "dvx": 2,
               "hitstop": 3
@@ -290,6 +351,32 @@
           ]
         }
       }
+    },
+    "moon": {
+      "life": 120,
+      "size": 14,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "moon",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -12,
+              "y": -12,
+              "w": 24,
+              "h": 24,
+              "damage": 28,
+              "fall": 60,
+              "dvx": 4,
+              "hitstop": 5
+            }
+          ]
+        }
+      },
+      "homing": 0.09
     }
   }
 }

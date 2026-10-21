@@ -3,7 +3,7 @@
   "name": "柯問哲",
   "title": "白袍狂人",
   "accessory": "headmirror",
-  "quote": "數據會說話！",
+  "quote": "做對的事，把事情做對。",
   "stats": {
     "hp": 520,
     "walkSpeed": 2.4,
@@ -137,44 +137,52 @@
       "duration": 8,
       "pose": "cast"
     },
-    "coatkick_1": {
-      "duration": 4,
+    "bike_1": {
+      "duration": 5,
       "pose": "crouch",
-      "next": "coatkick_2",
-      "sound": "special"
+      "next": "bike_2",
+      "sound": "special",
+      "say": "一日雙塔！"
     },
-    "coatkick_2": {
-      "duration": 18,
-      "pose": "flykick",
-      "next": "idle",
+    "bike_2": {
+      "duration": 55,
+      "pose": "dash",
+      "next": "bike_rec",
+      "friction": 1,
+      "invuln": true,
       "selfVel": {
-        "vx": 7,
-        "vy": 8
+        "vx": 13
       },
       "itr": [
         {
-          "x": 2,
-          "y": 8,
+          "x": -4,
+          "y": 10,
           "w": 34,
-          "h": 30,
-          "damage": 40,
-          "fall": 80,
+          "h": 46,
+          "damage": 34,
+          "fall": 70,
           "dvx": 6,
-          "dvy": 6,
+          "dvy": 5,
           "hitstop": 6
         }
-      ]
+      ],
+      "prop": "bike"
     },
-    "datashield_1": {
+    "bike_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "iq_1": {
       "duration": 20,
       "pose": "cast_up",
       "sound": "special",
+      "say": "IQ 157！",
       "buff": {
-        "type": "blockProjectile",
+        "type": "crit",
         "value": 1,
-        "duration": 240
-      },
-      "say": "數據護盾！"
+        "duration": 180
+      }
     }
   },
   "moves": [
@@ -209,16 +217,16 @@
     },
     {
       "command": "D^J",
-      "name": "白袍飛踢",
-      "mp": 60,
-      "startFrame": "coatkick_1",
+      "name": "一日雙塔",
+      "mp": 100,
+      "startFrame": "bike_1",
       "role": "rush"
     },
     {
       "command": "DvJ",
-      "name": "數據護盾",
+      "name": "IQ 157",
       "mp": 100,
-      "startFrame": "datashield_1",
+      "startFrame": "iq_1",
       "role": "buff"
     }
   ],

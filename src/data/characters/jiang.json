@@ -3,7 +3,7 @@
   "name": "講萬安",
   "title": "首都市粘",
   "accessory": "pin",
-  "quote": "市政會議，到此散會！",
+  "quote": "都有掌握",
   "stats": {
     "hp": 500,
     "walkSpeed": 2.6,
@@ -74,51 +74,6 @@
       "duration": 8,
       "pose": "cast"
     },
-    "metro_1": {
-      "duration": 5,
-      "pose": "crouch",
-      "next": "metro_2",
-      "sound": "special"
-    },
-    "metro_2": {
-      "duration": 16,
-      "pose": "dash",
-      "next": "metro_rec",
-      "friction": 1,
-      "invuln": true,
-      "selfVel": {
-        "vx": 11
-      },
-      "itr": [
-        {
-          "x": -4,
-          "y": 10,
-          "w": 32,
-          "h": 44,
-          "damage": 40,
-          "fall": 75,
-          "dvx": 6,
-          "dvy": 5,
-          "hitstop": 6
-        }
-      ]
-    },
-    "metro_rec": {
-      "duration": 10,
-      "pose": "punch_ready",
-      "friction": 0.7
-    },
-    "shield_1": {
-      "duration": 22,
-      "pose": "cast_up",
-      "sound": "special",
-      "buff": {
-        "type": "dmgReduce",
-        "value": 0.5,
-        "duration": 180
-      },
-      "say": "市民護盾！"
-    },
     "truck_1": {
       "duration": 8,
       "pose": "cast_ready",
@@ -162,12 +117,78 @@
         "duration": 84
       }
     },
-    "bento_1": {
-      "duration": 24,
+    "shield_1": {
+      "duration": 18,
       "pose": "cast_up",
       "sound": "special",
-      "heal": 100,
-      "say": "市民便當！"
+      "say": "都有掌握",
+      "buff": {
+        "type": "counter",
+        "value": 1,
+        "duration": 300
+      }
+    },
+    "youbike_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "youbike_2",
+      "sound": "special",
+      "say": "YouBike！"
+    },
+    "youbike_2": {
+      "duration": 40,
+      "pose": "dash",
+      "next": "youbike_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 12
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 40,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ],
+      "onHitNext": "youbike_rec",
+      "prop": "youbike"
+    },
+    "youbike_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
+    },
+    "typhoon_1": {
+      "duration": 14,
+      "pose": "cast_ready",
+      "next": "typhoon_2",
+      "sound": "special",
+      "say": "颱風假！"
+    },
+    "typhoon_2": {
+      "duration": 20,
+      "pose": "cast_up",
+      "next": "typhoon_rec",
+      "shake": true,
+      "aura": {
+        "radius": 9999,
+        "inflict": {
+          "type": "stun",
+          "value": 4,
+          "duration": 90
+        }
+      }
+    },
+    "typhoon_rec": {
+      "duration": 10,
+      "pose": "victory"
     }
   },
   "moves": [
@@ -180,15 +201,15 @@
     },
     {
       "command": "D>J",
-      "name": "捷運衝刺",
+      "name": "YouBike 衝刺",
       "mp": 80,
-      "startFrame": "metro_1",
+      "startFrame": "youbike_1",
       "role": "rush"
     },
     {
       "command": "D^A",
-      "name": "市民護盾",
-      "mp": 150,
+      "name": "都有掌握",
+      "mp": 120,
       "startFrame": "shield_1",
       "role": "buff"
     },
@@ -208,10 +229,10 @@
     },
     {
       "command": "DvJ",
-      "name": "市民便當",
-      "mp": 140,
-      "startFrame": "bento_1",
-      "role": "buff"
+      "name": "颱風假",
+      "mp": 260,
+      "startFrame": "typhoon_1",
+      "role": "area"
     }
   ],
   "projectiles": {

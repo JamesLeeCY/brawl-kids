@@ -3,7 +3,7 @@
   "name": "川噗",
   "title": "推文總裁",
   "accessory": "none",
-  "quote": "推文發出去，全世界都在看！",
+  "quote": "Make America Great Again！",
   "stats": {
     "hp": 470,
     "walkSpeed": 2.4,
@@ -96,17 +96,6 @@
       "duration": 8,
       "pose": "cast"
     },
-    "wall_1": {
-      "duration": 20,
-      "pose": "cast_up",
-      "sound": "special",
-      "buff": {
-        "type": "blockProjectile",
-        "value": 1,
-        "duration": 240
-      },
-      "say": "築一道高牆！"
-    },
     "golf_1": {
       "duration": 5,
       "pose": "crouch",
@@ -160,24 +149,40 @@
       "duration": 10,
       "pose": "victory"
     },
-    "jet_1": {
-      "duration": 4,
-      "pose": "crouch",
-      "next": "jet_2",
-      "sound": "special"
+    "wall_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "wall_2",
+      "sound": "special",
+      "say": "築一道高牆！"
     },
-    "jet_2": {
-      "duration": 12,
-      "pose": "jet_up",
-      "hover": true,
-      "selfVel": {
-        "vx": 0,
-        "vy": 7
-      },
+    "wall_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "wall_rec",
+      "shake": true,
+      "spawn": [
+        {
+          "id": "bigwall",
+          "x": 42,
+          "y": 0,
+          "vx": 0
+        }
+      ]
+    },
+    "wall_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "maga_1": {
+      "duration": 20,
+      "pose": "fist_pump",
+      "sound": "special",
+      "say": "MAGA！",
       "buff": {
-        "type": "hover",
-        "value": 1,
-        "duration": 84
+        "type": "power",
+        "value": 0.3,
+        "duration": 360
       }
     }
   },
@@ -219,9 +224,9 @@
     },
     {
       "command": "D^J",
-      "name": "專機起飛",
-      "mp": 60,
-      "startFrame": "jet_1",
+      "name": "MAGA 紅帽",
+      "mp": 140,
+      "startFrame": "maga_1",
       "role": "buff"
     }
   ],
@@ -310,6 +315,24 @@
               "zRange": 18
             }
           ]
+        }
+      }
+    },
+    "bigwall": {
+      "life": 180,
+      "size": 20,
+      "blockable": false,
+      "wall": {
+        "w": 20,
+        "h": 110,
+        "blockChars": true
+      },
+      "startFrame": "stand",
+      "frames": {
+        "stand": {
+          "duration": 1,
+          "pose": "bigwall",
+          "next": "stand"
         }
       }
     }

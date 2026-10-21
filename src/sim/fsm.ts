@@ -1,10 +1,11 @@
 // 角色狀態機：任一時刻只處於一個狀態；轉移條件以外的輸入忽略（但仍寫入指令緩衝）。
 import { CONFIG } from '../config';
 import type { CharacterDef } from '../data/load';
-import type { BuffDef } from '../data/schema';
+import type { MoveDef } from '../data/schema';
 import { matchCommand, matchHeld, recordPresses } from './commands';
-import { hasBuff, type CharState, type Entity } from './entity';
-import { findNearbyItem, heldItemDef, pickUp, throwHeldItem } from './items';
+import { addBuff, blockCharByWalls, buffTargets, inflict, nearestEnemy, removeBuff, tickBuffs } from './effects';
+import { effTeam, getBuff, hasBuff, isAlive, type CharState, type Entity } from './entity';
+import { findNearbyItem, heldItemDef, pickUp, spawnItem, throwHeldItem } from './items';
 import { spawnFromFrame } from './projectiles';
 import { pressedEdges, type Snapshot } from './snapshot';
 import type { World } from './world';
@@ -31,9 +32,11 @@ export function toNeutral(e: Entity): void {
   if (e.state === 'jump') e.airAttackUsed = true;
 }
 
-export function addBuff(e: Entity, b: BuffDef): void {
-  e.buffs = e.buffs.filter((x) => x.type !== b.type);
-  e.buffs.push({ type: b.type, value: b.value, time: b.duration });
+export { addBuff };
+
+/** 這招現在能不能用（MP 夠、血量條件） */
+export function canUseMove(e: Entity, m: MoveDef): boolean {
+  return e.mp >= m.mp && (!m.hpBelow || e.hp <= e.maxHp * m.hpBelow);
 }
 
 /** 開始一個新動作（新的命中鏈） */
@@ -43,6 +46,7 @@ export function startAction(w: World, e: Entity, frame: string): void {
   e.chain++;
   e.hitSet = {};
   e.comboQueued = false;
+  e.charge = 0;
   enterFrame(w, e, frame);
 }
 
@@ -61,7 +65,46 @@ export function enterFrame(w: World, e: Entity, name: string): void {
     if (f.selfVel.vy !== undefined) e.vy = f.selfVel.vy;
     if (f.selfVel.vz !== undefined) e.vz = f.selfVel.vz;
   }
-  if (f.buff) addBuff(e, f.buff);
+  if (f.teleport === 'behind') {
+    const t = nearestEnemy(w, e);
+    if (t) {
+      e.x = t.x - t.facing * 34;
+      e.z = t.z;
+      e.facing = t.facing;
+      w.clampToStage(e);
+    }
+  }
+  if (f.leap) {
+    const t = nearestEnemy(w, e);
+    const T = (2 * f.leap) / P.gravity;
+    e.vy = f.leap;
+    if (t) {
+      e.vx = Math.max(-9, Math.min(9, (t.x - e.x) / T));
+      e.vz = Math.max(-3, Math.min(3, (t.z - e.z) / T));
+      if (t.x !== e.x) e.facing = t.x > e.x ? 1 : -1;
+    } else e.vx = e.facing * 4;
+  }
+  if (f.buff) for (const t of buffTargets(w, e, f.buff)) addBuff(t, f.buff, e.id);
+  if (f.aura) {
+    const a = f.aura;
+    const team = effTeam(e);
+    const targets = a.nearest
+      ? [nearestEnemy(w, e, a.radius)].filter((t): t is Entity => !!t)
+      : w.chars().filter((c) => effTeam(c) !== team && isAlive(c) && Math.hypot(c.x - e.x, (c.z - e.z) * 2) <= a.radius);
+    for (const t of targets) {
+      if (a.inflict) inflict(w, t, a.inflict, e);
+      if (a.drainMp) t.mp = Math.max(0, t.mp - a.drainMp);
+      w.emit({ type: 'hit', x: t.x, y: t.y + 60, z: t.z, heavy: false, blocked: true });
+    }
+  }
+  if (f.items)
+    for (const d of f.items) {
+      const it = spawnItem(w, d.id, e.x + e.facing * d.x, e.z, e.y + d.y);
+      if (it) {
+        it.vx = d.vx * e.facing;
+        it.vy = d.vy;
+      }
+    }
   if (f.heal) e.hp = Math.min(e.maxHp, e.hp + f.heal);
   if (f.spawn) spawnFromFrame(w, e, f.spawn);
   if (f.throwItem) throwHeldItem(w, e);
@@ -70,11 +113,20 @@ export function enterFrame(w: World, e: Entity, name: string): void {
 
 function canCommand(w: World, e: Entity): boolean {
   if (!['idle', 'walk', 'run', 'defend', 'jump'].includes(e.state)) return false;
+  if (hasBuff(e, 'silence') || hasBuff(e, 'stun')) return false;
   return heldItemDef(w, e)?.kind !== 'heavy';
 }
 
+const STUN_STATES = new Set<CharState>(['idle', 'walk', 'run', 'defend']);
+
 export function updateChar(w: World, e: Entity, cur: Snapshot): void {
   const def = w.charDef(e);
+  // 方向顛倒：左右對調；定身：站著的時候不聽任何按鍵
+  if (hasBuff(e, 'reverse')) cur = { ...cur, left: cur.right, right: cur.left };
+  if (hasBuff(e, 'stun') && STUN_STATES.has(e.state)) {
+    cur = { up: false, down: false, left: false, right: false, A: false, J: false, D: false };
+    if (e.state !== 'idle') setState(e, 'idle');
+  }
   const pressed = pressedEdges(cur, e.prevInput);
   e.prevInput = cur;
   recordPresses(e.cmdBuf, pressed, w.tick);
@@ -88,9 +140,8 @@ export function updateChar(w: World, e: Entity, cur: Snapshot): void {
   // ---- 計時器 ----
   if (e.flash > 0) e.flash--;
   if (e.invuln > 0) e.invuln--;
-  for (const b of e.buffs) b.time--;
-  e.buffs = e.buffs.filter((b) => b.time > 0);
-  if (e.state !== 'dead') e.mp = Math.min(C.mpMax, e.mp + C.mpRegen);
+  tickBuffs(w, e);
+  if (e.state !== 'dead') e.mp = Math.min(C.mpMax, e.mp + C.mpRegen * (hasBuff(e, 'mpRegen') ? 2 : 1));
   e.fall = Math.max(0, e.fall - C.fallDecay);
   if (e.state !== 'defend' && e.state !== 'broken') e.guard = Math.min(C.guardMax, e.guard + C.guardRegen);
   e.stateTime++;
@@ -102,9 +153,27 @@ export function updateChar(w: World, e: Entity, cur: Snapshot): void {
   // ---- 指令技 ----
   if (canCommand(w, e) && (pressed.A || pressed.J)) {
     const m = matchCommand(e.cmdBuf, w.tick, def.moves) ?? matchHeld(cur, pressed, def.moves);
-    if (m && e.mp >= m.move.mp && (isGrounded(e) || m.move.air)) {
+    if (m && canUseMove(e, m.move) && (isGrounded(e) || m.move.air)) {
       e.mp -= m.move.mp;
       e.cmdBuf.length = 0;
+      const mark = getBuff(e, 'mark');
+      if (mark) {
+        // 質詢倒數中放招：招式被取消、受到傷害
+        removeBuff(e, 'mark');
+        const src = w.get(mark.src);
+        e.hp = Math.max(0, e.hp - mark.value);
+        if (src) src.stats.damage += mark.value;
+        e.flash = C.flashTicks;
+        setState(e, 'falling');
+        e.vx = -e.facing * 3;
+        e.vy = 5;
+        w.emit({ type: 'say', id: e.id, text: '非常遺憾', status: true });
+        w.emit({ type: 'hit', x: e.x, y: e.y + 40, z: e.z, heavy: true, blocked: false });
+        w.emit({ type: 'sound', key: 'hit_heavy' });
+        afterDamage(w, e, src);
+        physics(w, e, false);
+        return;
+      }
       if (m.facing) e.facing = m.facing;
       if (isGrounded(e)) {
         e.vx = 0;
@@ -210,9 +279,15 @@ export function updateChar(w: World, e: Entity, cur: Snapshot): void {
         break;
       }
       if (f.invuln) e.invuln = Math.max(e.invuln, 2);
+      if (f.hold && e.charge < f.hold.max && cur[f.hold.btn]) {
+        // 按住蓄力：停在這一幀
+        e.charge++;
+        if (f.holdHeal && e.charge % 10 === 0) e.hp = Math.min(e.maxHp, e.hp + f.holdHeal);
+        break;
+      }
       e.frameTime++;
       if (e.frameTime >= f.duration) {
-        let next = f.next;
+        let next = f.nextRandom ? w.rng.pick(f.nextRandom) : f.next;
         if (e.comboQueued && f.onA) {
           next = f.onA;
           e.comboQueued = false;
@@ -458,8 +533,10 @@ export function physics(w: World, e: Entity, moving: boolean): void {
     if (Math.abs(e.vz) < 0.05) e.vz = 0;
   }
   if (e.state === 'grabbed') return;
+  const px = e.x;
   e.x += e.vx;
   e.z += e.vz;
+  if (e.kind === 'char') blockCharByWalls(w, e, px);
   w.clampToStage(e);
 }
 

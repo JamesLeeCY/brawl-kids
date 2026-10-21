@@ -73,47 +73,6 @@
       "duration": 8,
       "pose": "cast"
     },
-    "steam_1": {
-      "duration": 10,
-      "pose": "slam_ready",
-      "next": "steam_2",
-      "sound": "special"
-    },
-    "steam_2": {
-      "duration": 10,
-      "pose": "slam",
-      "next": "steam_rec",
-      "shake": true,
-      "itr": [
-        {
-          "x": -100,
-          "y": 0,
-          "w": 200,
-          "h": 60,
-          "damage": 50,
-          "fall": 80,
-          "dvx": 5,
-          "dvy": 7,
-          "hitstop": 6,
-          "zRange": 56,
-          "radial": true
-        }
-      ]
-    },
-    "steam_rec": {
-      "duration": 14,
-      "pose": "slam"
-    },
-    "firewall_1": {
-      "duration": 20,
-      "pose": "cast_up",
-      "sound": "special",
-      "buff": {
-        "type": "blockProjectile",
-        "value": 1,
-        "duration": 240
-      }
-    },
     "road_1": {
       "duration": 5,
       "pose": "crouch",
@@ -173,6 +132,54 @@
       "sound": "special",
       "heal": 100,
       "say": "蜂蜜補給！"
+    },
+    "firewall_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "firewall_2",
+      "sound": "special",
+      "say": "防火長城！"
+    },
+    "firewall_2": {
+      "duration": 14,
+      "pose": "cast",
+      "next": "firewall_rec",
+      "spawn": [
+        {
+          "id": "greatwall",
+          "x": 56,
+          "y": 0,
+          "vx": 0
+        }
+      ]
+    },
+    "firewall_rec": {
+      "duration": 8,
+      "pose": "cast"
+    },
+    "steam_1": {
+      "duration": 8,
+      "pose": "cast_ready",
+      "next": "steam_2",
+      "sound": "special",
+      "say": "蒸籠蒸氣！"
+    },
+    "steam_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "steam_rec",
+      "spawn": [
+        {
+          "id": "steamzone",
+          "x": 40,
+          "y": 0,
+          "vx": 0
+        }
+      ]
+    },
+    "steam_rec": {
+      "duration": 8,
+      "pose": "cast"
     }
   },
   "moves": [
@@ -185,7 +192,7 @@
     },
     {
       "command": "DvA",
-      "name": "蒸籠震地",
+      "name": "蒸籠蒸氣",
       "mp": 100,
       "startFrame": "steam_1",
       "role": "burst"
@@ -279,6 +286,54 @@
           ]
         }
       }
+    },
+    "greatwall": {
+      "life": 240,
+      "size": 30,
+      "blockable": false,
+      "wall": {
+        "w": 76,
+        "h": 46,
+        "blockChars": true
+      },
+      "startFrame": "stand",
+      "frames": {
+        "stand": {
+          "duration": 1,
+          "pose": "greatwall",
+          "next": "stand"
+        }
+      }
+    },
+    "steamzone": {
+      "life": 180,
+      "size": 40,
+      "blockable": false,
+      "hitLimit": 999,
+      "startFrame": "puff",
+      "frames": {
+        "puff": {
+          "duration": 1,
+          "pose": "steam",
+          "next": "puff",
+          "itr": [
+            {
+              "x": -44,
+              "y": 0,
+              "w": 88,
+              "h": 40,
+              "damage": 5,
+              "fall": 0,
+              "dvx": 0,
+              "dvy": 0,
+              "hitstop": 1,
+              "rehit": 45,
+              "zRange": 24
+            }
+          ]
+        }
+      }
     }
-  }
+  },
+  "koQuote": "我們懷念他"
 }

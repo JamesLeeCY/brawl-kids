@@ -3,7 +3,7 @@
   "name": "呱雞",
   "title": "呱呱議員",
   "accessory": "frog",
-  "quote": "呱！今天也很好笑。",
+  "quote": "你根本不懂我！",
   "stats": {
     "hp": 550,
     "walkSpeed": 2.7,
@@ -45,26 +45,6 @@
     "frogshot_rec": {
       "duration": 8,
       "pose": "cast"
-    },
-    "leap_1": {
-      "duration": 4,
-      "pose": "crouch",
-      "next": "leap_2",
-      "sound": "special"
-    },
-    "leap_2": {
-      "duration": 12,
-      "pose": "jet_up",
-      "hover": true,
-      "selfVel": {
-        "vx": 0,
-        "vy": 7
-      },
-      "buff": {
-        "type": "hover",
-        "value": 1,
-        "duration": 84
-      }
     },
     "croak_1": {
       "duration": 10,
@@ -132,45 +112,173 @@
       "pose": "punch_ready",
       "friction": 0.7
     },
-    "question_1": {
+    "rage_1": {
       "duration": 8,
-      "pose": "cast_ready",
-      "next": "question_2",
-      "sound": "special"
+      "pose": "slam_ready",
+      "next": "rage_2",
+      "sound": "special",
+      "say": "你根本不懂我！"
     },
-    "question_2": {
-      "duration": 14,
-      "pose": "cast",
-      "next": "question_rec",
+    "rage_2": {
+      "duration": 10,
+      "pose": "throw",
+      "next": "rage_3",
+      "shake": true,
       "spawn": [
         {
-          "id": "talk",
-          "x": 26,
-          "y": 36,
-          "vx": 6.5
+          "id": "junk_mic",
+          "x": 14,
+          "y": 50,
+          "vx": 7,
+          "vy": 4
+        },
+        {
+          "id": "junk_chair",
+          "x": -14,
+          "y": 50,
+          "vx": -7,
+          "vy": 4
+        },
+        {
+          "id": "junk_tripod",
+          "x": 10,
+          "y": 50,
+          "vx": 5,
+          "vy": 5,
+          "dz": -14
+        },
+        {
+          "id": "junk_mic",
+          "x": -10,
+          "y": 50,
+          "vx": -5,
+          "vy": 5,
+          "dz": 14
         }
       ]
     },
-    "question_rec": {
-      "duration": 8,
-      "pose": "cast"
+    "rage_3": {
+      "duration": 10,
+      "pose": "throw_ready",
+      "next": "rage_4"
     },
-    "frograin_1": {
-      "duration": 24,
-      "pose": "cast_up",
-      "next": "frograin_rec",
-      "sound": "special",
+    "rage_4": {
+      "duration": 10,
+      "pose": "throw",
+      "next": "rage_rec",
       "spawn": [
         {
-          "id": "frogdrop",
-          "at": "random",
-          "count": 5,
-          "y": 0
+          "id": "junk_mic",
+          "x": 14,
+          "y": 50,
+          "vx": 7,
+          "vy": 4
+        },
+        {
+          "id": "junk_chair",
+          "x": -14,
+          "y": 50,
+          "vx": -7,
+          "vy": 4
+        },
+        {
+          "id": "junk_tripod",
+          "x": 10,
+          "y": 50,
+          "vx": 5,
+          "vy": 5,
+          "dz": -14
+        },
+        {
+          "id": "junk_mic",
+          "x": -10,
+          "y": 50,
+          "vx": -5,
+          "vy": 5,
+          "dz": 14
         }
-      ],
-      "say": "青蛙雨！"
+      ]
     },
-    "frograin_rec": {
+    "rage_rec": {
+      "duration": 60,
+      "pose": "dizzy"
+    },
+    "tongue_1": {
+      "duration": 5,
+      "pose": "cast_ready",
+      "next": "tongue_2",
+      "sound": "special",
+      "say": "舌頭勾！"
+    },
+    "tongue_2": {
+      "duration": 18,
+      "pose": "cast",
+      "next": "tongue_rec",
+      "spawn": [
+        {
+          "id": "tongue",
+          "x": 14,
+          "y": 44,
+          "vx": 12
+        }
+      ]
+    },
+    "tongue_rec": {
+      "duration": 10,
+      "pose": "cast"
+    },
+    "chorus_1": {
+      "duration": 8,
+      "pose": "cast_up",
+      "next": "chorus_2",
+      "sound": "special",
+      "say": "青蛙合唱團！"
+    },
+    "chorus_2": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "chorus_3",
+      "spawn": [
+        {
+          "id": "hopfrog",
+          "x": 20,
+          "y": 0,
+          "vx": 4,
+          "vy": 6
+        }
+      ]
+    },
+    "chorus_3": {
+      "duration": 12,
+      "pose": "cast_ready",
+      "next": "chorus_4",
+      "spawn": [
+        {
+          "id": "hopfrog",
+          "x": 20,
+          "y": 0,
+          "vx": 4,
+          "vy": 6,
+          "dz": -14
+        }
+      ]
+    },
+    "chorus_4": {
+      "duration": 12,
+      "pose": "cast",
+      "next": "chorus_rec",
+      "spawn": [
+        {
+          "id": "hopfrog",
+          "x": 20,
+          "y": 0,
+          "vx": 4,
+          "vy": 6,
+          "dz": 14
+        }
+      ]
+    },
+    "chorus_rec": {
       "duration": 10,
       "pose": "victory"
     }
@@ -185,10 +293,10 @@
     },
     {
       "command": "D^J",
-      "name": "蛙跳",
-      "mp": 60,
-      "startFrame": "leap_1",
-      "role": "buff"
+      "name": "舌頭勾",
+      "mp": 80,
+      "startFrame": "tongue_1",
+      "role": "ranged"
     },
     {
       "command": "DvA",
@@ -206,16 +314,17 @@
     },
     {
       "command": "D^A",
-      "name": "議會質詢",
-      "mp": 80,
-      "startFrame": "question_1",
-      "role": "ranged"
+      "name": "爆氣摔器材",
+      "mp": 100,
+      "startFrame": "rage_1",
+      "role": "burst",
+      "hpBelow": 0.3
     },
     {
       "command": "DvJ",
-      "name": "青蛙雨",
+      "name": "青蛙合唱團",
       "mp": 150,
-      "startFrame": "frograin_1",
+      "startFrame": "chorus_1",
       "role": "area"
     }
   ],
@@ -247,62 +356,137 @@
       },
       "gravity": 0.3
     },
-    "talk": {
-      "life": 70,
-      "size": 18,
-      "hitLimit": 3,
+    "junk_mic": {
+      "life": 60,
+      "size": 14,
+      "gravity": 0.28,
+      "hitLimit": 1,
       "startFrame": "fly",
       "frames": {
         "fly": {
           "duration": 1,
-          "pose": "talk",
+          "pose": "mic",
           "next": "fly",
           "itr": [
             {
-              "x": -13.0,
-              "y": -16.0,
-              "w": 26,
-              "h": 32,
-              "damage": 42,
-              "fall": 45,
-              "dvx": 3,
-              "dvy": 0,
-              "hitstop": 3
+              "x": -10,
+              "y": -10,
+              "w": 20,
+              "h": 20,
+              "damage": 34,
+              "fall": 70,
+              "dvx": 4,
+              "dvy": 5,
+              "hitstop": 5
             }
           ]
         }
       }
     },
-    "frogdrop": {
+    "junk_chair": {
       "life": 60,
-      "size": 16,
-      "hitLimit": 99,
-      "blockable": false,
-      "startFrame": "warn",
+      "size": 14,
+      "gravity": 0.28,
+      "hitLimit": 1,
+      "startFrame": "fly",
       "frames": {
-        "warn": {
-          "duration": 30,
-          "pose": "bolt_warn",
-          "next": "strike"
-        },
-        "strike": {
-          "duration": 14,
-          "pose": "frogdrop",
-          "next": "expire",
-          "sound": "hit_heavy",
+        "fly": {
+          "duration": 1,
+          "pose": "chair",
+          "next": "fly",
           "itr": [
             {
-              "x": -18,
-              "y": 0,
-              "w": 36,
-              "h": 120,
-              "damage": 40,
-              "fall": 80,
-              "dvx": 2,
-              "dvy": 6,
-              "hitstop": 6,
-              "radial": true,
-              "zRange": 18
+              "x": -10,
+              "y": -10,
+              "w": 20,
+              "h": 20,
+              "damage": 34,
+              "fall": 70,
+              "dvx": 4,
+              "dvy": 5,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    },
+    "junk_tripod": {
+      "life": 60,
+      "size": 14,
+      "gravity": 0.28,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "tripod",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -10,
+              "y": -10,
+              "w": 20,
+              "h": 20,
+              "damage": 34,
+              "fall": 70,
+              "dvx": 4,
+              "dvy": 5,
+              "hitstop": 5
+            }
+          ]
+        }
+      }
+    },
+    "tongue": {
+      "life": 18,
+      "size": 8,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "tongue",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -8,
+              "y": -8,
+              "w": 16,
+              "h": 16,
+              "damage": 12,
+              "fall": 0,
+              "dvx": 0,
+              "dvy": 0,
+              "hitstop": 4,
+              "pullToOwner": true
+            }
+          ]
+        }
+      }
+    },
+    "hopfrog": {
+      "life": 110,
+      "size": 12,
+      "gravity": 0.5,
+      "bounce": 6,
+      "hitLimit": 1,
+      "startFrame": "fly",
+      "frames": {
+        "fly": {
+          "duration": 1,
+          "pose": "frog",
+          "next": "fly",
+          "itr": [
+            {
+              "x": -12,
+              "y": -4,
+              "w": 24,
+              "h": 28,
+              "damage": 34,
+              "fall": 70,
+              "dvx": 4,
+              "dvy": 5,
+              "hitstop": 5
             }
           ]
         }

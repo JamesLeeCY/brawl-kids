@@ -3,9 +3,9 @@
   "name": "布丁",
   "title": "柔道黑帶",
   "accessory": "judo",
-  "quote": "布丁要冰過才好吃。",
+  "quote": "原不原諒恐怖分子是上帝的事，我的責任是送他們去見上帝",
   "stats": {
-    "hp": 590,
+    "hp": 610,
     "walkSpeed": 2.7,
     "runSpeed": 6.0,
     "jumpPower": 9.0,
@@ -43,40 +43,6 @@
     "pud_rec": {
       "duration": 8,
       "pose": "cast"
-    },
-    "judo_1": {
-      "duration": 5,
-      "pose": "crouch",
-      "next": "judo_2",
-      "sound": "special"
-    },
-    "judo_2": {
-      "duration": 12,
-      "pose": "grab",
-      "next": "judo_rec",
-      "friction": 1,
-      "invuln": true,
-      "selfVel": {
-        "vx": 9
-      },
-      "itr": [
-        {
-          "x": -4,
-          "y": 10,
-          "w": 34,
-          "h": 46,
-          "damage": 58,
-          "fall": 95,
-          "dvx": -6,
-          "dvy": 8,
-          "hitstop": 6
-        }
-      ]
-    },
-    "judo_rec": {
-      "duration": 10,
-      "pose": "punch_ready",
-      "friction": 0.7
     },
     "ice_1": {
       "duration": 10,
@@ -139,25 +105,74 @@
       "duration": 10,
       "pose": "victory"
     },
-    "belt_1": {
-      "duration": 4,
-      "pose": "crouch",
-      "next": "belt_2",
-      "sound": "special"
-    },
-    "belt_2": {
-      "duration": 12,
-      "pose": "jet_up",
-      "hover": true,
+    "judo_1": {
+      "duration": 5,
+      "pose": "grab",
+      "next": "judo_2",
+      "sound": "special",
       "selfVel": {
-        "vx": 0,
-        "vy": 7
-      },
-      "buff": {
-        "type": "hover",
-        "value": 1,
-        "duration": 84
+        "vx": 3
       }
+    },
+    "judo_2": {
+      "duration": 10,
+      "pose": "grab",
+      "next": "judo_rec",
+      "say": "過肩摔！",
+      "itr": [
+        {
+          "x": 0,
+          "y": 8,
+          "w": 34,
+          "h": 48,
+          "damage": 58,
+          "fall": 0,
+          "dvx": 0,
+          "dvy": 0,
+          "hitstop": 8,
+          "throw": true
+        }
+      ]
+    },
+    "judo_rec": {
+      "duration": 16,
+      "pose": "throw"
+    },
+    "bearride_1": {
+      "duration": 5,
+      "pose": "crouch",
+      "next": "bearride_2",
+      "sound": "special",
+      "say": "赤膊騎熊！"
+    },
+    "bearride_2": {
+      "duration": 30,
+      "pose": "dash",
+      "next": "bearride_rec",
+      "friction": 1,
+      "invuln": true,
+      "selfVel": {
+        "vx": 10
+      },
+      "itr": [
+        {
+          "x": -4,
+          "y": 10,
+          "w": 34,
+          "h": 46,
+          "damage": 46,
+          "fall": 75,
+          "dvx": 6,
+          "dvy": 5,
+          "hitstop": 6
+        }
+      ],
+      "prop": "bear"
+    },
+    "bearride_rec": {
+      "duration": 10,
+      "pose": "punch_ready",
+      "friction": 0.7
     }
   },
   "moves": [
@@ -173,7 +188,7 @@
       "name": "柔道過肩摔",
       "mp": 90,
       "startFrame": "judo_1",
-      "role": "rush"
+      "role": "burst"
     },
     {
       "command": "DvA",
@@ -198,10 +213,10 @@
     },
     {
       "command": "D^J",
-      "name": "黑帶飛躍",
-      "mp": 60,
-      "startFrame": "belt_1",
-      "role": "buff"
+      "name": "赤膊騎熊",
+      "mp": 100,
+      "startFrame": "bearride_1",
+      "role": "rush"
     }
   ],
   "projectiles": {

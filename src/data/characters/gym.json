@@ -3,7 +3,7 @@
   "name": "管長",
   "title": "健身館主",
   "accessory": "none",
-  "quote": "來，練起來！",
+  "quote": "請大家一定要傳承我的精神",
   "stats": {
     "hp": 610,
     "walkSpeed": 2.2,
@@ -123,40 +123,29 @@
       "pose": "punch_ready",
       "friction": 0.7
     },
-    "gymkick_1": {
-      "duration": 4,
-      "pose": "crouch",
-      "next": "gymkick_2",
-      "sound": "special"
-    },
-    "gymkick_2": {
-      "duration": 18,
-      "pose": "flykick",
-      "next": "idle",
-      "selfVel": {
-        "vx": 6,
-        "vy": 8
-      },
-      "itr": [
-        {
-          "x": 2,
-          "y": 8,
-          "w": 34,
-          "h": 30,
-          "damage": 44,
-          "fall": 80,
-          "dvx": 6,
-          "dvy": 6,
-          "hitstop": 6
-        }
-      ]
-    },
-    "protein_1": {
-      "duration": 24,
-      "pose": "cast_up",
+    "legacy_1": {
+      "duration": 20,
+      "pose": "flex",
       "sound": "special",
-      "heal": 120,
-      "say": "蛋白粉補給！"
+      "say": "傳承精神！",
+      "buff": {
+        "type": "clone",
+        "value": 1,
+        "duration": 180
+      }
+    },
+    "bulk_1": {
+      "duration": 24,
+      "pose": "flex",
+      "sound": "special",
+      "say": "增肌期！",
+      "heal": 90,
+      "buff": {
+        "type": "knock",
+        "value": 1,
+        "duration": 600,
+        "count": 3
+      }
     }
   },
   "moves": [
@@ -190,16 +179,16 @@
     },
     {
       "command": "D^J",
-      "name": "健身飛踢",
-      "mp": 60,
-      "startFrame": "gymkick_1",
-      "role": "rush"
+      "name": "傳承精神",
+      "mp": 140,
+      "startFrame": "legacy_1",
+      "role": "buff"
     },
     {
       "command": "DvJ",
-      "name": "蛋白粉補給",
+      "name": "增肌期",
       "mp": 150,
-      "startFrame": "protein_1",
+      "startFrame": "bulk_1",
       "role": "buff"
     }
   ],

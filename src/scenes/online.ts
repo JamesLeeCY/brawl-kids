@@ -231,8 +231,9 @@ export function onlineOptions(app: App): OnlineOption[] {
   return out;
 }
 
-function emptySlot(i: number): LobbySlot {
-  return { kind: 'empty', charIdx: i, team: 0, ready: false, difficulty: 'normal' };
+/** 空欄位：游標預設在最後一格「隨機」（索引 = 角色數） */
+function emptySlot(nChars: number): LobbySlot {
+  return { kind: 'empty', charIdx: nChars, team: 0, ready: false, difficulty: 'normal' };
 }
 
 export class OnlineSelectScene extends Scene {
@@ -263,11 +264,11 @@ export class OnlineSelectScene extends Scene {
   ) {
     super(app);
     this.stages = defaultCampaignRoute(app.data, this.len);
-    this.slots = Array.from({ length: MAX_SLOTS }, (_, i) => emptySlot(i));
+    const nChars = app.data.selectable.length;
+    this.slots = Array.from({ length: MAX_SLOTS }, () => emptySlot(nChars));
     const me = this.slots[net.mySlot];
     me.kind = 'human';
-    me.charIdx = net.mySlot % app.data.selectable.length;
-    if (net.role === 'host') for (const s of net.guestSlots()) this.slots[s] = { ...emptySlot(s), kind: 'human' };
+    if (net.role === 'host') for (const s of net.guestSlots()) this.slots[s] = { ...emptySlot(nChars), kind: 'human' };
     else this.sendSel();
   }
 
@@ -323,11 +324,11 @@ export class OnlineSelectScene extends Scene {
     for (const { from, msg } of this.net.drain()) {
       switch (msg.type) {
         case 'peer-join':
-          this.slots[msg.slot] = { ...emptySlot(msg.slot), kind: 'human', charIdx: msg.slot % this.app.data.selectable.length };
+          this.slots[msg.slot] = { ...emptySlot(this.app.data.selectable.length), kind: 'human' };
           this.dirty = true;
           break;
         case 'peer-leave':
-          this.slots[msg.slot] = emptySlot(msg.slot);
+          this.slots[msg.slot] = emptySlot(this.app.data.selectable.length);
           this.dirty = true;
           break;
         case 'sel':
@@ -455,7 +456,7 @@ export class OnlineSelectScene extends Scene {
     if (k.J) s.team = (s.team + 1) % 5;
     if (k.A) {
       const i = DIFFS.indexOf(s.difficulty);
-      if (i === DIFFS.length - 1) Object.assign(s, emptySlot(this.aiCursor));
+      if (i === DIFFS.length - 1) Object.assign(s, emptySlot(this.app.data.selectable.length));
       else s.difficulty = DIFFS[i + 1];
     }
   }

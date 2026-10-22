@@ -43,14 +43,15 @@ const touchUi = new TouchControls(kb, document.body);
 window.addEventListener('contextmenu', (e) => e.preventDefault());
 window.addEventListener('pointerdown', () => sfx.unlock());
 
+const data = getGameData();
 const app: App = {
-  data: getGameData(),
+  data,
   settings,
   kb,
   sfx,
   music,
   scenes: new SceneManager(),
-  slots: defaultSlots(),
+  slots: defaultSlots(data.selectable.length),
   showFps: false,
 };
 app.scenes.push(new TitleScene(app));

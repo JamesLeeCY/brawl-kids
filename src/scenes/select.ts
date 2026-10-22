@@ -34,8 +34,9 @@ export function moveLabel(cmd: string, touch = touchMode()): string {
   return `${dir}${cmd[2] === 'A' ? '必殺' : '必跳'}`;
 }
 
-export function defaultSlots(): SlotConfig[] {
-  return [0, 1, 2, 3].map((i) => ({ kind: 'empty', ready: false, charIdx: i, team: 0, difficulty: 'normal' }));
+/** 預設每個欄位的游標都在最後一格「隨機」（索引 = 角色數） */
+export function defaultSlots(nChars: number): SlotConfig[] {
+  return [0, 1, 2, 3].map(() => ({ kind: 'empty', ready: false, charIdx: nChars, team: 0, difficulty: 'normal' }));
 }
 
 export class SelectScene extends Scene {

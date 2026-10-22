@@ -93,3 +93,28 @@ export const REQUIRED_POSES = [
   'idle_0', 'idle_1', 'walk_0', 'walk_1', 'walk_2', 'walk_3', 'run_0', 'run_1', 'run_2', 'run_3',
   'jump', 'punch_extend', 'kick', 'defend', 'hurt', 'dizzy', 'falling', 'lying', 'victory',
 ];
+
+const KEYS = ['t', 'h', 'bua', 'bfa', 'fua', 'ffa', 'bth', 'bsh', 'fth', 'fsh', 'dy', 'rot'] as const;
+
+/** 兩個姿勢之間插值（k = 0 → a，1 → b）；畫面用，讓動作之間平順過渡 */
+export function lerpPose(a: Pose, b: Pose, k: number): Pose {
+  const o = {} as Pose;
+  for (const key of KEYS) {
+    const va = a[key] ?? 0;
+    const vb = b[key] ?? 0;
+    (o as unknown as Record<string, number>)[key] = va + (vb - va) * k;
+  }
+  return o;
+}
+
+/**
+ * 循環動作（走路 4 格、跑步 4 格）用連續的相位在相鄰兩格之間插值，
+ * 不再一格一格跳，看起來像有很多格動畫。
+ */
+export function cyclePose(prefix: string, frames: number, phase: number): Pose {
+  const i = Math.floor(phase);
+  const f = phase - i;
+  // 緩入緩出：在關鍵格停留久一點，比線性更有「定格」的手感
+  const e = f * f * (3 - 2 * f);
+  return lerpPose(getPose(`${prefix}_${((i % frames) + frames) % frames}`), getPose(`${prefix}_${(((i + 1) % frames) + frames) % frames}`), e);
+}

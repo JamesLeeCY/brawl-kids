@@ -24,3 +24,22 @@ describe('自動畫質', () => {
     expect(lowQuality).toBe(false);
   });
 });
+
+describe('平順動畫', () => {
+  it('姿勢插值：k = 0 / 1 為兩端，中間是平均', async () => {
+    const { lerpPose, getPose } = await import('../src/render/poses');
+    const a = getPose('walk_0');
+    const b = getPose('walk_2');
+    expect(lerpPose(a, b, 0).bua).toBeCloseTo(a.bua);
+    expect(lerpPose(a, b, 1).bua).toBeCloseTo(b.bua);
+    expect(lerpPose(a, b, 0.5).bua).toBeCloseTo((a.bua + b.bua) / 2);
+  });
+  it('走路循環在格與格之間連續', async () => {
+    const { cyclePose, getPose } = await import('../src/render/poses');
+    expect(cyclePose('walk', 4, 1).fua).toBeCloseTo(getPose('walk_1').fua);
+    expect(cyclePose('walk', 4, 4).fua).toBeCloseTo(getPose('walk_0').fua);
+    const mid = cyclePose('walk', 4, 0.5).bua;
+    expect(mid).toBeGreaterThan(Math.min(getPose('walk_0').bua, getPose('walk_1').bua));
+    expect(mid).toBeLessThan(Math.max(getPose('walk_0').bua, getPose('walk_1').bua));
+  });
+});

@@ -5,7 +5,7 @@ import { clonePos } from '../sim/combat';
 import { getBuff, hasBuff, type Entity } from '../sim/entity';
 import { ENEMY_TEAM, type GameEvent, type World } from '../sim/world';
 import { OUTLINE, drawFigure, drawItemShape, roundRect, shade, type Expression } from './character';
-import { getPose, withCarryArms } from './poses';
+import { cyclePose, getPose, lerpPose, withCarryArms, type Pose } from './poses';
 import { drawStage } from './stage';
 import { FONT, text } from './text';
 
@@ -28,6 +28,10 @@ interface Spark {
 interface Afterimage {
   e: Entity;
   t: number;
+  /** 殘影當下的姿勢（沒有就用倒地姿勢） */
+  pose?: Pose;
+  /** 殘影顏色 */
+  tint?: string;
 }
 
 interface Debris {
@@ -68,6 +72,19 @@ const ICON_SCALE: Record<string, number> = { cat: 1.55, dog: 1.45 };
 /** 天降攻擊圖示的放大倍率 */
 const DROP_SCALE: Record<string, number> = { catdrop: 2.7 };
 
+/** 命中火花持續 tick */
+const SPARK_TICKS = 9;
+/** 集氣光持續 tick */
+const CHARGE_TICKS = 14;
+/** 飛行物拖尾長度（tick） */
+const TRAIL_LEN = 7;
+
+/** #rrggbb + 透明度 → rgba() */
+function hexA(hex: string, a: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${Math.max(0, Math.min(1, a))})`;
+}
+
 /** 震波圈持續時間（tick） */
 const QUAKE_TICKS = 34;
 const DUST_TICKS = 40;
@@ -105,6 +122,39 @@ export function poseName(w: World, e: Entity): string {
       return 'lying';
     case 'rolling':
       return 'crouch';
+  }
+}
+
+/** 角色這一刻「應該」擺的姿勢：走路 / 跑步用連續相位、站著有呼吸起伏 */
+export function targetPose(w: World, e: Entity): Pose {
+  switch (e.state) {
+    case 'walk':
+      return cyclePose('walk', 4, e.stateTime / 7);
+    case 'run':
+      return cyclePose('run', 4, e.stateTime / 4);
+    case 'idle': {
+      const k = (1 - Math.cos((w.tick / 60) * Math.PI * 2)) / 2;
+      return lerpPose(getPose('idle_0'), getPose('idle_1'), k);
+    }
+    default:
+      return getPose(poseName(w, e));
+  }
+}
+
+/** 姿勢往目標靠近的速度：受擊、倒地要快（打擊感），一般動作稍微平滑 */
+function poseRate(e: Entity): number {
+  switch (e.state) {
+    case 'hurt':
+    case 'falling':
+    case 'grabbed':
+      return 0.85;
+    case 'attack':
+      return 0.62;
+    case 'lying':
+    case 'dead':
+      return 0.5;
+    default:
+      return 0.45;
   }
 }
 
@@ -152,6 +202,13 @@ export class BattleRenderer {
   private pendingSays: { id: number; text: string; status?: boolean }[] = [];
   private pendingKo: number[] = [];
   private openingDone = false;
+  /** 畫面上每個角色目前的姿勢（每 tick 往目標姿勢插值） */
+  private poses = new Map<number, Pose>();
+  /** 飛行物的拖尾（最近幾 tick 的位置） */
+  private trails = new Map<number, { x: number; y: number; z: number }[]>();
+  /** 放招時的集氣光（往身體收攏的光點） */
+  private charges: { id: number; t: number; color: string }[] = [];
+  private lastState = new Map<number, string>();
   private fxSeed = 1;
   hpLag = new Map<number, number>();
   banner: { text: string; t: number } | null = null;
@@ -172,7 +229,8 @@ export class BattleRenderer {
   consume(events: GameEvent[]): void {
     for (const ev of events) {
       if (ev.type === 'hit') {
-        this.sparks.push({ x: ev.x, y: ev.y, z: ev.z, t: FX.sparkTicks, heavy: ev.heavy, blocked: ev.blocked, seed: this.sparkSeed++ });
+        this.sparks.push({ x: ev.x, y: ev.y, z: ev.z, t: SPARK_TICKS, heavy: ev.heavy, blocked: ev.blocked, seed: this.sparkSeed++ });
+        if (ev.heavy && !ev.blocked) this.flash = Math.max(this.flash, 2);
       } else if (ev.type === 'shake') {
         if (ev.amp >= this.shakeAmp || this.shakeTicks <= 0) {
           this.shakeAmp = ev.amp;
@@ -255,18 +313,46 @@ export class BattleRenderer {
     }
     this.pendingKo = [];
     for (const c of w.chars()) {
+      // 平順動畫：往目標姿勢插值；受擊停頓中維持原姿勢
+      const target = targetPose(w, c);
+      const cur = this.poses.get(c.id);
+      if (!cur || c.freeze === 0) this.poses.set(c.id, cur ? lerpPose(cur, target, poseRate(c)) : target);
+      const ps = this.lastState.get(c.id);
+      if (ps !== c.state) {
+        this.lastState.set(c.id, c.state);
+        // 落地、起跑、倒地揚起小塵土
+        const puff = (ps === 'jump' && c.state === 'idle') || c.state === 'run' || c.state === 'lying';
+        if (puff && !lowQuality)
+          for (const side of [-1, 1]) this.dust.push({ x: c.x + side * 8, z: c.z, vx: side * (c.state === 'run' ? 0.3 : 0.9) - (c.state === 'run' ? c.facing * 0.8 : 0), r: 5, t: 22 });
+      }
+      // 衝刺類招式拖出殘影
+      if (!lowQuality && c.state === 'attack' && Math.abs(c.vx) > 5 && w.tick % 2 === 0)
+        this.afterimages.push({ e: { ...c, buffs: [] }, t: 10, pose: this.poses.get(c.id), tint: w.charDef(c).palette.accent });
       const prev = this.lastFrame.get(c.id);
       if (c.frame !== prev) {
         this.lastFrame.set(c.id, c.frame);
         const fr = c.state === 'attack' && c.frame ? w.charDef(c).frames[c.frame] : undefined;
         const quake = fr?.itr?.find((it) => it.radial);
         if (quake) this.spawnQuake(w, c, quake);
+        if (fr?.sound === 'special' && !lowQuality) this.charges.push({ id: c.id, t: CHARGE_TICKS, color: w.charDef(c).palette.accent });
         if (fr?.say) {
           this.callouts = this.callouts.filter((k) => k.id !== c.id);
           this.callouts.push({ text: fr.say, id: c.id, t: 80, color: w.charDef(c).palette.accent });
         }
       }
     }
+    for (const k of this.charges) k.t--;
+    this.charges = this.charges.filter((k) => k.t > 0);
+    const alive = new Set<number>();
+    for (const p of w.entities) {
+      if (p.kind !== 'proj') continue;
+      alive.add(p.id);
+      const tr = this.trails.get(p.id) ?? [];
+      tr.unshift({ x: p.x, y: p.y, z: p.z });
+      if (tr.length > TRAIL_LEN) tr.pop();
+      this.trails.set(p.id, tr);
+    }
+    for (const id of this.trails.keys()) if (!alive.has(id)) this.trails.delete(id);
     for (const k of this.callouts) k.t--;
     this.callouts = this.callouts.filter((k) => k.t > 0);
     for (const q of this.quakes) q.t--;
@@ -334,8 +420,8 @@ export class BattleRenderer {
 
     for (const a of this.afterimages) {
       const def = w.charDef(a.e);
-      ctx.globalAlpha = FX.afterimageAlpha * (a.t / FX.afterimageLife);
-      drawFigure(ctx, def, { pose: getPose('falling'), x: a.e.x - cam, y: screenY(a.e), facing: a.e.facing, tick: w.tick, tint: '#fff' });
+      ctx.globalAlpha = FX.afterimageAlpha * Math.min(1, a.t / FX.afterimageLife);
+      drawFigure(ctx, def, { pose: a.pose ?? getPose('falling'), x: a.e.x - cam, y: screenY(a.e), facing: a.e.facing, tick: w.tick, tint: a.tint ?? '#fff' });
       ctx.globalAlpha = 1;
     }
 
@@ -359,6 +445,10 @@ export class BattleRenderer {
       ctx.fillRect(d.x - cam - sz / 2, HZ + d.z - d.y - sz / 2, sz, sz * 0.85);
     }
     for (const s of this.sparks) this.drawSpark(ctx, s, cam);
+    for (const k of this.charges) {
+      const e = w.get(k.id);
+      if (e) this.drawCharge(ctx, k, e, cam);
+    }
     for (const k of this.callouts) {
       const e = w.get(k.id);
       if (e) this.drawCallout(ctx, k, e, cam);
@@ -374,13 +464,15 @@ export class BattleRenderer {
   private drawChar(ctx: CanvasRenderingContext2D, w: World, e: Entity, cam: number): void {
     const def = w.charDef(e);
     const held = e.heldItem ? w.data.items[w.get(e.heldItem)?.itemId ?? ''] : undefined;
-    let pose = getPose(poseName(w, e));
+    let pose = this.poses.get(e.id) ?? targetPose(w, e);
     if (held?.kind === 'heavy' && (e.state === 'idle' || e.state === 'walk')) pose = withCarryArms(pose);
     if (e.state === 'rolling') pose = { ...pose, rot: (e.stateTime / CONFIG.combat.rollTicks) * 360 };
     if (e.state === 'dizzy' || e.state === 'broken') pose = { ...pose, t: pose.t + Math.sin(w.tick * 0.2) * 8 };
     const stun = getBuff(e, 'stun');
     if (stun?.value === 3) pose = { ...pose, t: pose.t + Math.sin(w.tick * 0.35) * 14 };
-    const x = e.x - cam;
+    // 受擊停頓時左右抖動（打擊感）
+    const shake = e.freeze > 0 && (e.state === 'hurt' || e.state === 'falling' || e.state === 'dizzy' || e.state === 'broken') ? (w.tick % 2 ? 2 : -2) : 0;
+    const x = e.x - cam + shake;
     const y = screenY(e);
     let alpha = 1;
     if (e.state === 'dead') alpha = 0.45;
@@ -602,6 +694,31 @@ export class BattleRenderer {
     ctx.shadowColor = color;
     ctx.shadowBlur = lowQuality ? 0 : 12;
     const pose = f?.pose ?? 'dart';
+    // LF2 風格：會飛的飛行物後面拖一道光、外圈有一層發光
+    if (!lowQuality && def && !def.wall && def.blockable && Math.hypot(p.vx, p.vz) > 1.5) {
+      const tr = this.trails.get(p.id) ?? [];
+      ctx.save();
+      ctx.shadowBlur = 0;
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 1; i < tr.length; i++) {
+        const k = 1 - i / tr.length;
+        ctx.globalAlpha = 0.32 * k;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(tr[i].x - cam, HZ + tr[i].z - tr[i].y, Math.max(1.5, s * 0.55 * k), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const g = ctx.createRadialGradient(x, y, 0, x, y, s * 1.7);
+      g.addColorStop(0, 'rgba(255,255,255,0.45)');
+      g.addColorStop(0.35, hexA(color, 0.35));
+      g.addColorStop(1, hexA(color, 0));
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, s * 1.7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     if (EXTRA_POSES.has(pose)) {
       drawExtraProjectile(ctx, w, p, pose, x, y, HZ + p.z, color);
       ctx.restore();
@@ -1003,22 +1120,108 @@ export class BattleRenderer {
     ctx.restore();
   }
 
+  /** 命中火花（LF2 風格）：一般命中是白色小星芒、重擊是黃白爆星加放射線、被擋下是藍色護盾弧 */
   private drawSpark(ctx: CanvasRenderingContext2D, s: Spark, cam: number): void {
     const x = s.x - cam;
     const y = HZ + s.z - s.y;
-    const k = s.t / FX.sparkTicks;
-    const n = s.heavy ? 6 : 4;
-    ctx.strokeStyle = s.blocked ? '#7fd6ff' : s.heavy ? '#ffef6b' : '#ffffff';
-    ctx.lineWidth = s.heavy ? 3 : 2;
-    ctx.beginPath();
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 + s.seed;
-      const r0 = 4 + (1 - k) * 8;
-      const r1 = r0 + (s.heavy ? 14 : 9) * k;
-      ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0);
-      ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
+    const age = SPARK_TICKS - s.t;
+    const k = s.t / SPARK_TICKS;
+    ctx.save();
+    if (s.blocked) {
+      ctx.strokeStyle = `rgba(127,214,255,${0.9 * k})`;
+      ctx.lineWidth = 3;
+      const r = 10 + age * 2;
+      const a0 = s.seed % 2 ? Math.PI * 0.7 : -Math.PI * 0.3;
+      ctx.beginPath();
+      ctx.arc(x, y, r, a0, a0 + Math.PI * 0.6);
+      ctx.stroke();
+      ctx.fillStyle = `rgba(255,255,255,${k})`;
+      ctx.beginPath();
+      ctx.arc(x, y, 3 * k + 1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
     }
+    const pop = age < 2 ? 0.7 + age * 0.25 : 1 + (age - 2) * 0.05;
+    const R = (s.heavy ? 20 : 11) * pop;
+    const pts = s.heavy ? 8 : 4;
+    const rot = s.seed * 0.7;
+    // 星芒本體
+    ctx.globalAlpha = Math.min(1, k * 1.6);
+    ctx.beginPath();
+    for (let i = 0; i < pts * 2; i++) {
+      const a = rot + (i / (pts * 2)) * Math.PI * 2;
+      const r = i % 2 === 0 ? R : R * (s.heavy ? 0.42 : 0.32);
+      if (i === 0) ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+      else ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fillStyle = s.heavy ? '#fff3a0' : '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = s.heavy ? '#ff8a1f' : '#ffd166';
+    ctx.lineWidth = s.heavy ? 2.2 : 1.4;
     ctx.stroke();
+    // 中心亮點
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, R * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+    if (s.heavy) {
+      // 放射線 + 外擴的衝擊環
+      ctx.strokeStyle = `rgba(255,220,120,${k})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = rot * 1.3 + (i / 10) * Math.PI * 2;
+        const r0 = R * 0.9 + age * 3;
+        const r1 = r0 + 10 * k;
+        ctx.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0);
+        ctx.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = `rgba(255,255,255,${0.7 * k})`;
+      ctx.lineWidth = 2.5 * k + 0.5;
+      ctx.beginPath();
+      ctx.ellipse(x, y, R * 1.2 + age * 4, (R * 1.2 + age * 4) * 0.7, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** 放招時的集氣：光點從外圍往身體收攏，最後亮一下 */
+  private drawCharge(ctx: CanvasRenderingContext2D, k: { t: number; color: string }, e: Entity, cam: number): void {
+    // 集氣中心在身體（不蓋住臉）
+    const x = e.x - cam;
+    const y = screenY(e) - 22;
+    const p = k.t / CHARGE_TICKS;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 + e.id;
+      const r = 12 + 44 * p;
+      ctx.globalAlpha = 0.9 * (1 - p * 0.6);
+      ctx.fillStyle = i % 2 ? '#ffffff' : k.color;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.8, 2.6 - p, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = k.color;
+      ctx.globalAlpha = 0.35 * (1 - p);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.8);
+      ctx.lineTo(x + Math.cos(a) * (r + 10), y + Math.sin(a) * (r + 10) * 0.8);
+      ctx.stroke();
+    }
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 26);
+    g.addColorStop(0, hexA('#ffffff', 0.28 * (1 - p)));
+    g.addColorStop(0.5, hexA(k.color, 0.2 * (1 - p)));
+    g.addColorStop(1, hexA(k.color, 0));
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, 26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   private drawHud(ctx: CanvasRenderingContext2D, w: World, extra?: string): void {

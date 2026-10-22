@@ -96,6 +96,46 @@ export function pastel(color: string, amt = 0.16): string {
   return mix(color, '#f6efe4', amt);
 }
 
+/** 是否畫明暗（一般角色才畫；閃白、殘影、貼紙白邊不畫） */
+let shadeOn = false;
+
+/** 光從前上方來：陰影落在後下方（面向右的座標，x+ 是前方、y+ 是下方） */
+const SHADOW_DIR = { x: -0.6, y: 0.8 };
+
+/**
+ * 肢體的 cel shading：在陰影側畫一條較深的色帶、受光側畫一條細亮線，
+ * 都畫在肢體寬度之內，不會超出描邊。
+ */
+function limbShade(ctx: CanvasRenderingContext2D, pts: [number, number][], w: number, color: string): void {
+  ctx.lineCap = 'round';
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const [ax, ay] = pts[i];
+    const [bx, by] = pts[i + 1];
+    const len = Math.hypot(bx - ax, by - ay);
+    if (len < 0.5) continue;
+    let nx = -(by - ay) / len;
+    let ny = (bx - ax) / len;
+    if (nx * SHADOW_DIR.x + ny * SHADOW_DIR.y < 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    const so = w * 0.27;
+    ctx.strokeStyle = shade(color, -0.2);
+    ctx.lineWidth = w * 0.4;
+    ctx.beginPath();
+    ctx.moveTo(ax + nx * so, ay + ny * so);
+    ctx.lineTo(bx + nx * so, by + ny * so);
+    ctx.stroke();
+    const ho = w * 0.3;
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = w * 0.18;
+    ctx.beginPath();
+    ctx.moveTo(ax - nx * ho, ay - ny * ho);
+    ctx.lineTo(bx - nx * ho, by - ny * ho);
+    ctx.stroke();
+  }
+}
+
 /** 肢體：先畫較粗的深色描邊再畫本色 */
 function limb(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, w: number, color: string) {
   ctx.lineCap = 'round';
@@ -110,6 +150,31 @@ function limb(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number,
   ctx.strokeStyle = color;
   ctx.lineWidth = w;
   ctx.stroke();
+  if (shadeOn)
+    limbShade(
+      ctx,
+      [
+        [x0, y0],
+        [x1, y1],
+        [x2, y2],
+      ],
+      w,
+      color,
+    );
+}
+
+/** 手：圓形加上受光的小亮點與陰影側的暗面 */
+function hand(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string): void {
+  circleOl(ctx, x, y, r, color);
+  if (!shadeOn) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.13)';
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.92, Math.PI * 0.35, Math.PI * 1.15);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.beginPath();
+  ctx.arc(x + r * 0.3, y - r * 0.35, r * 0.28, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function circle(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
@@ -162,7 +227,8 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   const silhouette = olOverride !== null;
   const p = o.pose;
   const s = o.scale ?? 1;
-  const W = o.flash ? '#ffffff' : null;
+  // 受擊閃白 / 殘影、分身的單色剪影
+  const W = o.tint ?? (o.flash ? '#ffffff' : null);
   const pal = def.palette;
   const skin = W ?? pastel(pal.skin, 0.12);
   const main = W ?? pastel(pal.main);
@@ -171,6 +237,8 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   const backMain = W ?? pastel(shade(pal.main, -0.18));
   const shoeColor = W ?? '#3a3330';
   const acc = def.accessory;
+  const prevShade = shadeOn;
+  shadeOn = !W && !silhouette;
 
   ctx.save();
   ctx.globalAlpha *= o.alpha ?? 1;
@@ -225,7 +293,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   const armBack = look.sleeveless ? W ?? shade(pal.skin, -0.12) : backMain;
   const armFront = look.sleeveless ? skin : main;
   limb(ctx, sh.x, sh.y, bArm.el.x, bArm.el.y, bArm.hand.x, bArm.hand.y, 6.5, armBack);
-  circleOl(ctx, bArm.hand.x, bArm.hand.y, 3.8, skin);
+  hand(ctx, bArm.hand.x, bArm.hand.y, 3.8, skin);
   if (!W && !o.held) drawBackHandProp(ctx, acc, bArm.hand.x, bArm.hand.y, pal.accent);
   limb(ctx, bLeg.h0.x, bLeg.h0.y, bLeg.kn.x, bLeg.kn.y, bLeg.ft.x, bLeg.ft.y, 7.5, W ?? shade(pal.main, -0.45));
   shoe(ctx, bLeg.ft.x, bLeg.ft.y, shoeColor);
@@ -255,11 +323,37 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   ctx.fill();
   if (!silhouette) ctx.stroke();
   if (!W) {
-    // 簡單的明暗：左側亮面、下方暗面
-    ctx.fillStyle = 'rgba(255,255,255,0.2)';
-    ctx.fillRect(-7.5, -18, 3.5, 15);
-    ctx.fillStyle = 'rgba(0,0,0,0.16)';
-    ctx.fillRect(-10.5, -5, 21, 6);
+    // cel shading：光從前上方來，背側與下襬是暗面，前側一條亮面
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = 'rgba(40,20,40,0.2)';
+    ctx.beginPath();
+    ctx.moveTo(-13, -21);
+    ctx.lineTo(-4.5, -21);
+    ctx.quadraticCurveTo(-7, -9, -2, 3);
+    ctx.lineTo(-13, 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(40,20,40,0.14)';
+    ctx.fillRect(-13, -4.5, 26, 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.24)';
+    ctx.beginPath();
+    ctx.moveTo(4, -19.5);
+    ctx.quadraticCurveTo(8.6, -18.5, 9.2, -13);
+    ctx.lineTo(10, -6);
+    ctx.quadraticCurveTo(7.5, -11, 4, -19.5);
+    ctx.closePath();
+    ctx.fill();
+    // 衣服皺褶：腰側兩道
+    ctx.strokeStyle = 'rgba(40,20,40,0.22)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-6, -7);
+    ctx.quadraticCurveTo(-3.5, -5.5, -1, -6.5);
+    ctx.moveTo(2, -4.5);
+    ctx.quadraticCurveTo(4, -3.5, 6.5, -4.5);
+    ctx.stroke();
+    ctx.restore();
     if (look.tie) {
       // 襯衫 V 領 + 領帶（面向右，偏前側）
       ctx.fillStyle = look.shirt;
@@ -374,6 +468,18 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
       ctx.beginPath();
       ctx.arc(head.x - 1, head.y + 2, 10, Math.PI * 0.1, Math.PI * 0.9);
       ctx.fill();
+      // 後腦勺的暗面（新月形）與前臉頰的受光邊
+      ctx.fillStyle = 'rgba(60,30,30,0.12)';
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, 10.4, Math.PI * 0.55, Math.PI * 1.35);
+      ctx.arc(head.x + 3, head.y - 0.5, 9.2, Math.PI * 1.3, Math.PI * 0.6, true);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, 9.6, -Math.PI * 0.05, Math.PI * 0.3);
+      ctx.stroke();
       drawHair(ctx, head.x, head.y, look.hair, hair);
       if (acc === 'frog') drawFrogHood(ctx, head.x, head.y, pal.accent);
       drawFace(ctx, head.x, head.y, o.expression ?? 'normal', def, o.tick);
@@ -401,7 +507,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
 
   // ---- 前側手臂 ----
   limb(ctx, sh.x, sh.y, fArm.el.x, fArm.el.y, fArm.hand.x, fArm.hand.y, 6.5, armFront);
-  circleOl(ctx, fArm.hand.x, fArm.hand.y, 4, skin);
+  hand(ctx, fArm.hand.x, fArm.hand.y, 4, skin);
 
   // ---- 抱在懷裡的貓（配件 cat）----
   if (acc === 'cat' && !W && !o.held) drawHeldCat(ctx, fArm.hand.x, fArm.hand.y);
@@ -437,6 +543,7 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   }
 
   ctx.restore();
+  shadeOn = prevShade;
 }
 
 /** 髮型：面向右，(x,y) 為頭中心、半徑 11 */

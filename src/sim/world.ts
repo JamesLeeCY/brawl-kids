@@ -20,6 +20,8 @@ export interface PlayerSetup {
   team: number;
   controller: 'human' | 'ai';
   difficulty: Difficulty;
+  /** 選角時選了「隨機」：再來一場時重新抽 */
+  random?: boolean;
 }
 
 export interface CarryOver {

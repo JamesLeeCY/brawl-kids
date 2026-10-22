@@ -11,7 +11,7 @@ import { emptySnapshot, type Snapshot } from '../sim/snapshot';
 import type { MatchSetup } from '../sim/world';
 import { BattleScene } from './battle';
 import { Scene, type App, type MenuInput } from './scene';
-import { drawCharGrid, gridCols, gridHit, gridSize, moveGridCursor, type GridCursor } from './charGrid';
+import { drawCharGrid, drawRandomPortrait, gridCells, gridCols, gridHit, gridSize, isRandomIdx, moveGridCursor, resolveCharId, type GridCursor } from './charGrid';
 import { DIFF_LABEL, TEAM_LABEL, moveLabel, touchMode } from './select';
 import { button, hint, menuBackground } from './ui';
 import { ROUTES, randomCampaignRoute } from './campaign';
@@ -356,7 +356,7 @@ export class OnlineSelectScene extends Scene {
   }
 
   private updateSelf(k: Snapshot): void {
-    const n = this.app.data.selectable.length;
+    const n = gridCells(this.app.data.selectable.length);
     const me = this.me;
     const campaign = onlineOptions(this.app)[this.opt].mode === 'campaign';
     if (!me.ready) {
@@ -394,7 +394,7 @@ export class OnlineSelectScene extends Scene {
   }
 
   onClick(x: number, y: number): void {
-    const n = this.app.data.selectable.length;
+    const n = gridCells(this.app.data.selectable.length);
     const i = gridHit(x, y, this.gridX, GRID_Y, n);
     if (i < 0 || this.routeCursor >= 0 || this.net.status !== 'open') return;
     // 點頭像：房主設定電腦時換該電腦的角色，否則換自己的角色
@@ -409,7 +409,7 @@ export class OnlineSelectScene extends Scene {
   }
 
   private get gridX(): number {
-    return (VW - gridSize(this.app.data.selectable.length).w) / 2;
+    return (VW - gridSize(gridCells(this.app.data.selectable.length)).w) / 2;
   }
 
   private share(): void {
@@ -451,7 +451,7 @@ export class OnlineSelectScene extends Scene {
       this.aiCursor = this.nextAiSlot(this.aiCursor, 1);
       return;
     }
-    s.charIdx = moveGridCursor(s.charIdx, k, this.app.data.selectable.length);
+    s.charIdx = moveGridCursor(s.charIdx, k, gridCells(this.app.data.selectable.length));
     if (k.J) s.team = (s.team + 1) % 5;
     if (k.A) {
       const i = DIFFS.indexOf(s.difficulty);
@@ -512,7 +512,9 @@ export class OnlineSelectScene extends Scene {
       campaignDifficulty: o.difficulty,
       players: participants.map(({ s, i }) => ({
         slot: i,
-        charId: ids[s.charIdx % ids.length],
+        // 選「隨機」的由房主在開賽時抽，跟著開賽訊息送給所有人
+        charId: resolveCharId(ids, s.charIdx),
+        random: isRandomIdx(s.charIdx, ids.length) || undefined,
         team: s.team,
         controller: s.kind === 'ai' ? ('ai' as const) : ('human' as const),
         difficulty: s.difficulty,
@@ -581,7 +583,17 @@ export class OnlineSelectScene extends Scene {
         if (editing) text(ctx, '攻擊：加入電腦', x + 94, y + 156, 13, '#fff', 'center');
         continue;
       }
-      const def = this.app.data.characters[ids[s.charIdx % ids.length]];
+      if (isRandomIdx(s.charIdx, ids.length)) {
+        drawRandomPortrait(ctx, ids.map((id) => this.app.data.characters[id]), x + 8, y + 26, 86, 100, this.t, 1.45, y + 150);
+        text(ctx, '隨機', x + 141, y + 52, 17, '#fff', 'center');
+        text(ctx, '開打時抽一名', x + 141, y + 72, 12, '#ffd23f', 'center');
+        if (o.mode === 'versus') text(ctx, `隊伍：${TEAM_LABEL[s.team]}`, x + 141, y + 96, 13, '#fff', 'center');
+        if (s.ready) text(ctx, s.kind === 'ai' ? '電腦' : '準備完成！', x + 141, y + 120, 13, '#ffd23f', 'center');
+        text(ctx, '開打才知道是誰！', x + 94, y + 152, 10, 'rgba(255,255,255,0.75)', 'center', false);
+        if (editing) text(ctx, '方向鍵選角 跳躍換隊 攻擊改難度', x + 94, y + CARD_H - 6, 10, '#fff', 'center');
+        continue;
+      }
+      const def = this.app.data.characters[ids[s.charIdx % gridCells(ids.length)]];
       // 左：大頭像；右：名字、稱號、隊伍、狀態；下：招式表
       ctx.save();
       ctx.beginPath();

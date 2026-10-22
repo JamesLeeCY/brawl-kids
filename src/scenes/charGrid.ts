@@ -11,6 +11,42 @@ export const CELL_W = 50;
 export const CELL_H = 40;
 const GAP = 2;
 
+/** 頭像格最後多一格「隨機」：格子數 = 角色數 + 1，索引 = 角色數就是隨機 */
+export function gridCells(nChars: number): number {
+  return nChars + 1;
+}
+
+export function isRandomIdx(idx: number, nChars: number): boolean {
+  return idx % gridCells(nChars) === nChars;
+}
+
+/** 游標索引 → 角色 id；選到「隨機」就在開打時抽一名 */
+export function resolveCharId(ids: readonly string[], idx: number, rand: () => number = Math.random): string {
+  const i = idx % gridCells(ids.length);
+  return i === ids.length ? ids[Math.floor(rand() * ids.length) % ids.length] : ids[i];
+}
+
+/** 再來一場：選「隨機」的玩家重新抽角色 */
+export function rerollRandom<P extends { charId: string; random?: boolean }>(players: readonly P[], ids: readonly string[], rand: () => number = Math.random): P[] {
+  return players.map((p) => (p.random ? { ...p, charId: ids[Math.floor(rand() * ids.length) % ids.length] } : p));
+}
+
+/** 「隨機」的大頭像：角色剪影快速輪播，上面一個大問號 */
+export function drawRandomPortrait(ctx: CanvasRenderingContext2D, defs: CharacterDef[], x: number, y: number, w: number, h: number, tick: number, figScale: number, footY: number): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.fillStyle = '#3b2a5c';
+  ctx.fillRect(x, y, w, h);
+  if (defs.length) {
+    const def = defs[Math.floor(tick / 6) % defs.length];
+    drawFigure(ctx, def, { pose: getPose('idle_0'), x: x + w / 2, y: footY, facing: 1, scale: figScale, tick, upperOnly: true, tint: '#ffffff', alpha: 0.28 });
+  }
+  ctx.restore();
+  text(ctx, '?', x + w / 2, y + h / 2 + h * 0.2, Math.round(h * 0.62), '#ffd23f', 'center', true, true);
+}
+
 export function gridCols(n: number): number {
   return Math.max(1, Math.ceil(n / GRID_ROWS));
 }
@@ -64,7 +100,7 @@ export interface GridCursor {
 
 /** 畫頭像格與所有游標；(gx, gy) 為左上角 */
 export function drawCharGrid(ctx: CanvasRenderingContext2D, defs: CharacterDef[], gx: number, gy: number, cursors: GridCursor[], tick: number): void {
-  const n = defs.length;
+  const n = gridCells(defs.length);
   const cols = gridCols(n);
   const cellPos = (i: number) => ({ x: gx + (i % cols) * (CELL_W + GAP), y: gy + Math.floor(i / cols) * (CELL_H + GAP) });
   const s = CELL_H / 42;
@@ -82,6 +118,17 @@ export function drawCharGrid(ctx: CanvasRenderingContext2D, defs: CharacterDef[]
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, CELL_W, CELL_H);
   });
+  // 最後一格：隨機
+  {
+    const { x, y } = cellPos(defs.length);
+    ctx.fillStyle = '#3b2a5c';
+    ctx.fillRect(x, y, CELL_W, CELL_H);
+    text(ctx, '?', x + CELL_W / 2, y + CELL_H / 2 + 7, 22, '#ffd23f', 'center', true, true);
+    text(ctx, '隨機', x + CELL_W / 2, y + CELL_H - 3, 8, '#ffffff', 'center', true);
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, CELL_W, CELL_H);
+  }
   // 同一格有多個游標時由外往內縮排，各自的標籤放在不同角落
   const stack = new Map<number, number>();
   for (const cur of cursors) {

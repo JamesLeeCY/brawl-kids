@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_H, CELL_W, gridCols, gridHit, moveGridCursor } from '../src/scenes/charGrid';
+import { CELL_H, CELL_W, gridCols, gridHit, moveGridCursor, gridCells, isRandomIdx, resolveCharId, rerollRandom } from '../src/scenes/charGrid';
 
 const k = (dir: 'up' | 'down' | 'left' | 'right') => ({ up: false, down: false, left: false, right: false, [dir]: true });
 
@@ -29,5 +29,30 @@ describe('選角頭像格', () => {
     expect(gridHit(CELL_W + 4, CELL_H + 4, 0, 0, 15)).toBe(6);
     expect(gridHit(CELL_W + 1, 5, 0, 0, 15)).toBe(-1);
     expect(gridHit(-3, 5, 0, 0, 15)).toBe(-1);
+  });
+});
+
+describe('隨機選角', () => {
+  const ids = ['a', 'b', 'c', 'd'];
+  it('最後一格是隨機', () => {
+    expect(gridCells(ids.length)).toBe(5);
+    expect(isRandomIdx(4, ids.length)).toBe(true);
+    expect(isRandomIdx(3, ids.length)).toBe(false);
+  });
+  it('一般格子回傳該角色，隨機格依亂數抽', () => {
+    expect(resolveCharId(ids, 2)).toBe('c');
+    expect(resolveCharId(ids, 4, () => 0)).toBe('a');
+    expect(resolveCharId(ids, 4, () => 0.99)).toBe('d');
+  });
+  it('再來一場只重抽選了隨機的玩家', () => {
+    const ps = [
+      { charId: 'a', random: true },
+      { charId: 'b' },
+    ];
+    expect(rerollRandom(ps, ids, () => 0.6)).toEqual([{ charId: 'c', random: true }, { charId: 'b' }]);
+  });
+  it('20 名角色 + 隨機剛好 7×3', () => {
+    expect(gridCols(gridCells(20))).toBe(7);
+    expect(gridHit(6 * (CELL_W + 2) + 5, 2 * (CELL_H + 2) + 5, 0, 0, gridCells(20))).toBe(20);
   });
 });

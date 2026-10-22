@@ -4,7 +4,7 @@ import { SLOT_COLORS } from '../render/battle';
 import { drawFigure, roundRect, shade } from '../render/character';
 import { getPose } from '../render/poses';
 import { text } from '../render/text';
-import { drawCharGrid, gridHit, gridSize, moveGridCursor, type GridCursor } from './charGrid';
+import { drawCharGrid, drawRandomPortrait, gridCells, gridHit, gridSize, isRandomIdx, moveGridCursor, type GridCursor } from './charGrid';
 import { ModeScene } from './mode';
 import { Scene, type App, type MenuInput, type SlotConfig } from './scene';
 import { hint, menuBackground } from './ui';
@@ -59,8 +59,9 @@ export class SelectScene extends Scene {
     return (VW - gridSize(this.nChars()).w) / 2;
   }
 
+  /** 頭像格的格子數（角色 + 最後一格隨機） */
   private nChars(): number {
-    return this.app.data.selectable.length;
+    return gridCells(this.app.data.selectable.length);
   }
 
   update(inp: MenuInput): void {
@@ -208,7 +209,17 @@ export class SelectScene extends Scene {
         if (editing) text(ctx, '1P：按攻擊加入電腦', x + 94, y + 180, 13, '#fff', 'center');
         continue;
       }
-      const def = this.app.data.characters[ids[s.charIdx % ids.length]];
+      if (isRandomIdx(s.charIdx, ids.length)) {
+        drawRandomPortrait(ctx, defs, x + 14, y + 30, 160, 104, this.t, 1.45, y + 160);
+        text(ctx, '隨機', x + 94, y + 153, 20, '#fff', 'center');
+        text(ctx, '開打時抽一名角色', x + 94, y + 171, 13, '#ffd23f', 'center');
+        text(ctx, `隊伍：${TEAM_LABEL[s.team]}`, x + 94, y + 190, 14, '#fff', 'center');
+        text(ctx, '開打才知道是誰！', x + 94, y + 214, 11, 'rgba(255,255,255,0.75)', 'center', false);
+        if (s.ready) text(ctx, '準備完成！', x + 94, y + CARD_H - 7, 14, '#ffd23f', 'center');
+        if (editing) text(ctx, '方向鍵選角 跳躍換隊 攻擊改難度', x + 94, y + CARD_H - 7, 11, '#fff', 'center');
+        continue;
+      }
+      const def = this.app.data.characters[ids[s.charIdx % gridCells(ids.length)]];
       ctx.save();
       ctx.beginPath();
       ctx.rect(x + 14, y + 30, 160, 104);

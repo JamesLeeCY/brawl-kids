@@ -8,6 +8,7 @@ import { ROUTES, randomCampaignRoute } from './campaign';
 import { Scene, type App, type MenuInput } from './scene';
 import { button, hint, menuBackground } from './ui';
 import { speedValue } from '../speed';
+import { isRandomIdx, resolveCharId } from './charGrid';
 
 const VW = CONFIG.view.width;
 
@@ -27,7 +28,8 @@ export function buildSetup(
     if (s.kind === 'empty') return;
     players.push({
       slot,
-      charId: ids[s.charIdx % ids.length],
+      charId: resolveCharId(ids, s.charIdx),
+      random: isRandomIdx(s.charIdx, ids.length) || undefined,
       team: s.team,
       controller: s.kind === 'ai' ? 'ai' : 'human',
       difficulty: s.difficulty,
@@ -156,7 +158,7 @@ export class ModeScene extends Scene {
     const ids = this.app.data.selectable;
     const players: PlayerSetup[] = [];
     this.app.slots.forEach((s, slot) => {
-      if (s.kind === 'human') players.push({ slot, charId: ids[s.charIdx % ids.length], team: 1, controller: 'human', difficulty: s.difficulty });
+      if (s.kind === 'human') players.push({ slot, charId: resolveCharId(ids, s.charIdx), team: 1, controller: 'human', difficulty: s.difficulty });
     });
     if (!players.length) return null;
     const free = [0, 1, 2, 3].find((i) => this.app.slots[i]?.kind !== 'human')!;

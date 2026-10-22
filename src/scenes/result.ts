@@ -15,6 +15,7 @@ import type { Replay } from '../replay/replay';
 import { shareReplay } from '../replay/share';
 import { resetCampaign } from './campaign';
 import { drawCelebration } from '../render/celebrate';
+import { rerollRandom } from './charGrid';
 import { recordMatch, type AchievementDef } from '../progress';
 import { progressTotals } from './achievements';
 import { campaignLength } from '../sim/world';
@@ -89,7 +90,7 @@ export class ResultScene extends Scene {
     }
     if (this.t < 30) return;
     if (inp.any.A) {
-      const s = { ...this.setup, seed: (this.setup.seed * 1664525 + 1013904223) >>> 0, carry: undefined };
+      const s = { ...this.setup, seed: (this.setup.seed * 1664525 + 1013904223) >>> 0, carry: undefined, players: rerollRandom(this.setup.players, this.app.data.selectable) };
       if (s.mode === 'campaign') resetCampaign(this.app, s);
       this.app.scenes.replace(new BattleScene(this.app, s));
     } else if (inp.any.D) backToSelect(this.app);
@@ -145,7 +146,8 @@ export class ResultScene extends Scene {
     const a = inp.pressed.some((p) => p.A) || inp.codes.includes('Enter');
     const d = inp.pressed.some((p) => p.D);
     if (a && net.role === 'host') {
-      const s: MatchSetup = { ...this.setup, seed: (this.setup.seed * 1664525 + 1013904223) >>> 0, carry: undefined };
+      // 房主重新抽「隨機」玩家的角色，跟著再來一場的訊息送給所有人
+      const s: MatchSetup = { ...this.setup, seed: (this.setup.seed * 1664525 + 1013904223) >>> 0, carry: undefined, players: rerollRandom(this.setup.players, this.app.data.selectable) };
       if (s.mode === 'campaign') resetCampaign(this.app, s);
       startOnlineMatch(this.app, net, s, 'rematch');
     } else if (d && net.role === 'host') {

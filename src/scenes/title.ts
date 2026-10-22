@@ -11,8 +11,12 @@ import { AchievementsScene } from './achievements';
 import { touchMode } from './select';
 import { button, hint } from './ui';
 import { drawDeskRow, drawLegislature } from '../render/legislature';
+import { roundRect } from '../render/character';
+import { donateUrl, openDonate } from '../donate';
 
 const VW = CONFIG.view.width;
+/** 右上角贊助按鈕 */
+const DONATE = { x: VW - 162, y: 10, w: 152, h: 26 };
 
 export class TitleScene extends Scene {
   private t = 0;
@@ -41,6 +45,10 @@ export class TitleScene extends Scene {
   onEscape(): void {}
 
   onClick(x: number, y: number): void {
+    if (donateUrl() && x >= DONATE.x && x <= DONATE.x + DONATE.w && y >= DONATE.y && y <= DONATE.y + DONATE.h + 14) {
+      openDonate();
+      return;
+    }
     if (Math.abs(x - VW / 2) < 100) {
       const i = Math.floor((y - 222) / 40);
       if (i >= 0 && i < this.options.length && (y - 222) % 40 < 36) {
@@ -92,6 +100,14 @@ export class TitleScene extends Scene {
     // 第一次玩：在「新手教學」旁邊安靜地備註（不閃爍）
     // 第一次玩：在「新手教學」按鈕裡、文字右側小小備註（不閃爍、不擋到旁邊的角色）
     if (this.firstRun) text(ctx, '第一次玩', VW / 2 + 92, 222 + 2 * 40 + 22, 11, this.sel === 2 ? '#7c2d12' : '#fde68a', 'right', true);
+    if (donateUrl()) {
+      // 低調的贊助連結：只支持開發，與遊戲中的人物無關
+      ctx.fillStyle = 'rgba(26,21,48,0.72)';
+      roundRect(ctx, DONATE.x, DONATE.y, DONATE.w, DONATE.h, 13);
+      ctx.fill();
+      text(ctx, '☕ 請作者喝杯咖啡', DONATE.x + DONATE.w / 2, DONATE.y + 18, 13, '#fde68a', 'center');
+      text(ctx, '支持開發，與遊戲人物無關', DONATE.x + DONATE.w / 2, DONATE.y + DONATE.h + 12, 10, 'rgba(255,255,255,0.75)', 'center', false);
+    }
     if (touchMode()) hint(ctx, '點「攻擊」或選單開始　·　左半邊按住＝搖桿　·　推搖桿方向再點「必殺」放必殺技');
     else hint(ctx, '1P：WASD 移動、J 攻擊 K 跳 L 防禦　·　2P：方向鍵、數字鍵 1/2/3　·　必殺技：按住防禦＋方向，再按攻擊或跳躍');
   }

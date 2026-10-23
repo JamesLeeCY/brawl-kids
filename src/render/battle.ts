@@ -123,6 +123,12 @@ const CUTIN_TICKS = 52;
 const KO_TICKS = 50;
 /** 重擊放大長度 */
 const ZOOM_TICKS = 7;
+/** 畫面搖晃上限（px）：超過就壓到這個值，避免看了不舒服 */
+const MAX_SHAKE = 2.5;
+/** 所有搖晃來源的幅度倍率 */
+const SHAKE_SCALE = 0.5;
+/** 系統設定了「減少動態效果」：不搖晃、不放大、閃光減半 */
+const REDUCED_MOTION = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** 顏色往白色靠（亮面） */
 function mixWhite(hex: string): string {
@@ -242,6 +248,8 @@ export class BattleRenderer {
   camX = 0;
   shakeAmp = 0;
   shakeTicks = 0;
+  /** 這次搖晃的總長度（用來算逐漸變小的幅度） */
+  private shakeTotal = 1;
   sparks: Spark[] = [];
   afterimages: Afterimage[] = [];
   debris: Debris[] = [];
@@ -297,17 +305,13 @@ export class BattleRenderer {
       if (ev.type === 'hit') {
         this.sparks.push({ x: ev.x, y: ev.y, z: ev.z, t: SPARK_TICKS, heavy: ev.heavy, blocked: ev.blocked, seed: this.sparkSeed++, by: ev.by });
         if (ev.heavy && !ev.blocked) {
-          this.flash = Math.max(this.flash, 3);
-          this.zoom = { t: ZOOM_TICKS, x: ev.x, y: HZ + ev.z - ev.y };
-          this.shakeAmp = Math.max(this.shakeAmp, 7);
-          this.shakeTicks = Math.max(this.shakeTicks, 8);
+          this.flash = Math.max(this.flash, 1);
+          if (!REDUCED_MOTION) this.zoom = { t: ZOOM_TICKS, x: ev.x, y: HZ + ev.z - ev.y };
+          this.addShake(4, 8);
         }
         if (!ev.blocked && ev.by) this.pendingHits.push({ x: ev.x, y: ev.y, z: ev.z, heavy: ev.heavy, by: ev.by });
       } else if (ev.type === 'shake') {
-        if (ev.amp >= this.shakeAmp || this.shakeTicks <= 0) {
-          this.shakeAmp = ev.amp;
-          this.shakeTicks = ev.ticks;
-        }
+        this.addShake(ev.amp, Math.min(ev.ticks, 16));
       } else if (ev.type === 'break') {
         for (let i = 0; i < 8; i++)
           this.debris.push({ x: ev.x, y: ev.y + 10, z: ev.z, vx: Math.cos(i * 0.8) * (2 + (i % 3)), vy: 3 + (i % 4), t: 30, color: ev.color });
@@ -319,6 +323,20 @@ export class BattleRenderer {
       } else if (ev.type === 'wave') {
         this.banner = { text: `第 ${ev.index + 1} / ${ev.total} 波`, t: 90 };
       }
+    }
+  }
+
+  /**
+   * 畫面搖晃：幅度一律壓在 MAX_SHAKE 以內，取較大的那一次；
+   * 系統設定「減少動態效果」時完全不搖。
+   */
+  private addShake(amp: number, ticks: number): void {
+    if (REDUCED_MOTION) return;
+    const a = Math.min(MAX_SHAKE, amp * SHAKE_SCALE);
+    if (a >= this.shakeAmp * (this.shakeTicks / this.shakeTotal) || this.shakeTicks <= 0) {
+      this.shakeAmp = a;
+      this.shakeTicks = ticks;
+      this.shakeTotal = ticks;
     }
   }
 
@@ -355,9 +373,9 @@ export class BattleRenderer {
       const side = i % 2 ? 1 : -1;
       this.dust.push({ x: e.x + side * rx * (0.2 + this.rand() * 0.7), z: e.z + (this.rand() - 0.5) * rz, vx: side * (0.6 + this.rand() * 1.4), r: 10 + this.rand() * 12, t: DUST_TICKS });
     }
-    this.flash = 7;
-    this.shakeAmp = Math.max(this.shakeAmp, 11);
-    this.shakeTicks = Math.max(this.shakeTicks, 22);
+    // 震地：用震波圈、碎石、塵土表現衝擊，畫面只輕輕晃一下
+    this.flash = Math.max(this.flash, 3);
+    this.addShake(6, 14);
   }
 
   /** 每個邏輯 tick 呼叫一次 */
@@ -386,9 +404,8 @@ export class BattleRenderer {
         const sig = signatureOf(killer?.charId ?? v.charId, killer ? w.charDef(killer).palette.accent : undefined);
         this.koSplashes.push({ x: v.x, y: v.y + 50, z: v.z, t: KO_TICKS, colors: sig.colors });
         this.burst(v.x, v.y + 40, v.z, sig.icons, sig.colors, lowQuality ? 6 : 14, 1.4);
-        this.flash = Math.max(this.flash, 6);
-        this.shakeAmp = Math.max(this.shakeAmp, 12);
-        this.shakeTicks = Math.max(this.shakeTicks, 24);
+        this.flash = Math.max(this.flash, 3);
+        this.addShake(6, 14);
       }
       this.pendingKoBy.delete(id);
       const e = w.get(id);
@@ -535,13 +552,15 @@ export class BattleRenderer {
   draw(ctx: CanvasRenderingContext2D, w: World, hudExtra?: string): void {
     ctx.save();
     if (this.shakeTicks > 0) {
-      const a = this.shakeAmp;
-      ctx.translate(((w.tick * 7919) % 3) - 1 === 0 ? a : -a * 0.6, (w.tick % 2 ? 1 : -1) * a * 0.5);
+      // 平滑、逐漸變小的晃動（不再每格左右跳），上下幅度更小
+      const k = this.shakeTicks / this.shakeTotal;
+      const a = this.shakeAmp * k * k;
+      ctx.translate(Math.sin(w.tick * 1.1) * a, Math.cos(w.tick * 1.7) * a * 0.3);
     }
     const cam = Math.round(this.camX);
     if (this.zoom.t > 0 && !lowQuality) {
       // 重擊：畫面往命中點放大一下
-      const k = 1 + 0.05 * (this.zoom.t / ZOOM_TICKS);
+      const k = 1 + 0.02 * (this.zoom.t / ZOOM_TICKS);
       const zx = this.zoom.x - cam;
       ctx.translate(zx, this.zoom.y);
       ctx.scale(k, k);
@@ -607,7 +626,7 @@ export class BattleRenderer {
     ctx.restore();
     if (this.cutIn) this.drawCutIn(ctx, w, this.cutIn);
     if (this.flash > 0) {
-      ctx.fillStyle = `rgba(255,250,230,${0.07 * this.flash})`;
+      ctx.fillStyle = `rgba(255,250,230,${(REDUCED_MOTION ? 0.025 : 0.05) * this.flash})`;
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     }
     this.drawHud(ctx, w, hudExtra);

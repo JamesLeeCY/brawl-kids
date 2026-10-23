@@ -304,9 +304,13 @@ function sign(ctx: Ctx, x: number, y: number, text: string, color: string, on: b
   ctx.strokeStyle = on ? color : shade(color, -0.6);
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, tw, th);
-  if (on) {
-    ctx.shadowColor = color;
-    ctx.shadowBlur = lowQuality ? 0 : 8;
+  if (on && !lowQuality) {
+    // 霓虹發光：外框外多一圈半透明光（取代 shadowBlur）
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(x, y, tw, th);
+    ctx.restore();
   }
   ctx.fillStyle = on ? color : shade(color, -0.6);
   ctx.textBaseline = 'top';

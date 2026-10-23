@@ -19,7 +19,11 @@
   },
   "look": {
     "hair": "short",
-    "glasses": true
+    "glasses": true,
+    "build": "slim",
+    "height": 1.0,
+    "face": "square",
+    "brows": "thick"
   },
   "frames": {
     "bear_1": {

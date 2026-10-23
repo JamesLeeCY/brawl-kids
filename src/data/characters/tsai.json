@@ -20,7 +20,11 @@
   "look": {
     "hair": "bob",
     "glasses": true,
-    "roundGlasses": true
+    "roundGlasses": true,
+    "build": "normal",
+    "height": 0.94,
+    "face": "round",
+    "brows": "thin"
   },
   "buffFx": {
     "dmgReduce": "spicy"

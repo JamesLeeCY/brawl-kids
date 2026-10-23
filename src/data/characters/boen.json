@@ -19,7 +19,11 @@
   },
   "look": {
     "hair": "sidepart",
-    "tie": "#a855f7"
+    "tie": "#a855f7",
+    "build": "slim",
+    "height": 1.04,
+    "face": "long",
+    "brows": "arched"
   },
   "frames": {
     "canned_1": {

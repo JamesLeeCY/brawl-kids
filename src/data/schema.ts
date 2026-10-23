@@ -232,6 +232,14 @@ export const CharacterSchema = z.object({
       sleeveless: z.boolean().default(false),
       tie: Color.optional(),
       shirt: Color.default('#f5f5f5'),
+      /** 體型：瘦、一般、圓胖、壯（只影響畫面，不影響碰撞框） */
+      build: z.enum(['slim', 'normal', 'stout', 'muscular']).default('normal'),
+      /** 腿長倍率（高矮） */
+      height: z.number().min(0.8).max(1.2).default(1),
+      /** 臉型：圓、方、長 */
+      face: z.enum(['round', 'square', 'long']).default('round'),
+      /** 眉型：一般、粗、怒（內側壓低）、八字（內側上揚）、挑眉、細 */
+      brows: z.enum(['normal', 'thick', 'angry', 'droopy', 'arched', 'thin']).default('normal'),
     })
     .prefault({}),
   body: BoxSchema.optional(),

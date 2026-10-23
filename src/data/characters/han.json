@@ -19,7 +19,11 @@
   },
   "look": {
     "hair": "none",
-    "tie": "#b91c1c"
+    "tie": "#b91c1c",
+    "build": "stout",
+    "height": 1.0,
+    "face": "round",
+    "brows": "droopy"
   },
   "frames": {
     "cabbage_1": {

@@ -20,7 +20,11 @@
   "look": {
     "hair": "sidepart",
     "glasses": false,
-    "tie": "#60a5fa"
+    "tie": "#60a5fa",
+    "build": "slim",
+    "height": 1.1,
+    "face": "long",
+    "brows": "normal"
   },
   "frames": {
     "doc_1": {

@@ -18,7 +18,11 @@
     "hair": "#1f1a17"
   },
   "look": {
-    "hair": "sidepart"
+    "hair": "sidepart",
+    "build": "slim",
+    "height": 1.0,
+    "face": "long",
+    "brows": "arched"
   },
   "frames": {
     "ad_1": {

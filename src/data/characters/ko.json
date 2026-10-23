@@ -21,7 +21,11 @@
     "hair": "receding",
     "glasses": false,
     "tie": "#0891b2",
-    "shirt": "#e0f2fe"
+    "shirt": "#e0f2fe",
+    "build": "normal",
+    "height": 1.0,
+    "face": "square",
+    "brows": "thin"
   },
   "frames": {
     "ecmo_1": {

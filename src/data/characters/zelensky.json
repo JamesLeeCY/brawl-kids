@@ -19,7 +19,11 @@
   },
   "look": {
     "hair": "short",
-    "beard": true
+    "beard": true,
+    "build": "muscular",
+    "height": 0.95,
+    "face": "square",
+    "brows": "thick"
   },
   "frames": {
     "flower_1": {

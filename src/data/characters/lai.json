@@ -20,7 +20,11 @@
   "look": {
     "hair": "neat",
     "glasses": false,
-    "tie": "#15803d"
+    "tie": "#15803d",
+    "build": "slim",
+    "height": 1.1,
+    "face": "long",
+    "brows": "normal"
   },
   "frames": {
     "pill_1": {

@@ -20,7 +20,11 @@
   "look": {
     "hair": "none",
     "beard": true,
-    "sleeveless": true
+    "sleeveless": true,
+    "build": "muscular",
+    "height": 1.1,
+    "face": "square",
+    "brows": "angry"
   },
   "frames": {
     "dumbbell_1": {

@@ -21,7 +21,11 @@
     "hair": "neat",
     "glasses": true,
     "tie": "#f97316",
-    "shirt": "#dbeafe"
+    "shirt": "#dbeafe",
+    "build": "normal",
+    "height": 1.0,
+    "face": "square",
+    "brows": "angry"
   },
   "frames": {
     "shout_1": {

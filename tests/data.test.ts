@@ -64,3 +64,19 @@ describe('資料', () => {
     expect(d.characters.bad).toBeUndefined();
   });
 });
+
+describe('角色外型', () => {
+  it('每名可選角色都有自己的體型、腿長、臉型、眉型', () => {
+    for (const id of data.selectable) {
+      const look = data.characters[id].look;
+      expect(['slim', 'normal', 'stout', 'muscular'], id).toContain(look.build);
+      expect(look.height, id).toBeGreaterThanOrEqual(0.8);
+      expect(['round', 'square', 'long'], id).toContain(look.face);
+    }
+    // 不是所有人都一樣：至少用到 3 種體型、3 種臉型、4 種眉型
+    const kinds = (k: 'build' | 'face' | 'brows') => new Set(data.selectable.map((id) => data.characters[id].look[k])).size;
+    expect(kinds('build')).toBeGreaterThanOrEqual(3);
+    expect(kinds('face')).toBeGreaterThanOrEqual(3);
+    expect(kinds('brows')).toBeGreaterThanOrEqual(4);
+  });
+});

@@ -19,7 +19,11 @@
     "hair": "#b8a27a"
   },
   "look": {
-    "hair": "receding"
+    "hair": "receding",
+    "build": "muscular",
+    "height": 0.94,
+    "face": "square",
+    "brows": "thin"
   },
   "frames": {
     "pud_1": {

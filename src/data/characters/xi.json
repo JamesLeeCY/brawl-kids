@@ -19,7 +19,11 @@
   },
   "look": {
     "hair": "sidepart",
-    "tie": "#991b1b"
+    "tie": "#991b1b",
+    "build": "stout",
+    "height": 1.0,
+    "face": "round",
+    "brows": "normal"
   },
   "frames": {
     "bun_1": {

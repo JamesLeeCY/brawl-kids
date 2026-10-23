@@ -18,7 +18,11 @@
     "hair": "#1d4ed8"
   },
   "look": {
-    "hair": "cap"
+    "hair": "cap",
+    "build": "stout",
+    "height": 0.94,
+    "face": "round",
+    "brows": "thick"
   },
   "frames": {
     "slipper_1": {

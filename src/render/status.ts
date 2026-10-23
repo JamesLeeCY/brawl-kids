@@ -586,8 +586,16 @@ export function drawExtraProjectile(ctx: CanvasRenderingContext2D, w: World, p: 
       break;
     }
     case 'moon': {
-      ctx.shadowColor = '#fde68a';
-      ctx.shadowBlur = lowQuality ? 0 : 14;
+      // 月光：用漸層畫光暈（取代 shadowBlur）
+      if (!lowQuality) {
+        const g = ctx.createRadialGradient(x, y, 8, x, y, 24);
+        g.addColorStop(0, 'rgba(253,230,138,0.55)');
+        g.addColorStop(1, 'rgba(253,230,138,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, 24, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.fillStyle = '#fef9c3';
       ctx.beginPath();
       ctx.arc(x, y, 11, 0, Math.PI * 2);

@@ -18,7 +18,11 @@
     "hair": "#111111"
   },
   "look": {
-    "hair": "flattop"
+    "hair": "flattop",
+    "build": "stout",
+    "height": 0.88,
+    "face": "round",
+    "brows": "thick"
   },
   "frames": {
     "rocket_1": {

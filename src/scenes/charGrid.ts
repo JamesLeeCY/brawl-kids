@@ -98,6 +98,29 @@ export interface GridCursor {
   locked: boolean;
 }
 
+/** 頭像格的大頭像快取：頭像是靜態的，畫一次存成小畫布，之後每格只要 drawImage */
+const portraitCache = new Map<string, HTMLCanvasElement>();
+/** 快取的解析度倍率（高 DPI 螢幕也清楚） */
+const CACHE_RES = 3;
+
+function cachedPortrait(def: CharacterDef): HTMLCanvasElement | null {
+  if (typeof document === 'undefined') return null;
+  let cv = portraitCache.get(def.id);
+  if (cv) return cv;
+  cv = document.createElement('canvas');
+  cv.width = CELL_W * CACHE_RES;
+  cv.height = CELL_H * CACHE_RES;
+  const c = cv.getContext('2d');
+  if (!c) return null;
+  c.scale(CACHE_RES, CACHE_RES);
+  const s = CELL_H / 42;
+  c.fillStyle = shade(def.palette.accent, -0.5);
+  c.fillRect(0, 0, CELL_W, CELL_H);
+  drawFigure(c, def, { pose: getPose('idle_0'), x: CELL_W / 2 - 3 * s, y: 74 * s, facing: 1, scale: 0.86 * s, tick: 0, sway: 0, upperOnly: true, sticker: true });
+  portraitCache.set(def.id, cv);
+  return cv;
+}
+
 /** 畫頭像格與所有游標；(gx, gy) 為左上角 */
 export function drawCharGrid(ctx: CanvasRenderingContext2D, defs: CharacterDef[], gx: number, gy: number, cursors: GridCursor[], tick: number): void {
   const n = gridCells(defs.length);
@@ -106,14 +129,18 @@ export function drawCharGrid(ctx: CanvasRenderingContext2D, defs: CharacterDef[]
   const s = CELL_H / 42;
   defs.forEach((def, i) => {
     const { x, y } = cellPos(i);
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(x, y, CELL_W, CELL_H);
-    ctx.clip();
-    ctx.fillStyle = shade(def.palette.accent, -0.5);
-    ctx.fillRect(x, y, CELL_W, CELL_H);
-    drawFigure(ctx, def, { pose: getPose('idle_0'), x: x + CELL_W / 2 - 3 * s, y: y + 74 * s, facing: 1, scale: 0.86 * s, tick, upperOnly: true, sticker: true });
-    ctx.restore();
+    const img = cachedPortrait(def);
+    if (img) ctx.drawImage(img, x, y, CELL_W, CELL_H);
+    else {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, CELL_W, CELL_H);
+      ctx.clip();
+      ctx.fillStyle = shade(def.palette.accent, -0.5);
+      ctx.fillRect(x, y, CELL_W, CELL_H);
+      drawFigure(ctx, def, { pose: getPose('idle_0'), x: x + CELL_W / 2 - 3 * s, y: y + 74 * s, facing: 1, scale: 0.86 * s, tick, upperOnly: true, sticker: true });
+      ctx.restore();
+    }
     ctx.strokeStyle = OUTLINE;
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, CELL_W, CELL_H);

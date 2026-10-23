@@ -19,7 +19,11 @@
   },
   "look": {
     "hair": "short",
-    "glasses": true
+    "glasses": true,
+    "build": "stout",
+    "height": 0.95,
+    "face": "round",
+    "brows": "thick"
   },
   "frames": {
     "taste_1": {

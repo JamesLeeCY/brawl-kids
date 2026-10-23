@@ -19,7 +19,11 @@
   },
   "look": {
     "hair": "none",
-    "glasses": true
+    "glasses": true,
+    "build": "normal",
+    "height": 0.95,
+    "face": "round",
+    "brows": "droopy"
   },
   "frames": {
     "frogshot_1": {

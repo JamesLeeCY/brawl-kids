@@ -19,7 +19,11 @@
   },
   "look": {
     "hair": "swoop",
-    "tie": "#dc2626"
+    "tie": "#dc2626",
+    "build": "stout",
+    "height": 1.1,
+    "face": "square",
+    "brows": "thin"
   },
   "frames": {
     "tweet_1": {

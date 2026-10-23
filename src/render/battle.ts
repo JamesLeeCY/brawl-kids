@@ -209,6 +209,8 @@ export class BattleRenderer {
   /** 放招時的集氣光（往身體收攏的光點） */
   private charges: { id: number; t: number; color: string }[] = [];
   private lastState = new Map<number, string>();
+  /** 頭髮、領帶、衣襬的擺動（慢半拍跟著速度走，> 0 往後飄） */
+  private sways = new Map<number, number>();
   private fxSeed = 1;
   hpLag = new Map<number, number>();
   banner: { text: string; t: number } | null = null;
@@ -317,6 +319,11 @@ export class BattleRenderer {
       const target = targetPose(w, c);
       const cur = this.poses.get(c.id);
       if (!cur || c.freeze === 0) this.poses.set(c.id, cur ? lerpPose(cur, target, poseRate(c)) : target);
+      // 跟隨擺動：往前跑或被打飛時往後飄，停下來慢慢回彈
+      const air = c.y > 0 ? Math.max(-0.4, Math.min(0.6, -c.vy / 10)) : 0;
+      const want = Math.max(-1, Math.min(1.2, (c.vx * c.facing) / 5 + air));
+      const sv = this.sways.get(c.id) ?? 0;
+      this.sways.set(c.id, sv + (want - sv) * 0.16);
       const ps = this.lastState.get(c.id);
       if (ps !== c.state) {
         this.lastState.set(c.id, c.state);
@@ -514,6 +521,7 @@ export class BattleRenderer {
       glow: e.boss ? '#ff2a2a' : undefined,
       expression: expressionFor(w, e),
       scale,
+      sway: (this.sways.get(e.id) ?? 0) + Math.sin(w.tick * 0.07 + e.id) * 0.06,
     });
     if (scale > 1) drawRedCap(ctx, x, y, e.facing, scale);
     if (fr?.prop) drawPropFront(ctx, fr.prop, x, y, e.facing, w.tick);
@@ -521,8 +529,6 @@ export class BattleRenderer {
     if (hasBuff(e, 'blockProjectile')) {
       ctx.save();
       ctx.strokeStyle = def.palette.accent;
-      ctx.shadowColor = def.palette.accent;
-      ctx.shadowBlur = lowQuality ? 0 : 10;
       ctx.lineWidth = 2;
       ctx.beginPath();
       for (let i = 0; i <= 6; i++) {
@@ -532,6 +538,12 @@ export class BattleRenderer {
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
+      // 發光：先畫一道寬的半透明線，再畫實線（取代 shadowBlur）
+      ctx.globalAlpha = 0.25;
+      ctx.lineWidth = 7;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 2;
       ctx.stroke();
       ctx.restore();
     }
@@ -691,12 +703,10 @@ export class BattleRenderer {
     const y = screenY(p);
     const s = def?.size ?? 10;
     ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = lowQuality ? 0 : 12;
     const pose = f?.pose ?? 'dart';
     // LF2 風格：會飛的飛行物後面拖一道光、外圈有一層發光
-    if (!lowQuality && def && !def.wall && def.blockable && Math.hypot(p.vx, p.vz) > 1.5) {
-      const tr = this.trails.get(p.id) ?? [];
+    if (!lowQuality && def && !def.wall && def.blockable) {
+      const tr = Math.hypot(p.vx, p.vz) > 1.5 ? (this.trails.get(p.id) ?? []) : [];
       ctx.save();
       ctx.shadowBlur = 0;
       ctx.globalCompositeOperation = 'lighter';
@@ -844,7 +854,7 @@ export class BattleRenderer {
       }
       case 'paper': {
         // 公文：翻轉的紙張
-        ctx.shadowBlur = lowQuality ? 0 : 6;
+        ctx.shadowBlur = 0;
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(w.tick * 0.35 * p.facing);
@@ -1080,7 +1090,7 @@ export class BattleRenderer {
       case 'bun':
       case 'pudding':
       case 'sunflower':
-        ctx.shadowBlur = lowQuality ? 0 : 4;
+        ctx.shadowBlur = 0;
         drawIcon(ctx, pose, x, y, ICON_SCALE[pose] ?? 1, p.facing, color, w.tick, p.id);
         break;
       case 'bookdrop':

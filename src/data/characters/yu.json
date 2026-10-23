@@ -20,7 +20,11 @@
   "look": {
     "hair": "neat",
     "glasses": true,
-    "tie": "#dc2626"
+    "tie": "#dc2626",
+    "build": "normal",
+    "height": 1.0,
+    "face": "round",
+    "brows": "droopy"
   },
   "frames": {
     "kline_1": {

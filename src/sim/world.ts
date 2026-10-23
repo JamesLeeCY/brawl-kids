@@ -99,9 +99,10 @@ export function defaultCampaignRoute(data: CampaignData, length: number): string
 
 export type GameEvent =
   | { type: 'sound'; key: SoundKey }
-  | { type: 'hit'; x: number; y: number; z: number; heavy: boolean; blocked: boolean }
+  /** by：攻擊者（角色 id，畫面用來畫該角色的招牌特效） */
+  | { type: 'hit'; x: number; y: number; z: number; heavy: boolean; blocked: boolean; by?: number }
   | { type: 'shake'; amp: number; ticks: number }
-  | { type: 'ko'; id: number }
+  | { type: 'ko'; id: number; by?: number }
   | { type: 'break'; x: number; y: number; z: number; color: string }
   | { type: 'pickup'; x: number; y: number; z: number }
   | { type: 'wave'; index: number; total: number }

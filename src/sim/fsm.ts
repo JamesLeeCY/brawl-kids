@@ -467,7 +467,7 @@ function updateGrabbing(w: World, e: Entity, pressed: Snapshot, dx: number): voi
     t.flash = C.flashTicks;
     afterDamage(w, t, killer);
     startAction(w, e, 'grab_throw');
-    w.emit({ type: 'hit', x: t.x, y: 40, z: t.z, heavy: true, blocked: false });
+    w.emit({ type: 'hit', x: t.x, y: 40, z: t.z, heavy: true, blocked: false, by: e.id });
     w.emit({ type: 'sound', key: 'hit_heavy' });
   } else {
     e.grabPunchTick = w.tick;
@@ -475,7 +475,7 @@ function updateGrabbing(w: World, e: Entity, pressed: Snapshot, dx: number): voi
     killer.stats.damage += C.grabPunchDamage;
     t.flash = C.flashTicks;
     e.freeze = t.freeze = C.hitstopLight;
-    w.emit({ type: 'hit', x: t.x, y: 40, z: t.z, heavy: false, blocked: false });
+    w.emit({ type: 'hit', x: t.x, y: 40, z: t.z, heavy: false, blocked: false, by: e.id });
     w.emit({ type: 'sound', key: 'hit_light' });
     if (t.hp <= 0) {
       e.grabTarget = 0;
@@ -506,7 +506,7 @@ export function afterDamage(w: World, t: Entity, attacker: Entity | undefined): 
   t.koDone = true;
   t.stats.downs++;
   if (attacker && attacker !== t) attacker.stats.kos++;
-  w.emit({ type: 'ko', id: t.id });
+  w.emit({ type: 'ko', id: t.id, by: attacker?.id });
   w.emit({ type: 'sound', key: 'ko' });
 }
 

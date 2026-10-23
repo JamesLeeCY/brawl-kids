@@ -253,7 +253,7 @@ export function applyHit(w: World, a: Entity, t: Entity, itr: Itr): void {
   a.freeze = hitstop;
   t.freeze = hitstop;
   const heavy = !blocked && hitstop >= C.hitstopHeavy;
-  w.emit({ type: 'hit', x: (a.x + t.x) / 2, y: t.y + 36, z: t.z, heavy, blocked });
+  w.emit({ type: 'hit', x: (a.x + t.x) / 2, y: t.y + 36, z: t.z, heavy, blocked, by: attacker?.id });
   w.emit({ type: 'sound', key: heavy ? 'hit_heavy' : 'hit_light' });
   if (heavy) w.emit({ type: 'shake', amp: CONFIG.fx.shakeAmp, ticks: CONFIG.fx.shakeTicks });
 

@@ -11,6 +11,7 @@ import { FONT, text } from './text';
 
 import { VW, viewOffset } from './view';
 import { lowQuality } from './quality';
+import { drawAura, rgba, signatureOf, type AuraStyle } from './signature';
 import { EXTRA_POSES, drawBuffBack, drawBuffFront, drawExtraProjectile, drawPropBack, drawPropFront, drawRedCap } from './status';
 const HZ = CONFIG.view.horizon;
 const FX = CONFIG.fx;
@@ -23,6 +24,44 @@ interface Spark {
   heavy: boolean;
   blocked: boolean;
   seed: number;
+  /** 攻擊者角色 id（之後換成該角色的代表色） */
+  by?: number;
+  colors?: [string, string];
+}
+
+/** 噴飛的招牌圖示（命中、KO、衝刺時） */
+interface IconBit {
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  t: number;
+  life: number;
+  icon: string;
+  color: string;
+  spin: number;
+  scale: number;
+  /** 有重力（落到地上會彈） */
+  fall: boolean;
+}
+
+/** 大招切入畫面 */
+interface CutIn {
+  id: number;
+  charId: string;
+  name: string;
+  t: number;
+}
+
+/** KO 爆字 */
+interface KoSplash {
+  x: number;
+  y: number;
+  z: number;
+  t: number;
+  colors: [string, string];
 }
 
 interface Afterimage {
@@ -76,6 +115,21 @@ const DROP_SCALE: Record<string, number> = { catdrop: 2.7 };
 const SPARK_TICKS = 9;
 /** 集氣光持續 tick */
 const CHARGE_TICKS = 14;
+/** 大招門檻（MP）：達到就有切入畫面與更大的氣場 */
+const BIG_MOVE_MP = 130;
+/** 大招切入畫面長度（tick） */
+const CUTIN_TICKS = 52;
+/** KO 爆字長度 */
+const KO_TICKS = 50;
+/** 重擊放大長度 */
+const ZOOM_TICKS = 7;
+
+/** 顏色往白色靠（亮面） */
+function mixWhite(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const m = (c: number) => Math.round(c + (255 - c) * 0.55);
+  return `rgb(${m((n >> 16) & 255)},${m((n >> 8) & 255)},${m(n & 255)})`;
+}
 /** 飛行物拖尾長度（tick） */
 const TRAIL_LEN = 7;
 
@@ -201,13 +255,23 @@ export class BattleRenderer {
   /** 模擬送出的喊話（狀態提示、反擊……）與 KO，等下一個 tick 有世界資料時再處理 */
   private pendingSays: { id: number; text: string; status?: boolean }[] = [];
   private pendingKo: number[] = [];
+  private pendingKoBy = new Map<number, number>();
   private openingDone = false;
   /** 畫面上每個角色目前的姿勢（每 tick 往目標姿勢插值） */
   private poses = new Map<number, Pose>();
   /** 飛行物的拖尾（最近幾 tick 的位置） */
   private trails = new Map<number, { x: number; y: number; z: number }[]>();
   /** 放招時的集氣光（往身體收攏的光點） */
-  private charges: { id: number; t: number; color: string }[] = [];
+  private charges: { id: number; t: number; color: string; colors: [string, string]; aura: AuraStyle; big: boolean }[] = [];
+  private bits: IconBit[] = [];
+  private cutIn: CutIn | null = null;
+  private cutInCooldown = 0;
+  private koSplashes: KoSplash[] = [];
+  /** 重擊時畫面放大一下（剩餘 tick 與中心） */
+  private zoom = { t: 0, x: 0, y: 0 };
+  private pendingHits: { x: number; y: number; z: number; heavy: boolean; by: number }[] = [];
+  /** 招式起始幀 → 招式（判斷是不是大招） */
+  private moveIndex = new Map<string, Map<string, { mp: number; name: string }>>();
   private lastState = new Map<number, string>();
   /** 頭髮、領帶、衣襬的擺動（慢半拍跟著速度走，> 0 往後飄） */
   private sways = new Map<number, number>();
@@ -231,8 +295,14 @@ export class BattleRenderer {
   consume(events: GameEvent[]): void {
     for (const ev of events) {
       if (ev.type === 'hit') {
-        this.sparks.push({ x: ev.x, y: ev.y, z: ev.z, t: SPARK_TICKS, heavy: ev.heavy, blocked: ev.blocked, seed: this.sparkSeed++ });
-        if (ev.heavy && !ev.blocked) this.flash = Math.max(this.flash, 2);
+        this.sparks.push({ x: ev.x, y: ev.y, z: ev.z, t: SPARK_TICKS, heavy: ev.heavy, blocked: ev.blocked, seed: this.sparkSeed++, by: ev.by });
+        if (ev.heavy && !ev.blocked) {
+          this.flash = Math.max(this.flash, 3);
+          this.zoom = { t: ZOOM_TICKS, x: ev.x, y: HZ + ev.z - ev.y };
+          this.shakeAmp = Math.max(this.shakeAmp, 7);
+          this.shakeTicks = Math.max(this.shakeTicks, 8);
+        }
+        if (!ev.blocked && ev.by) this.pendingHits.push({ x: ev.x, y: ev.y, z: ev.z, heavy: ev.heavy, by: ev.by });
       } else if (ev.type === 'shake') {
         if (ev.amp >= this.shakeAmp || this.shakeTicks <= 0) {
           this.shakeAmp = ev.amp;
@@ -245,6 +315,7 @@ export class BattleRenderer {
         this.pendingSays.push(ev);
       } else if (ev.type === 'ko') {
         this.pendingKo.push(ev.id);
+        this.pendingKoBy.set(ev.id, ev.by ?? 0);
       } else if (ev.type === 'wave') {
         this.banner = { text: `第 ${ev.index + 1} / ${ev.total} 波`, t: 90 };
       }
@@ -309,6 +380,17 @@ export class BattleRenderer {
     }
     this.pendingSays = [];
     for (const id of this.pendingKo) {
+      const v = w.get(id);
+      if (v) {
+        const killer = w.get(this.pendingKoBy.get(id) ?? 0);
+        const sig = signatureOf(killer?.charId ?? v.charId, killer ? w.charDef(killer).palette.accent : undefined);
+        this.koSplashes.push({ x: v.x, y: v.y + 50, z: v.z, t: KO_TICKS, colors: sig.colors });
+        this.burst(v.x, v.y + 40, v.z, sig.icons, sig.colors, lowQuality ? 6 : 14, 1.4);
+        this.flash = Math.max(this.flash, 6);
+        this.shakeAmp = Math.max(this.shakeAmp, 12);
+        this.shakeTicks = Math.max(this.shakeTicks, 24);
+      }
+      this.pendingKoBy.delete(id);
       const e = w.get(id);
       const q = e && w.charDef(e).koQuote;
       if (e && q) this.say(id, q, '#64748b');
@@ -332,22 +414,69 @@ export class BattleRenderer {
         if (puff && !lowQuality)
           for (const side of [-1, 1]) this.dust.push({ x: c.x + side * 8, z: c.z, vx: side * (c.state === 'run' ? 0.3 : 0.9) - (c.state === 'run' ? c.facing * 0.8 : 0), r: 5, t: 22 });
       }
-      // 衝刺類招式拖出殘影
-      if (!lowQuality && c.state === 'attack' && Math.abs(c.vx) > 5 && w.tick % 2 === 0)
-        this.afterimages.push({ e: { ...c, buffs: [] }, t: 10, pose: this.poses.get(c.id), tint: w.charDef(c).palette.accent });
+      // 衝刺類招式拖出角色色殘影，沿路掉招牌圖示
+      if (!lowQuality && c.state === 'attack' && Math.abs(c.vx) > 5) {
+        const sig = signatureOf(c.charId, w.charDef(c).palette.accent);
+        if (w.tick % 2 === 0) this.afterimages.push({ e: { ...c, buffs: [] }, t: 10, pose: this.poses.get(c.id), tint: sig.colors[0] });
+        if (w.tick % 5 === 0)
+          this.bits.push({ x: c.x - c.facing * 12, y: c.y + 20 + this.rand() * 30, z: c.z, vx: -c.facing * 0.6, vy: 0.4, vz: 0, t: 22, life: 22, icon: sig.icons[(w.tick / 5) % 2 | 0], color: sig.colors[0], spin: this.rand() - 0.5, scale: 0.9, fall: false });
+      }
       const prev = this.lastFrame.get(c.id);
       if (c.frame !== prev) {
         this.lastFrame.set(c.id, c.frame);
         const fr = c.state === 'attack' && c.frame ? w.charDef(c).frames[c.frame] : undefined;
         const quake = fr?.itr?.find((it) => it.radial);
         if (quake) this.spawnQuake(w, c, quake);
-        if (fr?.sound === 'special' && !lowQuality) this.charges.push({ id: c.id, t: CHARGE_TICKS, color: w.charDef(c).palette.accent });
+        const mv = c.frame ? this.moveOf(w, c.charId, c.frame) : undefined;
+        if (fr?.sound === 'special' || mv) {
+          const sig = signatureOf(c.charId, w.charDef(c).palette.accent);
+          const big = !!mv && mv.mp >= BIG_MOVE_MP;
+          if (!lowQuality || big) this.charges.push({ id: c.id, t: big ? CHARGE_TICKS * 2 : CHARGE_TICKS, color: sig.colors[0], colors: sig.colors, aura: sig.aura, big });
+          // 大招：切入畫面（同時只有一個，連續放有冷卻）
+          if (big && this.cutInCooldown <= 0) {
+            this.cutIn = { id: c.id, charId: c.charId, name: mv.name, t: CUTIN_TICKS };
+            this.cutInCooldown = CUTIN_TICKS + 40;
+          }
+        }
         if (fr?.say) {
           this.callouts = this.callouts.filter((k) => k.id !== c.id);
           this.callouts.push({ text: fr.say, id: c.id, t: 80, color: w.charDef(c).palette.accent });
         }
       }
     }
+    for (const h of this.pendingHits) {
+      const a = w.get(h.by);
+      if (!a || a.kind !== 'char') continue;
+      const sig = signatureOf(a.charId, w.charDef(a).palette.accent);
+      this.burst(h.x, h.y, h.z, sig.icons, sig.colors, h.heavy ? (lowQuality ? 3 : 6) : lowQuality ? 1 : 2, h.heavy ? 1.15 : 0.8);
+    }
+    this.pendingHits = [];
+    for (const s of this.sparks) {
+      if (s.by && !s.colors) {
+        const a = w.get(s.by);
+        if (a?.kind === 'char') s.colors = signatureOf(a.charId, w.charDef(a).palette.accent).colors;
+      }
+    }
+    for (const b of this.bits) {
+      b.x += b.vx;
+      b.z += b.vz;
+      if (b.fall) {
+        b.vy -= 0.35;
+        b.y += b.vy;
+        if (b.y < 0) {
+          b.y = 0;
+          b.vy = -b.vy * 0.45;
+          b.vx *= 0.7;
+        }
+      } else b.y += b.vy;
+      b.t--;
+    }
+    this.bits = this.bits.filter((b) => b.t > 0);
+    for (const k of this.koSplashes) k.t--;
+    this.koSplashes = this.koSplashes.filter((k) => k.t > 0);
+    if (this.zoom.t > 0) this.zoom.t--;
+    if (this.cutIn && --this.cutIn.t <= 0) this.cutIn = null;
+    if (this.cutInCooldown > 0) this.cutInCooldown--;
     for (const k of this.charges) k.t--;
     this.charges = this.charges.filter((k) => k.t > 0);
     const alive = new Set<number>();
@@ -410,6 +539,14 @@ export class BattleRenderer {
       ctx.translate(((w.tick * 7919) % 3) - 1 === 0 ? a : -a * 0.6, (w.tick % 2 ? 1 : -1) * a * 0.5);
     }
     const cam = Math.round(this.camX);
+    if (this.zoom.t > 0 && !lowQuality) {
+      // 重擊：畫面往命中點放大一下
+      const k = 1 + 0.05 * (this.zoom.t / ZOOM_TICKS);
+      const zx = this.zoom.x - cam;
+      ctx.translate(zx, this.zoom.y);
+      ctx.scale(k, k);
+      ctx.translate(-zx, -this.zoom.y);
+    }
     drawStage(ctx, w, cam);
 
     // 陰影
@@ -454,13 +591,21 @@ export class BattleRenderer {
     for (const s of this.sparks) this.drawSpark(ctx, s, cam);
     for (const k of this.charges) {
       const e = w.get(k.id);
-      if (e) this.drawCharge(ctx, k, e, cam);
+      if (e) this.drawCharge(ctx, k, e, cam, w.tick);
     }
+    for (const b of this.bits) {
+      const a = Math.min(1, b.t / 8);
+      ctx.globalAlpha = a;
+      drawIcon(ctx, b.icon, b.x - cam, HZ + b.z - b.y, b.scale * (0.7 + 0.3 * Math.min(1, (b.life - b.t) / 4)), 1, b.color, w.tick * b.spin, 0);
+      ctx.globalAlpha = 1;
+    }
+    for (const k of this.koSplashes) this.drawKo(ctx, k, cam);
     for (const k of this.callouts) {
       const e = w.get(k.id);
       if (e) this.drawCallout(ctx, k, e, cam);
     }
     ctx.restore();
+    if (this.cutIn) this.drawCutIn(ctx, w, this.cutIn);
     if (this.flash > 0) {
       ctx.fillStyle = `rgba(255,250,230,${0.07 * this.flash})`;
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -1166,9 +1311,10 @@ export class BattleRenderer {
       else ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
     }
     ctx.closePath();
-    ctx.fillStyle = s.heavy ? '#fff3a0' : '#ffffff';
+    // 星芒外框用攻擊者的代表色
+    ctx.fillStyle = s.heavy ? (s.colors ? mixWhite(s.colors[1]) : '#fff3a0') : '#ffffff';
     ctx.fill();
-    ctx.strokeStyle = s.heavy ? '#ff8a1f' : '#ffd166';
+    ctx.strokeStyle = s.colors ? s.colors[0] : s.heavy ? '#ff8a1f' : '#ffd166';
     ctx.lineWidth = s.heavy ? 2.2 : 1.4;
     ctx.stroke();
     // 中心亮點
@@ -1178,8 +1324,8 @@ export class BattleRenderer {
     ctx.fill();
     if (s.heavy) {
       // 放射線 + 外擴的衝擊環
-      ctx.strokeStyle = `rgba(255,220,120,${k})`;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = s.colors ? rgba(s.colors[0], k) : `rgba(255,220,120,${k})`;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       for (let i = 0; i < 10; i++) {
         const a = rot * 1.3 + (i / 10) * Math.PI * 2;
@@ -1198,11 +1344,163 @@ export class BattleRenderer {
     ctx.restore();
   }
 
+  private moveOf(w: World, charId: string, frame: string): { mp: number; name: string } | undefined {
+    let m = this.moveIndex.get(charId);
+    if (!m) {
+      m = new Map(w.data.characters[charId].moves.map((mv) => [mv.startFrame, { mp: mv.mp, name: mv.name }]));
+      this.moveIndex.set(charId, m);
+    }
+    return m.get(frame);
+  }
+
+  /** 從 (x, y, z) 往四周噴出招牌圖示 */
+  private burst(x: number, y: number, z: number, icons: [string, string], colors: [string, string], n: number, power: number): void {
+    for (let i = 0; i < n; i++) {
+      const a = this.rand() * Math.PI * 2;
+      const sp = (2 + this.rand() * 3) * power;
+      this.bits.push({
+        x,
+        y,
+        z,
+        vx: Math.cos(a) * sp,
+        vy: 3 + this.rand() * 4 * power,
+        vz: Math.sin(a) * sp * 0.25,
+        t: 34,
+        life: 34,
+        icon: icons[i % 2],
+        color: colors[i % 2],
+        spin: (this.rand() - 0.5) * 0.6,
+        scale: 0.9 + this.rand() * 0.5,
+        fall: true,
+      });
+    }
+  }
+
+  /** KO 爆字：大大的「K.O.!」加放射線 */
+  private drawKo(ctx: CanvasRenderingContext2D, k: KoSplash, cam: number): void {
+    const age = KO_TICKS - k.t;
+    const x = k.x - cam;
+    const y = HZ + k.z - k.y - 30;
+    const pop = age < 6 ? 0.4 + age * 0.12 : 1 + Math.sin(age * 0.3) * 0.03;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, k.t / 12);
+    ctx.translate(x, y);
+    ctx.strokeStyle = rgba(k.colors[0], 0.9);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const r0 = 26 + age * 2.2;
+      ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0 * 0.7);
+      ctx.lineTo(Math.cos(a) * (r0 + 16), Math.sin(a) * (r0 + 16) * 0.7);
+    }
+    ctx.stroke();
+    ctx.rotate(-0.12);
+    ctx.scale(pop, pop);
+    ctx.font = `900 34px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#1a1530';
+    ctx.strokeText('K.O.!', 0, 12);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = k.colors[0];
+    ctx.strokeText('K.O.!', 0, 12);
+    ctx.fillStyle = mixWhite(k.colors[1]);
+    ctx.fillText('K.O.!', 0, 12);
+    ctx.restore();
+  }
+
+  /** 大招切入：畫面變暗，一條斜帶從左邊滑進來，上面是角色大頭像與招式名，背景是速度線 */
+  private drawCutIn(ctx: CanvasRenderingContext2D, w: World, c: CutIn): void {
+    const e = w.get(c.id);
+    if (!e) return;
+    const def = w.charDef(e);
+    const sig = signatureOf(c.charId, def.palette.accent);
+    const age = CUTIN_TICKS - c.t;
+    const inK = Math.min(1, age / 7);
+    const outK = Math.min(1, c.t / 7);
+    const slide = (1 - inK) * -VW + (1 - outK) * VW;
+    const ox = viewOffset();
+    const W = VW + ox * 2;
+    ctx.save();
+    // 畫面變暗（前半段）
+    ctx.fillStyle = `rgba(10,5,25,${0.38 * Math.min(inK, outK)})`;
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    const top = 70;
+    const h = 96;
+    ctx.translate(slide, 0);
+    // 斜帶
+    const g = ctx.createLinearGradient(0, top, 0, top + h);
+    g.addColorStop(0, sig.colors[0]);
+    g.addColorStop(1, shade(sig.colors[0], -0.45));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-20, top + 14);
+    ctx.lineTo(W + 20, top);
+    ctx.lineTo(W + 20, top + h - 14);
+    ctx.lineTo(-20, top + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = sig.colors[1];
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    // 速度線
+    if (!lowQuality) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 16; i++) {
+        const ly = top + 8 + ((i * 37) % (h - 12));
+        const lx = ((i * 173 + age * 38) % (W + 200)) - 100;
+        ctx.moveTo(W - lx, ly);
+        ctx.lineTo(W - lx - 60 - (i % 3) * 30, ly + 3);
+      }
+      ctx.stroke();
+      // 招牌圖示點綴
+      for (let i = 0; i < 5; i++) drawIcon(ctx, sig.icons[i % 2], ((i * 211 + age * 6) % W), top + 20 + ((i * 29) % (h - 30)), 1.1, 1, sig.colors[1], w.tick, i);
+    }
+    // 角色大頭像（從左邊往右推一點）
+    drawFigure(ctx, def, { pose: getPose('victory'), x: ox + 120 + age * 0.6, y: top + h + 70, facing: 1, scale: 2.5, tick: w.tick, upperOnly: true, sticker: true, expression: 'attack', sway: 0.4 });
+    ctx.restore();
+    // 招式名
+    ctx.font = `900 34px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+    const tx = ox + VW / 2 + 70;
+    const ty = top + h / 2 + 12;
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#1a1530';
+    ctx.strokeText(c.name, tx, ty);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(c.name, tx, ty);
+    ctx.font = `900 13px ${FONT}`;
+    ctx.fillStyle = sig.colors[1];
+    ctx.fillText(`${def.name}　必殺技！`, tx, ty + 22);
+    ctx.restore();
+  }
+
   /** 放招時的集氣：光點從外圍往身體收攏，最後亮一下 */
-  private drawCharge(ctx: CanvasRenderingContext2D, k: { t: number; color: string }, e: Entity, cam: number): void {
+  private drawCharge(ctx: CanvasRenderingContext2D, k: { t: number; color: string; colors: [string, string]; aura: AuraStyle; big: boolean }, e: Entity, cam: number, tick: number): void {
     // 集氣中心在身體（不蓋住臉）
     const x = e.x - cam;
     const y = screenY(e) - 22;
+    const total = k.big ? CHARGE_TICKS * 2 : CHARGE_TICKS;
+    // 招牌氣場：大招更大、更久
+    drawAura(ctx, k.aura, x, y, (k.big ? 34 : 26) + 10 * (k.t / total), Math.min(1, (k.t / total) * 1.6), k.colors, tick, e.id);
+    if (k.big && !lowQuality) {
+      // 大招：腳下一圈光環
+      ctx.save();
+      ctx.strokeStyle = rgba(k.colors[0], 0.8 * (k.t / total));
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(x, y + 22, 30 + (1 - k.t / total) * 24, 9 + (1 - k.t / total) * 6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (k.t > CHARGE_TICKS) return;
     const p = k.t / CHARGE_TICKS;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';

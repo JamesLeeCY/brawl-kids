@@ -21,6 +21,16 @@ export interface FigureOpts {
   tint?: string;
   /** 表情：一般 / 攻擊 / 受傷 / 開心 / 暈眩 / 專注 */
   expression?: Expression;
+  /** 眨眼中 */
+  blink?: boolean;
+  /** 正在喊話（嘴巴一張一合） */
+  talk?: boolean;
+  /** 眼睛往上（< 0）或往下（> 0）看，-1～1 */
+  lookDy?: number;
+  /** 眼鏡反光掃過的進度 0～1（沒有就不畫） */
+  glint?: number;
+  /** 傳入物件時，畫完會填上前後手、前後腳在畫面上的座標（畫揮擊殘影用；倒地旋轉時不填） */
+  joints?: Joints;
   /** 頭髮、領帶、衣襬的擺動量（> 0 往後飄；戰鬥畫面依速度給，其他畫面輕輕晃） */
   sway?: number;
   /** 貼紙風：角色外圍加一圈粗白邊（選單、結算等靜態畫面用） */
@@ -28,6 +38,16 @@ export interface FigureOpts {
 }
 
 export type Expression = 'normal' | 'attack' | 'hurt' | 'happy' | 'dizzy' | 'focus';
+
+export interface Joints {
+  fHand?: { x: number; y: number };
+  bHand?: { x: number; y: number };
+  fFoot?: { x: number; y: number };
+  bFoot?: { x: number; y: number };
+}
+
+/** 臉部動畫參數（drawFigure 畫頭之前設定，drawFace 讀取） */
+let faceAnim = { blink: false, talk: false, lookDy: 0, glint: -1 };
 
 const D2R = Math.PI / 180;
 const dir = (a: number) => ({ x: Math.sin(a * D2R), y: Math.cos(a * D2R) });
@@ -358,6 +378,14 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
   const fArm = arm(p.fua, p.ffa, 1);
   const bLeg = leg(p.bth, p.bsh, -build.stance);
   const fLeg = leg(p.fth, p.fsh, build.stance);
+  if (o.joints && !p.rot) {
+    const toScreen = (q: { x: number; y: number }) => ({ x: o.x + o.facing * s * q.x, y: o.y + s * q.y });
+    o.joints.fHand = toScreen(fArm.hand);
+    o.joints.bHand = toScreen(bArm.hand);
+    o.joints.fFoot = toScreen(fLeg.ft);
+    o.joints.bFoot = toScreen(bLeg.ft);
+  }
+  faceAnim = { blink: !!o.blink, talk: !!o.talk, lookDy: Math.max(-1, Math.min(1, o.lookDy ?? 0)), glint: o.glint ?? -1 };
   const isRobot = acc === 'robot';
 
   const look = def.look;
@@ -871,14 +899,24 @@ function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Exp
       }
       ctx.stroke();
     } else {
-      // 豆豆眼：深色小橢圓 + 一個小亮點（手繪賀卡風）
+      if (faceAnim.blink) {
+        // 眨眼：一條往下彎的線
+        ctx.strokeStyle = ink;
+        ctx.lineWidth = (1.3) * lwK;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 0.6, 1.8 * k, Math.PI * 0.15, Math.PI * 0.85);
+        ctx.stroke();
+        continue;
+      }
+      // 豆豆眼：深色小橢圓 + 一個小亮點（手繪賀卡風）；眼睛會往對手的方向看
       const sharp = expr === 'attack' || expr === 'focus';
       const look = expr === 'attack' ? 0.5 : 0.25;
+      const ly = faceAnim.lookDy * 0.7;
       ctx.beginPath();
-      ctx.ellipse(cx + look, cy + 0.4, 1.35 * k, (sharp ? 1.35 : 1.85) * k, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + look, cy + 0.4 + ly, 1.35 * k, (sharp ? 1.35 : 1.85) * k, 0, 0, Math.PI * 2);
       ctx.fillStyle = '#2b211c';
       ctx.fill();
-      circle(ctx, cx + look + 0.45 * k, cy - 0.3 * k, 0.5 * k, '#ffffff');
+      circle(ctx, cx + look + 0.45 * k, cy - 0.3 * k + ly, 0.5 * k, '#ffffff');
     }
   }
 
@@ -926,7 +964,20 @@ function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Exp
   const mouthIn = '#7a1f2b';
   ctx.strokeStyle = ink;
   ctx.lineWidth = (1.1) * lwK;
-  switch (expr) {
+  // 喊話：嘴巴一張一合（覆寫一般 / 專注 / 攻擊的嘴型）
+  const talking = faceAnim.talk && (expr === 'normal' || expr === 'focus' || expr === 'attack');
+  switch (talking ? 'talk' : expr) {
+    case 'talk':
+      ctx.beginPath();
+      ctx.ellipse(mx, my + 0.6, 2, 1.9, 0, 0, Math.PI * 2);
+      ctx.fillStyle = mouthIn;
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ff8fa0';
+      ctx.beginPath();
+      ctx.ellipse(mx, my + 1.6, 1.1, 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
     case 'attack':
       ctx.beginPath();
       ctx.moveTo(mx - 2.6, my - 0.8);
@@ -1007,6 +1058,18 @@ function drawFace(ctx: CanvasRenderingContext2D, x: number, y: number, expr: Exp
     ctx.stroke();
     ctx.fillStyle = 'rgba(200,230,255,0.18)';
     ctx.fill();
+  }
+  // 眼鏡反光：一道白光從左掃到右
+  if (look.glasses && faceAnim.glint >= 0 && faceAnim.glint <= 1) {
+    const gx = x + 1.5 + faceAnim.glint * 9;
+    ctx.save();
+    ctx.strokeStyle = `rgba(255,255,255,${0.9 * Math.sin(faceAnim.glint * Math.PI)})`;
+    ctx.lineWidth = (1.6) * lwK;
+    ctx.beginPath();
+    ctx.moveTo(gx + 1.2, y - 1);
+    ctx.lineTo(gx - 1, y + 4.5);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 

@@ -4,7 +4,7 @@ import type { CharacterDef } from '../data/load';
 import { clonePos } from '../sim/combat';
 import { getBuff, hasBuff, type Entity } from '../sim/entity';
 import { ENEMY_TEAM, type GameEvent, type World } from '../sim/world';
-import { OUTLINE, drawFigure, drawItemShape, roundRect, shade, type Expression } from './character';
+import { OUTLINE, drawFigure, drawItemShape, roundRect, shade, type Expression, type Joints } from './character';
 import { cyclePose, getPose, lerpPose, withCarryArms, type Pose } from './poses';
 import { drawStage } from './stage';
 import { FONT, text } from './text';
@@ -53,6 +53,34 @@ interface CutIn {
   charId: string;
   name: string;
   t: number;
+}
+
+/** 命中時飛出的碎片（菜葉、碎紙、布丁、火花……） */
+interface Frag {
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+  rot: number;
+  vr: number;
+  t: number;
+  life: number;
+  shape: 'leaf' | 'paper' | 'splat' | 'spark' | 'puff';
+  color: string;
+  size: number;
+}
+
+/** 地上的痕跡（震地裂痕、天降坑洞、爆炸焦痕），幾秒後淡掉 */
+interface Decal {
+  x: number;
+  z: number;
+  r: number;
+  t: number;
+  life: number;
+  kind: 'crack' | 'crater' | 'scorch';
+  seed: number;
 }
 
 /** KO 爆字 */
@@ -123,6 +151,8 @@ const CUTIN_TICKS = 52;
 const KO_TICKS = 50;
 /** 重擊放大長度 */
 const ZOOM_TICKS = 7;
+/** 地上痕跡最多同時幾個 */
+const MAX_DECALS = 14;
 /** 畫面搖晃上限（px）：超過就壓到這個值，避免看了不舒服 */
 const MAX_SHAKE = 2.5;
 /** 所有搖晃來源的幅度倍率 */
@@ -194,22 +224,32 @@ export function targetPose(w: World, e: Entity): Pose {
       return cyclePose('run', 4, e.stateTime / 4);
     case 'idle': {
       const k = (1 - Math.cos((w.tick / 60) * Math.PI * 2)) / 2;
-      return lerpPose(getPose('idle_0'), getPose('idle_1'), k);
+      const base = lerpPose(getPose('idle_0'), getPose('idle_1'), k);
+      // 站久了的小動作：壯的人秀一下肌肉
+      const q = idleQuirk(e);
+      if (q >= 0 && q < 50 && w.charDef(e).look.build === 'muscular') return lerpPose(base, getPose('flex'), Math.sin((q / 50) * Math.PI));
+      return base;
     }
     default:
       return getPose(poseName(w, e));
   }
 }
 
-/** 姿勢往目標靠近的速度：受擊、倒地要快（打擊感），一般動作稍微平滑 */
-function poseRate(e: Entity): number {
+/** 站著超過 2 秒後，每 5 秒一次的小動作進度（tick）；沒有就回傳 -1 */
+function idleQuirk(e: Entity): number {
+  if (e.state !== 'idle' || e.stateTime < 120) return -1;
+  return (e.stateTime + e.id * 37) % 300;
+}
+
+/** 姿勢往目標靠近的速度：受擊、倒地要快（打擊感）；出招的預備幀慢慢蓄力、有攻擊框的那一幀一口氣打出去 */
+function poseRate(w: World, e: Entity): number {
   switch (e.state) {
     case 'hurt':
     case 'falling':
     case 'grabbed':
       return 0.85;
     case 'attack':
-      return 0.62;
+      return w.currentFrame(e)?.itr ? 0.92 : 0.5;
     case 'lying':
     case 'dead':
       return 0.5;
@@ -272,6 +312,14 @@ export class BattleRenderer {
   /** 放招時的集氣光（往身體收攏的光點） */
   private charges: { id: number; t: number; color: string; colors: [string, string]; aura: AuraStyle; big: boolean }[] = [];
   private bits: IconBit[] = [];
+  private frags: Frag[] = [];
+  private decals: Decal[] = [];
+  /** 每個角色的手腳位置（這一 tick 與上一 tick，用來畫揮擊殘影） */
+  private joints = new Map<number, { tick: number; hist: Joints[] }>();
+  /** 飛行物最後一次的樣子（消失時在原地畫命中碎片） */
+  private projLast = new Map<number, { pose: string; x: number; y: number; z: number; charId: string; hitPose: string }>();
+  /** 這一 tick 的命中位置 */
+  private hitSpots: { x: number; y: number; z: number }[] = [];
   private cutIn: CutIn | null = null;
   private cutInCooldown = 0;
   private koSplashes: KoSplash[] = [];
@@ -304,6 +352,7 @@ export class BattleRenderer {
     for (const ev of events) {
       if (ev.type === 'hit') {
         this.sparks.push({ x: ev.x, y: ev.y, z: ev.z, t: SPARK_TICKS, heavy: ev.heavy, blocked: ev.blocked, seed: this.sparkSeed++, by: ev.by });
+        this.hitSpots.push({ x: ev.x, y: ev.y, z: ev.z });
         if (ev.heavy && !ev.blocked) {
           this.flash = Math.max(this.flash, 1);
           if (!REDUCED_MOTION) this.zoom = { t: ZOOM_TICKS, x: ev.x, y: HZ + ev.z - ev.y };
@@ -373,6 +422,7 @@ export class BattleRenderer {
       const side = i % 2 ? 1 : -1;
       this.dust.push({ x: e.x + side * rx * (0.2 + this.rand() * 0.7), z: e.z + (this.rand() - 0.5) * rz, vx: side * (0.6 + this.rand() * 1.4), r: 10 + this.rand() * 12, t: DUST_TICKS });
     }
+    this.addDecal({ x: e.x, z: e.z, r: Math.min(90, rx * 0.7), kind: 'crack' });
     // 震地：用震波圈、碎石、塵土表現衝擊，畫面只輕輕晃一下
     this.flash = Math.max(this.flash, 3);
     this.addShake(6, 14);
@@ -417,11 +467,13 @@ export class BattleRenderer {
       // 平順動畫：往目標姿勢插值；受擊停頓中維持原姿勢
       const target = targetPose(w, c);
       const cur = this.poses.get(c.id);
-      if (!cur || c.freeze === 0) this.poses.set(c.id, cur ? lerpPose(cur, target, poseRate(c)) : target);
+      if (!cur || c.freeze === 0) this.poses.set(c.id, cur ? lerpPose(cur, target, poseRate(w, c)) : target);
       // 跟隨擺動：往前跑或被打飛時往後飄，停下來慢慢回彈
       const air = c.y > 0 ? Math.max(-0.4, Math.min(0.6, -c.vy / 10)) : 0;
       const want = Math.max(-1, Math.min(1.2, (c.vx * c.facing) / 5 + air));
-      const sv = this.sways.get(c.id) ?? 0;
+      let sv = this.sways.get(c.id) ?? 0;
+      // 站久了的小動作：甩一下頭髮
+      if (idleQuirk(c) === 0) sv += 0.9;
       this.sways.set(c.id, sv + (want - sv) * 0.16);
       const ps = this.lastState.get(c.id);
       if (ps !== c.state) {
@@ -500,12 +552,46 @@ export class BattleRenderer {
     for (const p of w.entities) {
       if (p.kind !== 'proj') continue;
       alive.add(p.id);
+      const pose = w.currentFrame(p)?.pose ?? '';
+      const last = this.projLast.get(p.id);
+      // 天降攻擊落地：留下坑洞（閃電留焦痕）
+      if (last && last.pose !== pose && (pose.endsWith('drop') || pose === 'bolt')) this.addDecal({ x: p.x, z: p.z, r: 26, kind: pose === 'bolt' ? 'scorch' : 'crater' });
+      if (last && last.pose !== pose && pose === 'explosion') this.addDecal({ x: p.x, z: p.z, r: 30, kind: 'scorch' });
+      this.projLast.set(p.id, { pose, x: p.x, y: p.y, z: p.z, charId: p.charId, hitPose: pose === 'explosion' || pose.endsWith('drop') ? (last?.hitPose ?? pose) : pose });
       const tr = this.trails.get(p.id) ?? [];
       tr.unshift({ x: p.x, y: p.y, z: p.z });
       if (tr.length > TRAIL_LEN) tr.pop();
       this.trails.set(p.id, tr);
     }
     for (const id of this.trails.keys()) if (!alive.has(id)) this.trails.delete(id);
+    // 飛行物打中人消失：依種類噴出碎片
+    for (const [id, last] of this.projLast) {
+      if (alive.has(id)) continue;
+      this.projLast.delete(id);
+      if (this.hitSpots.some((h) => Math.abs(h.x - last.x) < 45 && Math.abs(h.z - last.z) < 24)) this.impact(last.hitPose, last.x, last.y, last.z, w.data.characters[last.charId]?.palette.accent ?? '#ffffff');
+    }
+    this.hitSpots = [];
+    for (const f of this.frags) {
+      f.x += f.vx;
+      f.z += f.vz;
+      f.vy -= f.shape === 'puff' ? -0.05 : f.shape === 'leaf' || f.shape === 'paper' ? 0.18 : 0.35;
+      if (f.shape === 'leaf' || f.shape === 'paper') {
+        f.vx *= 0.96;
+        f.vy = Math.max(f.vy, -1.6);
+      }
+      f.y += f.vy;
+      if (f.y < 0) {
+        f.y = 0;
+        f.vy = 0;
+        f.vx *= 0.5;
+        f.vr *= 0.5;
+      }
+      f.rot += f.vr;
+      f.t--;
+    }
+    this.frags = this.frags.filter((f) => f.t > 0);
+    for (const d of this.decals) d.t--;
+    this.decals = this.decals.filter((d) => d.t > 0);
     for (const k of this.callouts) k.t--;
     this.callouts = this.callouts.filter((k) => k.t > 0);
     for (const q of this.quakes) q.t--;
@@ -567,6 +653,7 @@ export class BattleRenderer {
       ctx.translate(-zx, -this.zoom.y);
     }
     drawStage(ctx, w, cam);
+    for (const d of this.decals) this.drawDecal(ctx, d, cam);
 
     // 陰影
     for (const e of w.entities) {
@@ -618,6 +705,7 @@ export class BattleRenderer {
       drawIcon(ctx, b.icon, b.x - cam, HZ + b.z - b.y, b.scale * (0.7 + 0.3 * Math.min(1, (b.life - b.t) / 4)), 1, b.color, w.tick * b.spin, 0);
       ctx.globalAlpha = 1;
     }
+    for (const f of this.frags) this.drawFrag(ctx, f, cam);
     for (const k of this.koSplashes) this.drawKo(ctx, k, cam);
     for (const k of this.callouts) {
       const e = w.get(k.id);
@@ -670,6 +758,13 @@ export class BattleRenderer {
       drawFigure(ctx, def, { pose, x: c.x - cam, y: HZ + c.z - e.y, facing: e.facing, alpha: 0.42, tick: w.tick, airborne: e.y > 0, tint: '#93c5fd' });
     }
     const scale = hasBuff(e, 'power') ? 1.18 : 1;
+    // 揮擊殘影：有攻擊框的那一幀，手腳從上一 tick 的位置掃到現在的位置
+    const jt = this.joints.get(e.id);
+    const smear = !!fr?.itr && e.frameTime < 4 && !!jt && jt.hist.length > 1 && !lowQuality;
+    const joints: Joints = {};
+    // 臉：眨眼、喊話時嘴巴開合、看向對手的高低、眼鏡反光
+    const foe = this.nearestFoe(w, e);
+    const quirk = idleQuirk(e);
     const quake = fr?.itr?.find((it) => it.radial);
     if (fr && quake) this.drawQuake(ctx, x, HZ + e.z, quake, Math.min(1, e.frameTime / fr.duration), def.palette.accent);
     drawFigure(ctx, def, {
@@ -686,8 +781,21 @@ export class BattleRenderer {
       expression: expressionFor(w, e),
       scale,
       sway: (this.sways.get(e.id) ?? 0) + Math.sin(w.tick * 0.07 + e.id) * 0.06,
+      blink: (w.tick + e.id * 53) % 230 < 7 && (e.state === 'idle' || e.state === 'walk' || e.state === 'run'),
+      talk: this.callouts.some((k) => k.id === e.id && k.t > 30) && (w.tick >> 2) % 2 === 0,
+      lookDy: foe ? (foe.z - e.z) / 50 - (foe.y - e.y) / 60 : 0,
+      glint: quirk >= 100 && quirk < 118 ? (quirk - 100) / 18 : undefined,
+      joints,
     });
+    if (!jt || jt.tick !== w.tick) {
+      const hist = jt ? [...jt.hist, joints].slice(-3) : [joints];
+      // 出招中（有攻擊框）時保留蓄力那一刻的位置，讓殘影從預備姿勢一路掃過來
+      if (fr?.itr && jt && e.frameTime > 0 && jt.hist.length) hist[0] = jt.hist[0];
+      this.joints.set(e.id, { tick: w.tick, hist });
+    }
     if (scale > 1) drawRedCap(ctx, x, y, e.facing, scale);
+    // 揮擊殘影：從兩 tick 前（預備姿勢）掃到現在（打出去），畫在角色前面（直拳沿著手臂，畫在後面會被手臂擋住）
+    if (smear && jt) this.drawSmears(ctx, jt.hist[0], jt.hist[jt.hist.length - 1], w.charDef(e).palette.accent);
     if (fr?.prop) drawPropFront(ctx, fr.prop, x, y, e.facing, w.tick);
     drawBuffFront(ctx, e, x, y, w.tick, scale);
     if (hasBuff(e, 'blockProjectile')) {
@@ -1370,6 +1478,228 @@ export class BattleRenderer {
       this.moveIndex.set(charId, m);
     }
     return m.get(frame);
+  }
+
+  private nearestFoe(w: World, e: Entity): Entity | undefined {
+    let best: Entity | undefined;
+    let bd = Infinity;
+    for (const c of w.chars()) {
+      if (c.team === e.team || c.hp <= 0) continue;
+      const d = Math.abs(c.x - e.x) + Math.abs(c.z - e.z) * 2;
+      if (d < bd) {
+        bd = d;
+        best = c;
+      }
+    }
+    return best;
+  }
+
+  /** 手腳掃過的弧形殘影（動畫的 smear）：白色月牙加角色色外緣 */
+  private drawSmears(ctx: CanvasRenderingContext2D, prev: Joints, cur: Joints, color: string): void {
+    ctx.save();
+    for (const key of ['fHand', 'fFoot', 'bHand', 'bFoot'] as const) {
+      const a = prev[key];
+      const b = cur[key];
+      if (!a || !b) continue;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 5) continue;
+      // 月牙往行進方向的外側鼓起
+      const nx = -dy / len;
+      const ny = dx / len;
+      const bulge = Math.min(14, len * 0.45);
+      const mx = (a.x + b.x) / 2 + nx * bulge;
+      const my = (a.y + b.y) / 2 + ny * bulge;
+      const mx2 = (a.x + b.x) / 2 + nx * bulge * 0.35;
+      const my2 = (a.y + b.y) / 2 + ny * bulge * 0.35;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.quadraticCurveTo(mx, my, b.x, b.y);
+      ctx.quadraticCurveTo(mx2, my2, a.x, a.y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255,255,255,0.42)';
+      ctx.fill();
+      ctx.strokeStyle = rgba(color, 0.6);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** 飛行物命中：依圖示種類噴出不同的碎片 */
+  private impact(pose: string, x: number, y: number, z: number, accent: string): void {
+    const kinds: Record<string, { shape: Frag['shape']; colors: string[]; n: number }> = {
+      cabbage: { shape: 'leaf', colors: ['#84cc16', '#bef264', '#4d7c0f'], n: 7 },
+      sunflower: { shape: 'leaf', colors: ['#facc15', '#fde047', '#a16207'], n: 7 },
+      frog: { shape: 'splat', colors: ['#22c55e', '#86efac'], n: 5 },
+      abc: { shape: 'paper', colors: ['#ffffff', '#dbeafe'], n: 6 },
+      doc: { shape: 'paper', colors: ['#ffffff', '#fef3c7'], n: 7 },
+      evidence: { shape: 'paper', colors: ['#ffffff', '#fed7aa'], n: 7 },
+      book: { shape: 'paper', colors: ['#ffffff', '#fecaca'], n: 6 },
+      scorecard: { shape: 'paper', colors: ['#ffffff', '#fecaca'], n: 5 },
+      ticket: { shape: 'paper', colors: ['#ffffff', '#99f6e4'], n: 5 },
+      tweet: { shape: 'leaf', colors: ['#38bdf8', '#e0f2fe'], n: 6 },
+      box: { shape: 'paper', colors: ['#d4a373', '#a16207', '#ffffff'], n: 8 },
+      gift: { shape: 'paper', colors: ['#f43f5e', '#fde047', '#ffffff'], n: 8 },
+      pudding: { shape: 'splat', colors: ['#fde68a', '#b45309'], n: 7 },
+      bun: { shape: 'puff', colors: ['#ffffff', '#f1f5f9'], n: 5 },
+      firework: { shape: 'spark', colors: ['#f43f5e', '#facc15', '#60a5fa', '#a3e635'], n: 12 },
+      rocket: { shape: 'spark', colors: ['#fb923c', '#facc15'], n: 9 },
+      explosion: { shape: 'spark', colors: ['#fb923c', '#facc15', '#ffffff'], n: 10 },
+      shock: { shape: 'spark', colors: ['#22d3ee', '#ffffff'], n: 8 },
+      pill: { shape: 'splat', colors: ['#f87171', '#ffffff'], n: 5 },
+      syringe: { shape: 'splat', colors: ['#7dd3fc', '#ffffff'], n: 5 },
+      slipper: { shape: 'puff', colors: ['#e5e7eb', '#cbd5e1'], n: 4 },
+      dumbbell: { shape: 'puff', colors: ['#d6d3d1', '#a8a29e'], n: 5 },
+      moon: { shape: 'spark', colors: ['#fef9c3', '#fde68a'], n: 8 },
+    };
+    const k = kinds[pose] ?? (pose === 'coin' ? undefined : { shape: 'spark' as const, colors: [accent, '#ffffff'], n: 6 });
+    if (!k) return; // 金幣由招牌圖示處理
+    const n = lowQuality ? Math.ceil(k.n / 2) : k.n;
+    for (let i = 0; i < n; i++) {
+      const a = this.rand() * Math.PI * 2;
+      const sp = k.shape === 'spark' ? 3 + this.rand() * 4 : 1.5 + this.rand() * 2.5;
+      this.frags.push({
+        x,
+        y: Math.max(4, y),
+        z,
+        vx: Math.cos(a) * sp,
+        vy: (k.shape === 'puff' ? 0.4 : 2) + this.rand() * 3,
+        vz: Math.sin(a) * sp * 0.3,
+        rot: this.rand() * 6,
+        vr: (this.rand() - 0.5) * 0.5,
+        t: k.shape === 'spark' ? 16 : 40,
+        life: k.shape === 'spark' ? 16 : 40,
+        shape: k.shape,
+        color: k.colors[i % k.colors.length],
+        size: k.shape === 'puff' ? 6 + this.rand() * 4 : 2.5 + this.rand() * 2,
+      });
+    }
+  }
+
+  private drawFrag(ctx: CanvasRenderingContext2D, f: Frag, cam: number): void {
+    const x = f.x - cam;
+    const y = HZ + f.z - f.y;
+    const fade = Math.min(1, f.t / 10);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.translate(x, y);
+    ctx.rotate(f.rot);
+    ctx.fillStyle = f.color;
+    switch (f.shape) {
+      case 'leaf':
+        ctx.beginPath();
+        ctx.ellipse(0, 0, f.size * 1.4, f.size * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(-f.size * 1.2, 0);
+        ctx.lineTo(f.size * 1.2, 0);
+        ctx.stroke();
+        break;
+      case 'paper':
+        ctx.fillRect(-f.size, -f.size * 0.75, f.size * 2, f.size * 1.5);
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 0.7;
+        ctx.strokeRect(-f.size, -f.size * 0.75, f.size * 2, f.size * 1.5);
+        break;
+      case 'splat':
+        // 落地後壓扁成一灘
+        ctx.rotate(-f.rot);
+        ctx.beginPath();
+        if (f.y <= 0) ctx.ellipse(0, 0, f.size * 1.8, f.size * 0.6, 0, 0, Math.PI * 2);
+        else ctx.arc(0, 0, f.size, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      case 'puff':
+        ctx.globalAlpha = fade * 0.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, f.size * (1.6 - f.t / f.life * 0.6), 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      default: {
+        // 火花：沿速度方向的短亮線
+        ctx.rotate(-f.rot);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = f.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-f.vx * 2.2, f.vy * 2.2);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  private addDecal(d: { x: number; z: number; r: number; kind: Decal['kind'] }): void {
+    const life = d.kind === 'crack' ? 300 : 240;
+    this.decals.push({ ...d, t: life, life, seed: this.rand() * 1000 });
+    if (this.decals.length > MAX_DECALS) this.decals.shift();
+  }
+
+  /** 地面痕跡：畫在場景上、角色與影子下面 */
+  private drawDecal(ctx: CanvasRenderingContext2D, d: Decal, cam: number): void {
+    const x = d.x - cam;
+    const y = HZ + d.z;
+    const a = Math.min(1, d.t / 60) * (d.t > d.life - 6 ? (d.life - d.t) / 6 : 1);
+    ctx.save();
+    ctx.globalAlpha = a;
+    if (d.kind === 'crack') {
+      // 放射狀的鋸齒裂痕（地面透視：前後方向壓扁）
+      const n = 7;
+      for (let i = 0; i < n; i++) {
+        const ang = (i / n) * Math.PI * 2 + d.seed;
+        const len = d.r * (0.55 + ((d.seed * (i + 3)) % 1) * 0.45);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        let px = x;
+        let py = y;
+        for (let s = 1; s <= 4; s++) {
+          const jit = Math.sin(d.seed + i * 7 + s * 3) * 0.35;
+          px = x + Math.cos(ang + jit) * len * (s / 4);
+          py = y + Math.sin(ang + jit) * len * (s / 4) * 0.35;
+          ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = 'rgba(40,28,20,0.55)';
+        ctx.lineWidth = 2.4;
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,240,220,0.25)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      }
+    } else if (d.kind === 'crater') {
+      const g = ctx.createRadialGradient(x, y, 2, x, y, d.r);
+      g.addColorStop(0, 'rgba(30,22,16,0.55)');
+      g.addColorStop(0.7, 'rgba(60,45,35,0.35)');
+      g.addColorStop(1, 'rgba(60,45,35,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, y, d.r, d.r * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,240,220,0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(x, y - 1, d.r * 0.8, d.r * 0.27, 0, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+    } else {
+      // 焦痕：不規則的黑灰
+      ctx.fillStyle = 'rgba(25,20,18,0.45)';
+      ctx.beginPath();
+      for (let i = 0; i <= 10; i++) {
+        const ang = (i / 10) * Math.PI * 2;
+        const rr = d.r * (0.75 + 0.25 * Math.sin(d.seed + i * 2.3));
+        const px = x + Math.cos(ang) * rr;
+        const py = y + Math.sin(ang) * rr * 0.35;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   /** 從 (x, y, z) 往四周噴出招牌圖示 */

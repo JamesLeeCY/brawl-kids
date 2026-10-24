@@ -28,14 +28,14 @@
   "frames": {
     "pud_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "shotput_ready",
       "next": "pud_2",
       "sound": "special",
       "say": "布丁彈！"
     },
     "pud_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "shotput",
       "next": "pud_rec",
       "spawn": [
         {
@@ -84,7 +84,7 @@
     },
     "tough_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "flex_front",
       "sound": "special",
       "buff": {
         "type": "dmgReduce",
@@ -95,7 +95,7 @@
     },
     "pudrain_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "point_up",
       "next": "pudrain_rec",
       "sound": "special",
       "spawn": [
@@ -123,7 +123,7 @@
     },
     "judo_2": {
       "duration": 10,
-      "pose": "grab",
+      "pose": "judo_lift",
       "next": "judo_rec",
       "say": "過肩摔！",
       "itr": [
@@ -154,7 +154,7 @@
     },
     "bearride_2": {
       "duration": 30,
-      "pose": "dash",
+      "pose": "ride",
       "next": "bearride_rec",
       "friction": 1,
       "invuln": true,

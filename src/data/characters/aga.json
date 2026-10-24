@@ -27,14 +27,14 @@
   "frames": {
     "slipper_1": {
       "duration": 5,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "slipper_2",
       "sound": "special",
       "say": "藍白拖！"
     },
     "slipper_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "throw",
       "next": "slipper_rec",
       "spawn": [
         {
@@ -119,7 +119,7 @@
     },
     "slipperrain_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "arms_wide",
       "next": "slipperrain_rec",
       "sound": "special",
       "spawn": [
@@ -138,14 +138,14 @@
     },
     "zan_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "arms_crossed",
       "next": "zan_2",
       "sound": "special",
       "say": "嗆！"
     },
     "zan_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "accuse",
       "next": "zan_rec",
       "spawn": [
         {
@@ -162,7 +162,7 @@
     },
     "yummy_1": {
       "duration": 12,
-      "pose": "victory",
+      "pose": "hands_together",
       "next": "yummy_rec",
       "sound": "special",
       "say": "好吃～好吃～",

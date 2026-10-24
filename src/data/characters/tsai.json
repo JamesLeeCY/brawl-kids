@@ -32,14 +32,14 @@
   "frames": {
     "catpounce_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "offer",
       "next": "catpounce_2",
       "sound": "special",
       "say": "想想，上！"
     },
     "catpounce_2": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "toss",
       "next": "catpounce_3",
       "spawn": [
         {
@@ -53,7 +53,7 @@
     },
     "catpounce_3": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "offer",
       "next": "catpounce_rec",
       "spawn": [
         {
@@ -71,14 +71,14 @@
     },
     "dogs_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "dogs_2",
       "sound": "special",
       "say": "汪汪大隊！"
     },
     "dogs_2": {
       "duration": 16,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "dogs_rec",
       "spawn": [
         {
@@ -109,14 +109,14 @@
     },
     "bento_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "offer",
       "sound": "special",
       "heal": 110,
       "say": "暖心便當！"
     },
     "catrain_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "point_up",
       "next": "catrain_rec",
       "sound": "special",
       "spawn": [
@@ -135,7 +135,7 @@
     },
     "spicy_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "cheer_v",
       "sound": "special",
       "buff": {
         "type": "dmgReduce",
@@ -146,7 +146,7 @@
     },
     "humble_1": {
       "duration": 14,
-      "pose": "crouch",
+      "pose": "bow",
       "next": "humble_2",
       "sound": "special",
       "say": "謙卑！",
@@ -165,7 +165,7 @@
     },
     "humble_2": {
       "duration": 14,
-      "pose": "crouch",
+      "pose": "bow",
       "next": "humble_3",
       "say": "謙卑！",
       "bdy": [
@@ -183,7 +183,7 @@
     },
     "humble_3": {
       "duration": 8,
-      "pose": "crouch",
+      "pose": "bow",
       "next": "humble_4",
       "say": "再謙卑！",
       "bdy": [

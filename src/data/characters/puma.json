@@ -28,14 +28,14 @@
   "frames": {
     "bear_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "arms_crossed",
       "next": "bear_2",
       "sound": "special",
       "say": "黑熊出擊！"
     },
     "bear_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "bear_rec",
       "spawn": [
         {
@@ -52,14 +52,14 @@
     },
     "vortex_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "hands_together",
       "next": "vortex_2",
       "sound": "special",
       "say": "反滲透漩渦！"
     },
     "vortex_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "push",
       "next": "vortex_rec",
       "spawn": [
         {
@@ -76,7 +76,7 @@
     },
     "guard_1": {
       "duration": 18,
-      "pose": "cast_up",
+      "pose": "stop_palm",
       "sound": "special",
       "buff": {
         "type": "reflect",
@@ -149,14 +149,14 @@
     },
     "academy_1": {
       "duration": 10,
-      "pose": "cast_up",
+      "pose": "point_up",
       "next": "academy_2",
       "sound": "special",
       "say": "黑熊學院開課！"
     },
     "academy_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "academy_rec",
       "spawn": [
         {

@@ -28,14 +28,14 @@
   "frames": {
     "cabbage_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "cabbage_2",
       "sound": "special",
       "say": "高麗菜！"
     },
     "cabbage_2": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "throw",
       "next": "cabbage_3",
       "spawn": [
         {
@@ -49,7 +49,7 @@
     },
     "cabbage_3": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "cabbage_4",
       "spawn": [
         {
@@ -62,7 +62,7 @@
     },
     "cabbage_4": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "throw",
       "next": "cabbage_rec",
       "spawn": [
         {
@@ -80,7 +80,7 @@
     },
     "rich_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "make_rain",
       "next": "rich_rec",
       "sound": "special",
       "spawn": [
@@ -120,21 +120,21 @@
     },
     "lurou_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "offer",
       "sound": "special",
       "heal": 90,
       "say": "滷肉飯！"
     },
     "moon_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "hands_together",
       "next": "moon_2",
       "sound": "special",
       "say": "禿子跟著月亮走！"
     },
     "moon_2": {
       "duration": 14,
-      "pose": "cast_up",
+      "pose": "point_up",
       "next": "moon_rec",
       "spawn": [
         {
@@ -158,7 +158,7 @@
     },
     "cart_2": {
       "duration": 12,
-      "pose": "dash",
+      "pose": "push",
       "next": "cart_3",
       "friction": 1,
       "invuln": true,
@@ -192,7 +192,7 @@
     },
     "cart_3": {
       "duration": 12,
-      "pose": "dash",
+      "pose": "push",
       "next": "cart_4",
       "friction": 1,
       "selfVel": {
@@ -225,7 +225,7 @@
     },
     "cart_4": {
       "duration": 12,
-      "pose": "dash",
+      "pose": "push",
       "next": "cart_rec",
       "friction": 1,
       "selfVel": {

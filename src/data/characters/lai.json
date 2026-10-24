@@ -29,14 +29,14 @@
   "frames": {
     "pill_1": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "pill_2",
       "sound": "special",
       "say": "處方籤！"
     },
     "pill_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "pill_rec",
       "spawn": [
         {
@@ -67,7 +67,7 @@
     },
     "heal_1": {
       "duration": 26,
-      "pose": "cast_up",
+      "pose": "hands_together",
       "sound": "special",
       "heal": 120,
       "buff": {
@@ -79,14 +79,14 @@
     },
     "syringe_1": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "syringe_2",
       "sound": "special",
       "say": "打疫苗！"
     },
     "syringe_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "throw",
       "next": "syringe_rec",
       "spawn": [
         {
@@ -103,7 +103,7 @@
     },
     "anchor_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "karate",
       "sound": "special",
       "buff": {
         "type": "dmgReduce",
@@ -114,14 +114,14 @@
     },
     "kong_1": {
       "duration": 10,
-      "pose": "cast_ready",
+      "pose": "arms_crossed",
       "next": "kong_2",
       "sound": "special",
       "say": "一個字！空！"
     },
     "kong_2": {
       "duration": 16,
-      "pose": "cast_up",
+      "pose": "karate",
       "next": "kong_rec",
       "shake": true,
       "aura": {
@@ -143,14 +143,14 @@
     },
     "ticket_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "ticket_2",
       "sound": "special",
       "say": "掛號！"
     },
     "ticket_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "toss",
       "next": "ticket_rec",
       "spawn": [
         {

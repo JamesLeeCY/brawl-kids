@@ -363,8 +363,9 @@ export function drawFigure(ctx: CanvasRenderingContext2D, def: CharacterDef, o: 
     const e = dir(ua);
     const f = dir(fa);
     const s0 = { x: sh.x + side * shoulderOff, y: sh.y };
-    const el = { x: s0.x + e.x * 7.5, y: s0.y + e.y * 7.5 };
-    return { s0, el, hand: { x: el.x + f.x * 7.5, y: el.y + f.y * 7.5 } };
+    const L = 7.5 * (p.reach ?? 1);
+    const el = { x: s0.x + e.x * L, y: s0.y + e.y * L };
+    return { s0, el, hand: { x: el.x + f.x * L, y: el.y + f.y * L } };
   };
   const leg = (th: number, shn: number, off: number) => {
     const a = dir(th);

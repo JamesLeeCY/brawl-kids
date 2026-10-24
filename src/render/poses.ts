@@ -14,6 +14,8 @@ export interface Pose {
   fsh: number;
   dy?: number;
   rot?: number;
+  /** 手臂長度倍率（招牌動作把手伸長，Q 版大頭才看得出手勢；預設 1） */
+  reach?: number;
 }
 
 const stance = { bth: -15, bsh: -15, fth: 20, fsh: 5 };
@@ -76,6 +78,38 @@ export const POSES: Record<string, Pose> = {
   flex: { t: -6, bua: -100, bfa: -175, fua: 20, ffa: 30, bth: -14, bsh: -8, fth: 16, fsh: 6 },
   hop: { t: -10, bua: -140, bfa: -160, fua: -130, ffa: -150, bth: 30, bsh: -50, fth: 50, fsh: -20, dy: -4 },
   grab: { t: 10, bua: 70, bfa: 60, fua: 80, ffa: 70, ...stance },
+
+  // ---- 招牌動作（各角色的代表招式用）----
+  // Q 版頭很大：往上的手勢一律用後手（畫在頭後面），前手只在頭的下方或前方，不擋到臉
+  toss_ready: { t: -4, bua: 20, bfa: 40, fua: -40, ffa: -10, ...stance },
+  toss: { t: 14, bua: -30, bfa: -5, fua: 70, ffa: 100, ...stance, reach: 1.25 },
+  point_fwd: { t: 8, bua: -35, bfa: 0, fua: 92, ffa: 96, bth: -22, bsh: -22, fth: 30, fsh: 8, reach: 1.3 },
+  point_up: { t: 6, bua: -105, bfa: -150, fua: 35, ffa: 70, ...stance, reach: 1.4 },
+  arms_wide: { t: 2, bua: -100, bfa: -125, fua: 95, ffa: 105, bth: -22, bsh: -18, fth: 22, fsh: 18, reach: 1.35 },
+  cheer_v: { t: 2, bua: -110, bfa: -160, fua: 95, ffa: 115, bth: -12, bsh: -8, fth: 14, fsh: 6, reach: 1.35 },
+  flex_front: { t: 2, bua: -95, bfa: -170, fua: 40, ffa: 100, bth: -16, bsh: -8, fth: 18, fsh: 6, dy: 1, reach: 1.3 },
+  deep_squat: { t: 8, bua: 75, bfa: 85, fua: 80, ffa: 90, bth: -70, bsh: 25, fth: 75, fsh: -20, dy: 8 },
+  bow: { t: 55, h: 12, bua: 0, bfa: -5, fua: 5, ffa: 0, bth: -2, bsh: -2, fth: 4, fsh: 2 },
+  push: { t: 26, bua: 72, bfa: 84, fua: 78, ffa: 88, bth: -40, bsh: -60, fth: 35, fsh: 10, dy: 1, reach: 1.25 },
+  stop_palm: { t: 4, bua: -10, bfa: 10, fua: 88, ffa: 120, ...stance, reach: 1.3 },
+  arms_crossed: { t: 0, bua: 50, bfa: 105, fua: 40, ffa: 115, bth: -8, bsh: -6, fth: 8, fsh: 6 },
+  hands_together: { t: 4, bua: 35, bfa: 95, fua: 30, ffa: 100, bth: -6, bsh: -6, fth: 6, fsh: 6 },
+  offer: { t: 12, bua: 60, bfa: 75, fua: 65, ffa: 80, ...stance, reach: 1.2 },
+  accuse: { t: 18, h: 6, bua: -45, bfa: -15, fua: 95, ffa: 95, bth: -30, bsh: -35, fth: 42, fsh: 12, dy: 1, reach: 1.4 },
+  scold: { t: 6, h: -4, bua: -30, bfa: 10, fua: 80, ffa: 118, ...stance, reach: 1.2 },
+  tantrum_a: { t: -6, bua: -110, bfa: -60, fua: 70, ffa: 20, bth: -10, bsh: -10, fth: 40, fsh: -30, reach: 1.3 },
+  tantrum_b: { t: 6, bua: 40, bfa: 80, fua: -100, ffa: -50, bth: -35, bsh: -60, fth: 10, fsh: 10, reach: 1.3 },
+  judo_lift: { t: 6, bua: -110, bfa: -150, fua: -95, ffa: -135, bth: -30, bsh: 10, fth: 35, fsh: -10, dy: 3, reach: 1.35 },
+  open_box: { t: 10, bua: 75, bfa: 100, fua: 85, ffa: 110, ...stance, reach: 1.25 },
+  karate: { t: 14, bua: -40, bfa: 60, fua: 92, ffa: 92, bth: -40, bsh: -5, fth: 45, fsh: 5, dy: 4, reach: 1.3 },
+  phone: { t: 3, h: 10, bua: -10, bfa: 5, fua: 25, ffa: 125, ...stance },
+  ride: { t: 18, bua: 68, bfa: 76, fua: 72, ffa: 80, bth: -55, bsh: 25, fth: 60, fsh: -25, dy: 6 },
+  make_rain: { t: 4, bua: -105, bfa: -140, fua: 45, ffa: 85, ...stance, dy: -1, reach: 1.4 },
+  defib: { t: 22, bua: 52, bfa: 88, fua: 58, ffa: 92, ...stance, reach: 1.25 },
+  laugh_back: { t: -18, h: -10, bua: 10, bfa: 70, fua: 15, ffa: 75, ...stance },
+  present: { t: 4, bua: -10, bfa: 5, fua: 70, ffa: 45, ...stance, reach: 1.25 },
+  shotput_ready: { t: -10, bua: -60, bfa: -20, fua: 10, ffa: 150, bth: -35, bsh: -15, fth: 25, fsh: 5 },
+  shotput: { t: 24, bua: -70, bfa: -40, fua: 100, ffa: 100, bth: -40, bsh: -50, fth: 40, fsh: 15, reach: 1.3 },
   carry: { t: 0, bua: 165, bfa: 175, fua: 160, ffa: 175, bth: -6, bsh: -6, fth: 6, fsh: 6 },
 };
 
@@ -94,14 +128,15 @@ export const REQUIRED_POSES = [
   'jump', 'punch_extend', 'kick', 'defend', 'hurt', 'dizzy', 'falling', 'lying', 'victory',
 ];
 
-const KEYS = ['t', 'h', 'bua', 'bfa', 'fua', 'ffa', 'bth', 'bsh', 'fth', 'fsh', 'dy', 'rot'] as const;
+const KEYS = ['t', 'h', 'bua', 'bfa', 'fua', 'ffa', 'bth', 'bsh', 'fth', 'fsh', 'dy', 'rot', 'reach'] as const;
 
 /** 兩個姿勢之間插值（k = 0 → a，1 → b）；畫面用，讓動作之間平順過渡 */
 export function lerpPose(a: Pose, b: Pose, k: number): Pose {
   const o = {} as Pose;
   for (const key of KEYS) {
-    const va = a[key] ?? 0;
-    const vb = b[key] ?? 0;
+    const def = key === 'reach' ? 1 : 0;
+    const va = a[key] ?? def;
+    const vb = b[key] ?? def;
     (o as unknown as Record<string, number>)[key] = va + (vb - va) * k;
   }
   return o;

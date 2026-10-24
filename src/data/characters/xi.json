@@ -28,14 +28,14 @@
   "frames": {
     "bun_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "toss_ready",
       "next": "bun_2",
       "sound": "special",
       "say": "包子！"
     },
     "bun_2": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "toss",
       "next": "bun_3",
       "spawn": [
         {
@@ -49,7 +49,7 @@
     },
     "bun_3": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "toss_ready",
       "next": "bun_4",
       "spawn": [
         {
@@ -62,7 +62,7 @@
     },
     "bun_4": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "toss",
       "next": "bun_rec",
       "spawn": [
         {
@@ -115,7 +115,7 @@
     },
     "bunrain_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "arms_wide",
       "next": "bunrain_rec",
       "sound": "special",
       "spawn": [
@@ -134,21 +134,21 @@
     },
     "honey_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "offer",
       "sound": "special",
       "heal": 100,
       "say": "蜂蜜補給！"
     },
     "firewall_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "firewall_2",
       "sound": "special",
       "say": "防火長城！"
     },
     "firewall_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "stop_palm",
       "next": "firewall_rec",
       "spawn": [
         {
@@ -165,14 +165,14 @@
     },
     "steam_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "hands_together",
       "next": "steam_2",
       "sound": "special",
       "say": "蒸籠蒸氣！"
     },
     "steam_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "push",
       "next": "steam_rec",
       "spawn": [
         {

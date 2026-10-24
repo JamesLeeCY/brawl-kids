@@ -30,14 +30,14 @@
   "frames": {
     "shout_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "scold",
       "next": "shout_2",
       "sound": "special",
       "say": "說清楚！"
     },
     "shout_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "accuse",
       "next": "shout_rec",
       "spawn": [
         {
@@ -95,14 +95,14 @@
     },
     "evid_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "evid_2",
       "sound": "special",
       "say": "證據在這！"
     },
     "evid_2": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "throw",
       "next": "evid_3",
       "spawn": [
         {
@@ -116,7 +116,7 @@
     },
     "evid_3": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "evid_rec",
       "spawn": [
         {
@@ -169,7 +169,7 @@
     },
     "proof_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "point_up",
       "next": "proof_rec",
       "sound": "special",
       "spawn": [
@@ -188,7 +188,7 @@
     },
     "interp_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "accuse",
       "sound": "special",
       "say": "質詢時間到！",
       "aura": {

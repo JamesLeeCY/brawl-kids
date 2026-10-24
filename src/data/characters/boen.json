@@ -28,7 +28,7 @@
   "frames": {
     "canned_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "laugh_back",
       "next": "canned_rec",
       "sound": "special",
       "spawn": [
@@ -119,14 +119,14 @@
     },
     "micthrow_1": {
       "duration": 5,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "micthrow_2",
       "sound": "special",
       "say": "麥克風給你！"
     },
     "micthrow_2": {
       "duration": 10,
-      "pose": "cast",
+      "pose": "throw",
       "next": "micthrow_rec",
       "spawn": [
         {
@@ -143,14 +143,14 @@
     },
     "vs_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "vs_2",
       "sound": "special",
       "say": "vs 中間沒有點！"
     },
     "vs_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "vs_rec",
       "spawn": [
         {
@@ -167,14 +167,14 @@
     },
     "quiet_1": {
       "duration": 10,
-      "pose": "cast_ready",
+      "pose": "arms_crossed",
       "next": "quiet_2",
       "sound": "special",
       "say": "全場安靜！"
     },
     "quiet_2": {
       "duration": 18,
-      "pose": "cast_up",
+      "pose": "stop_palm",
       "next": "quiet_rec",
       "aura": {
         "radius": 260,

@@ -27,14 +27,14 @@
   "frames": {
     "ad_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "ad_2",
       "sound": "special",
       "say": "業配！"
     },
     "ad_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "ad_rec",
       "spawn": [
         {
@@ -51,7 +51,7 @@
     },
     "bonus_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "make_rain",
       "sound": "special",
       "buff": {
         "type": "mpRegen",
@@ -97,7 +97,7 @@
     },
     "gifts_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "arms_wide",
       "next": "gifts_rec",
       "sound": "special",
       "spawn": [
@@ -140,14 +140,14 @@
     },
     "traitor_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "scold",
       "next": "traitor_2",
       "sound": "special",
       "say": "叛徒啦叛徒！"
     },
     "traitor_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "accuse",
       "next": "traitor_rec",
       "spawn": [
         {

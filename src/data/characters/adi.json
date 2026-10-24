@@ -28,14 +28,14 @@
   "frames": {
     "card_1": {
       "duration": 4,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "card_2",
       "sound": "special",
       "say": "單字卡！"
     },
     "card_2": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "card_3",
       "spawn": [
         {
@@ -48,7 +48,7 @@
     },
     "card_3": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "card_4",
       "spawn": [
         {
@@ -62,7 +62,7 @@
     },
     "card_4": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "card_rec",
       "spawn": [
         {
@@ -80,7 +80,7 @@
     },
     "fullmark_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "cheer_v",
       "sound": "special",
       "buff": {
         "type": "blockProjectile",
@@ -126,7 +126,7 @@
     },
     "quiz_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "point_up",
       "next": "quiz_rec",
       "sound": "special",
       "spawn": [
@@ -145,14 +145,14 @@
     },
     "english_1": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "scold",
       "next": "english_2",
       "sound": "special",
       "say": "你真的是來學英文的嗎？"
     },
     "english_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "english_rec",
       "spawn": [
         {

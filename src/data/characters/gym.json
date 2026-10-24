@@ -29,14 +29,14 @@
   "frames": {
     "dumbbell_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "shotput_ready",
       "next": "dumbbell_2",
       "sound": "special",
       "say": "接好啞鈴！"
     },
     "dumbbell_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "shotput",
       "next": "dumbbell_rec",
       "spawn": [
         {
@@ -54,7 +54,7 @@
     },
     "squat_1": {
       "duration": 10,
-      "pose": "slam_ready",
+      "pose": "deep_squat",
       "next": "squat_2",
       "sound": "special",
       "say": "深蹲！"
@@ -86,7 +86,7 @@
     },
     "pump_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "flex_front",
       "sound": "special",
       "buff": {
         "type": "dmgReduce",
@@ -143,7 +143,7 @@
     },
     "bulk_1": {
       "duration": 24,
-      "pose": "flex",
+      "pose": "flex_front",
       "sound": "special",
       "say": "增肌期！",
       "heal": 90,

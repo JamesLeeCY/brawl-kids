@@ -28,7 +28,7 @@
   "frames": {
     "taste_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "offer",
       "sound": "special",
       "heal": 100,
       "say": "好吃！"
@@ -70,7 +70,7 @@
     },
     "boxrain_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "open_box",
       "next": "boxrain_rec",
       "sound": "special",
       "spawn": [
@@ -89,7 +89,7 @@
     },
     "unbox_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "open_box",
       "nextRandom": [
         "unbox_bomb",
         "unbox_bomb",
@@ -101,7 +101,7 @@
     },
     "unbox_bomb": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "toss",
       "next": "unbox_rec",
       "spawn": [
         {
@@ -131,7 +131,7 @@
     },
     "eat_1": {
       "duration": 10,
-      "pose": "slam_ready",
+      "pose": "hands_together",
       "next": "eat_2",
       "sound": "special",
       "say": "大胃王！",
@@ -169,14 +169,14 @@
     },
     "minus_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "scold",
       "next": "minus_2",
       "sound": "special",
       "say": "我要扣分嘍！"
     },
     "minus_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "minus_rec",
       "spawn": [
         {

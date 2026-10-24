@@ -29,14 +29,14 @@
   "frames": {
     "kline_1": {
       "duration": 4,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "kline_2",
       "sound": "special",
       "say": "K 線！"
     },
     "kline_2": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "kline_3",
       "spawn": [
         {
@@ -49,7 +49,7 @@
     },
     "kline_3": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "kline_4",
       "spawn": [
         {
@@ -63,7 +63,7 @@
     },
     "kline_4": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "kline_rec",
       "spawn": [
         {
@@ -113,7 +113,7 @@
     },
     "crash_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "point_up",
       "next": "crash_rec",
       "sound": "special",
       "spawn": [
@@ -132,7 +132,7 @@
     },
     "limitup_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "cheer_v",
       "sound": "special",
       "say": "漲停板！",
       "buff": {
@@ -183,7 +183,7 @@
     },
     "care_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "hands_together",
       "sound": "special",
       "say": "多操心愛的人！",
       "buff": {

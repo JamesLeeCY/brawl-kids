@@ -28,14 +28,14 @@
   "frames": {
     "flower_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "flower_2",
       "sound": "special",
       "say": "向日葵！"
     },
     "flower_2": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "throw",
       "next": "flower_3",
       "spawn": [
         {
@@ -48,7 +48,7 @@
     },
     "flower_3": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "throw_ready",
       "next": "flower_rec",
       "spawn": [
         {
@@ -66,7 +66,7 @@
     },
     "tee_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "flex_front",
       "sound": "special",
       "buff": {
         "type": "dmgReduce",
@@ -113,7 +113,7 @@
     },
     "field_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "arms_wide",
       "next": "field_rec",
       "sound": "special",
       "spawn": [
@@ -132,7 +132,7 @@
     },
     "joke_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "present",
       "nextRandom": [
         "joke_stun",
         "joke_blast",

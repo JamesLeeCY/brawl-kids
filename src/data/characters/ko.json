@@ -30,14 +30,14 @@
   "frames": {
     "ecmo_1": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "hands_together",
       "next": "ecmo_2",
       "sound": "special",
       "say": "ECMO！"
     },
     "ecmo_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "defib",
       "next": "ecmo_rec",
       "spawn": [
         {
@@ -54,7 +54,7 @@
     },
     "white_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "arms_wide",
       "next": "white_rec",
       "sound": "special",
       "spawn": [
@@ -108,14 +108,14 @@
     },
     "scalpel_1": {
       "duration": 5,
-      "pose": "cast_ready",
+      "pose": "arms_crossed",
       "next": "scalpel_2",
       "sound": "special",
       "say": "手術刀！"
     },
     "scalpel_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "throw",
       "next": "scalpel_rec",
       "spawn": [
         {
@@ -182,7 +182,7 @@
     },
     "iq_1": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "point_up",
       "sound": "special",
       "say": "IQ 157！",
       "buff": {

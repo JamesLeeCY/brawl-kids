@@ -80,3 +80,18 @@ describe('角色外型', () => {
     expect(kinds('brows')).toBeGreaterThanOrEqual(4);
   });
 });
+
+describe('招牌動作', () => {
+  it('角色招式用到的姿勢都存在（打錯字會變回站姿）', async () => {
+    const { POSES } = await import('../src/render/poses');
+    for (const id of data.selectable)
+      for (const [name, f] of Object.entries(data.characters[id].frames)) expect(POSES[f.pose], `${id}.${name}: ${f.pose}`).toBeDefined();
+  });
+  it('每名角色至少有 3 個招牌動作（不只用共用的施法姿勢）', () => {
+    const generic = new Set(['cast_ready', 'cast', 'cast_up', 'idle_0', 'crouch', 'dash', 'punch_ready', 'punch_extend', 'victory', 'slam', 'slam_ready', 'run_attack', 'jet_up', 'flykick', 'kick', 'hurt', 'thumbs', 'wave', 'wave2', 'grab', 'throw', 'throw_ready', 'flex', 'clap', 'fist_pump', 'dizzy']);
+    for (const id of data.selectable) {
+      const sig = new Set(Object.values(data.characters[id].frames).map((f) => f.pose).filter((p) => !generic.has(p)));
+      expect(sig.size, id).toBeGreaterThanOrEqual(3);
+    }
+  });
+});

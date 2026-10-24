@@ -27,14 +27,14 @@
   "frames": {
     "rocket_1": {
       "duration": 7,
-      "pose": "cast_ready",
+      "pose": "arms_crossed",
       "next": "rocket_2",
       "sound": "special",
       "say": "火箭人！"
     },
     "rocket_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "rocket_rec",
       "spawn": [
         {
@@ -51,7 +51,7 @@
     },
     "clap_1": {
       "duration": 10,
-      "pose": "slam_ready",
+      "pose": "clap",
       "next": "clap_2",
       "sound": "special",
       "say": "熱烈鼓掌！"
@@ -88,7 +88,7 @@
     },
     "noodle_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "hands_together",
       "sound": "special",
       "heal": 110,
       "say": "冷麵補給！"
@@ -130,7 +130,7 @@
     },
     "show_1": {
       "duration": 24,
-      "pose": "cast_up",
+      "pose": "cheer_v",
       "next": "show_rec",
       "sound": "special",
       "spawn": [

@@ -28,14 +28,14 @@
   "frames": {
     "frogshot_1": {
       "duration": 5,
-      "pose": "cast_ready",
+      "pose": "deep_squat",
       "next": "frogshot_2",
       "sound": "special",
       "say": "呱呱！"
     },
     "frogshot_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "toss",
       "next": "frogshot_rec",
       "spawn": [
         {
@@ -120,14 +120,14 @@
     },
     "rage_1": {
       "duration": 8,
-      "pose": "slam_ready",
+      "pose": "tantrum_a",
       "next": "rage_2",
       "sound": "special",
       "say": "你根本不懂我！"
     },
     "rage_2": {
       "duration": 10,
-      "pose": "throw",
+      "pose": "tantrum_b",
       "next": "rage_3",
       "shake": true,
       "spawn": [
@@ -165,12 +165,12 @@
     },
     "rage_3": {
       "duration": 10,
-      "pose": "throw_ready",
+      "pose": "tantrum_a",
       "next": "rage_4"
     },
     "rage_4": {
       "duration": 10,
-      "pose": "throw",
+      "pose": "tantrum_b",
       "next": "rage_rec",
       "spawn": [
         {
@@ -218,7 +218,7 @@
     },
     "tongue_2": {
       "duration": 18,
-      "pose": "cast",
+      "pose": "accuse",
       "next": "tongue_rec",
       "spawn": [
         {
@@ -235,14 +235,14 @@
     },
     "chorus_1": {
       "duration": 8,
-      "pose": "cast_up",
+      "pose": "arms_wide",
       "next": "chorus_2",
       "sound": "special",
       "say": "青蛙合唱團！"
     },
     "chorus_2": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "present",
       "next": "chorus_3",
       "spawn": [
         {
@@ -256,7 +256,7 @@
     },
     "chorus_3": {
       "duration": 12,
-      "pose": "cast_ready",
+      "pose": "point_fwd",
       "next": "chorus_4",
       "spawn": [
         {
@@ -271,7 +271,7 @@
     },
     "chorus_4": {
       "duration": 12,
-      "pose": "cast",
+      "pose": "present",
       "next": "chorus_rec",
       "spawn": [
         {

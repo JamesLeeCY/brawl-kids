@@ -29,14 +29,14 @@
   "frames": {
     "doc_1": {
       "duration": 4,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "doc_2",
       "sound": "special",
       "say": "公文來了！"
     },
     "doc_2": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "doc_3",
       "spawn": [
         {
@@ -49,7 +49,7 @@
     },
     "doc_3": {
       "duration": 6,
-      "pose": "cast_ready",
+      "pose": "present",
       "next": "doc_4",
       "spawn": [
         {
@@ -63,7 +63,7 @@
     },
     "doc_4": {
       "duration": 6,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "doc_rec",
       "spawn": [
         {
@@ -81,14 +81,14 @@
     },
     "truck_1": {
       "duration": 8,
-      "pose": "cast_ready",
+      "pose": "phone",
       "next": "truck_2",
       "sound": "special",
       "say": "垃圾車來囉～"
     },
     "truck_2": {
       "duration": 14,
-      "pose": "cast",
+      "pose": "point_fwd",
       "next": "truck_rec",
       "spawn": [
         {
@@ -126,7 +126,7 @@
     },
     "shield_1": {
       "duration": 18,
-      "pose": "cast_up",
+      "pose": "arms_crossed",
       "sound": "special",
       "say": "都有掌握",
       "buff": {
@@ -174,14 +174,14 @@
     },
     "typhoon_1": {
       "duration": 14,
-      "pose": "cast_ready",
+      "pose": "point_up",
       "next": "typhoon_2",
       "sound": "special",
       "say": "颱風假！"
     },
     "typhoon_2": {
       "duration": 20,
-      "pose": "cast_up",
+      "pose": "arms_wide",
       "next": "typhoon_rec",
       "shake": true,
       "aura": {

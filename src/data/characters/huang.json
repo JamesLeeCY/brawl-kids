@@ -208,42 +208,48 @@
       "name": "證據資料夾",
       "mp": 60,
       "startFrame": "evid_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "丟出證據資料夾"
     },
     {
       "command": "DvA",
       "name": "拍桌震地",
       "mp": 100,
       "startFrame": "desk_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "拍桌震地，桌子飛出去可以撿來丟"
     },
     {
       "command": "D^A",
       "name": "說清楚！",
       "mp": 90,
       "startFrame": "shout_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "「說清楚！」聲波，可穿透數人"
     },
     {
       "command": "D>J",
       "name": "追問衝刺",
       "mp": 80,
       "startFrame": "chase_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "DvJ",
       "name": "拿出證據",
       "mp": 150,
       "startFrame": "proof_1",
-      "role": "area"
+      "role": "area",
+      "desc": "證據從天而降"
     },
     {
       "command": "D^J",
       "name": "質詢時間到",
       "mp": 110,
       "startFrame": "interp_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "最近的敵人 3 秒內放必殺會被取消並受傷"
     }
   ],
   "projectiles": {

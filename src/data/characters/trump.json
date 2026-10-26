@@ -199,42 +199,48 @@
       "name": "推文連發",
       "mp": 60,
       "startFrame": "tweet_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "連發三則會追蹤的推文"
     },
     {
       "command": "DvA",
       "name": "你被開除了！",
       "mp": 100,
       "startFrame": "fired_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "「你被開除了！」聲波，可穿透數人"
     },
     {
       "command": "D^A",
       "name": "築一道高牆",
       "mp": 120,
       "startFrame": "wall_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "前方築一道高牆擋人擋飛行物，跳不過"
     },
     {
       "command": "D>J",
       "name": "高爾夫揮桿衝刺",
       "mp": 80,
       "startFrame": "golf_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "高爾夫揮桿往前衝撞"
     },
     {
       "command": "DvJ",
       "name": "金色大樓從天降",
       "mp": 150,
       "startFrame": "tower_1",
-      "role": "area"
+      "role": "area",
+      "desc": "金色大樓從天而降"
     },
     {
       "command": "D^J",
       "name": "MAGA 紅帽",
       "mp": 140,
       "startFrame": "maga_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "6 秒內體型變大、攻擊 +30%"
     }
   ],
   "projectiles": {

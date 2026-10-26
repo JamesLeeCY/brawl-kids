@@ -199,42 +199,48 @@
       "mp": 90,
       "startFrame": "ecmo_1",
       "air": true,
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "ECMO 電擊彈"
     },
     {
       "command": "D^A",
       "name": "白色力量",
       "mp": 180,
       "startFrame": "white_1",
-      "role": "area"
+      "role": "area",
+      "desc": "閃電從天而降"
     },
     {
       "command": "D>J",
       "name": "急診衝刺",
       "mp": 80,
       "startFrame": "er_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "DvA",
       "name": "手術刀陣",
       "mp": 70,
       "startFrame": "scalpel_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "射出一排手術刀"
     },
     {
       "command": "D^J",
       "name": "一日雙塔",
       "mp": 100,
       "startFrame": "bike_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "騎單車橫越畫面，一路撞人"
     },
     {
       "command": "DvJ",
       "name": "IQ 157",
       "mp": 100,
       "startFrame": "iq_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "3 秒內下一擊傷害 ×1.57"
     }
   ],
   "projectiles": {

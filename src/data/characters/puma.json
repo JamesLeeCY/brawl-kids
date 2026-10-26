@@ -192,42 +192,48 @@
       "name": "黑熊出擊",
       "mp": 75,
       "startFrame": "bear_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "放黑熊往前衝"
     },
     {
       "command": "DvA",
       "name": "反滲透漩渦",
       "mp": 110,
       "startFrame": "vortex_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "漩渦把周圍的人吸過去"
     },
     {
       "command": "D^A",
       "name": "識讀護盾",
       "mp": 100,
       "startFrame": "guard_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "4 秒內把飛行物反彈回去"
     },
     {
       "command": "D>J",
       "name": "繞遠路",
       "mp": 100,
       "startFrame": "detour_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "先後退，再繞到對手背後出拳"
     },
     {
       "command": "DvJ",
       "name": "黑熊學院開課",
       "mp": 150,
       "startFrame": "academy_1",
-      "role": "area"
+      "role": "area",
+      "desc": "三隻小黑熊在地上往前衝"
     },
     {
       "command": "D^J",
       "name": "熊熊跳",
       "mp": 60,
       "startFrame": "bearjump_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "跳起來在空中飄一下"
     }
   ],
   "projectiles": {

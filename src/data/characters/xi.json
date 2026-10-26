@@ -194,42 +194,48 @@
       "name": "包子連發",
       "mp": 60,
       "startFrame": "bun_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "連丟三顆包子"
     },
     {
       "command": "DvA",
       "name": "蒸籠蒸氣",
       "mp": 100,
       "startFrame": "steam_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "留下一片蒸氣，站上去會扣血"
     },
     {
       "command": "D^A",
       "name": "防火長城",
       "mp": 120,
       "startFrame": "firewall_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "前方築一道長而矮的城牆，跳得過"
     },
     {
       "command": "D>J",
       "name": "一帶一路衝刺",
       "mp": 80,
       "startFrame": "road_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "DvJ",
       "name": "包子雨",
       "mp": 150,
       "startFrame": "bunrain_1",
-      "role": "area"
+      "role": "area",
+      "desc": "包子從天而降"
     },
     {
       "command": "D^J",
       "name": "蜂蜜補給",
       "mp": 140,
       "startFrame": "honey_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "喝蜂蜜補血"
     }
   ],
   "projectiles": {

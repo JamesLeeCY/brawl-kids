@@ -188,42 +188,48 @@
       "name": "布丁彈",
       "mp": 60,
       "startFrame": "pud_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "丟出布丁"
     },
     {
       "command": "D>J",
       "name": "柔道過肩摔",
       "mp": 90,
       "startFrame": "judo_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "近距離抓摔，防禦擋不住"
     },
     {
       "command": "DvA",
       "name": "冰原震地",
       "mp": 100,
       "startFrame": "ice_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "震地，打倒身邊所有人"
     },
     {
       "command": "D^A",
       "name": "赤膊硬漢",
       "mp": 140,
       "startFrame": "tough_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "3 秒內受到的傷害減半"
     },
     {
       "command": "DvJ",
       "name": "天降布丁",
       "mp": 150,
       "startFrame": "pudrain_1",
-      "role": "area"
+      "role": "area",
+      "desc": "布丁從天而降"
     },
     {
       "command": "D^J",
       "name": "赤膊騎熊",
       "mp": 100,
       "startFrame": "bearride_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "騎黑熊往前衝撞"
     }
   ],
   "projectiles": {

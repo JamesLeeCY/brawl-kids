@@ -295,28 +295,32 @@
       "name": "青蛙跳彈",
       "mp": 60,
       "startFrame": "frogshot_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "丟出青蛙"
     },
     {
       "command": "D^J",
       "name": "舌頭勾",
       "mp": 80,
       "startFrame": "tongue_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "舌頭把遠處敵人拉到面前並暈眩"
     },
     {
       "command": "DvA",
       "name": "呱呱震波",
       "mp": 100,
       "startFrame": "croak_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "震地，打倒身邊所有人"
     },
     {
       "command": "D>J",
       "name": "蛙泳衝刺",
       "mp": 80,
       "startFrame": "swim_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "蛙泳往前衝撞"
     },
     {
       "command": "D^A",
@@ -324,14 +328,16 @@
       "mp": 100,
       "startFrame": "rage_1",
       "role": "burst",
-      "hpBelow": 0.3
+      "hpBelow": 0.3,
+      "desc": "血少於 30% 才能用：往四周亂丟器材，之後硬直 1 秒"
     },
     {
       "command": "DvJ",
       "name": "青蛙合唱團",
       "mp": 150,
       "startFrame": "chorus_1",
-      "role": "area"
+      "role": "area",
+      "desc": "三隻青蛙依序跳著往前衝"
     }
   ],
   "projectiles": {

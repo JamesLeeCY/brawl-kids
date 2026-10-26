@@ -185,42 +185,48 @@
       "name": "藍白拖飛射",
       "mp": 60,
       "startFrame": "slipper_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "丟出藍白拖"
     },
     {
       "command": "D^A",
       "name": "台語嗆聲",
       "mp": 80,
       "startFrame": "zan_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "空中立一塊字卡，擋住飛行物 4 秒"
     },
     {
       "command": "DvA",
       "name": "夜市震地",
       "mp": 100,
       "startFrame": "market_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "震地，打倒身邊所有人"
     },
     {
       "command": "D>J",
       "name": "機車衝刺",
       "mp": 80,
       "startFrame": "scooter_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "騎機車往前衝撞"
     },
     {
       "command": "D^J",
       "name": "好吃好吃",
       "mp": 90,
       "startFrame": "yummy_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "按住跳躍試吃，按越久補越多血"
     },
     {
       "command": "DvJ",
       "name": "拖鞋雨",
       "mp": 150,
       "startFrame": "slipperrain_1",
-      "role": "area"
+      "role": "area",
+      "desc": "拖鞋從天而降"
     }
   ],
   "projectiles": {

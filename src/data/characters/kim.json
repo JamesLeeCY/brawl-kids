@@ -179,42 +179,48 @@
       "name": "火箭人",
       "mp": 70,
       "startFrame": "rocket_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "發射火箭，打川噗傷害 +10%"
     },
     {
       "command": "DvA",
       "name": "熱烈鼓掌",
       "mp": 100,
       "startFrame": "clap_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "震地，被打中的人被迫鼓掌 1 秒"
     },
     {
       "command": "D^A",
       "name": "冷麵補給",
       "mp": 140,
       "startFrame": "noodle_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "吃冷麵補血"
     },
     {
       "command": "D>J",
       "name": "肚子衝撞",
       "mp": 80,
       "startFrame": "belly_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "肚子往前衝撞"
     },
     {
       "command": "DvJ",
       "name": "煙火大會",
       "mp": 160,
       "startFrame": "show_1",
-      "role": "area"
+      "role": "area",
+      "desc": "煙火從天而降"
     },
     {
       "command": "D^J",
       "name": "灌籃",
       "mp": 110,
       "startFrame": "dunk_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "跳到最近的敵人身上往下砸"
     }
   ],
   "projectiles": {

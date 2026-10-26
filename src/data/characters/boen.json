@@ -196,42 +196,48 @@
       "name": "vs 中間沒有點",
       "mp": 75,
       "startFrame": "vs_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "巨大 vs 字卡，打中還彈出一個點"
     },
     {
       "command": "D^A",
       "name": "罐頭笑聲",
       "mp": 170,
       "startFrame": "canned_1",
-      "role": "area"
+      "role": "area",
+      "desc": "笑聲從天而降"
     },
     {
       "command": "DvA",
       "name": "冷笑話",
       "mp": 100,
       "startFrame": "coldjoke_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "震地，被打中的人凍住 1 秒"
     },
     {
       "command": "D>J",
       "name": "爆笑衝刺",
       "mp": 80,
       "startFrame": "punchline_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "D^J",
       "name": "全場安靜",
       "mp": 130,
       "startFrame": "quiet_1",
-      "role": "area"
+      "role": "area",
+      "desc": "周圍敵人 2 秒不能放必殺"
     },
     {
       "command": "DvJ",
       "name": "麥克風丟擲",
       "mp": 60,
       "startFrame": "micthrow_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "丟出麥克風"
     }
   ],
   "projectiles": {

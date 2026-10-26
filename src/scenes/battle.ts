@@ -19,8 +19,9 @@ import { dataVersion } from '../data';
 import { ReplayRecorder } from '../replay/replay';
 import { campaignHealAmount, campaignLength, campaignStageId } from '../sim/world';
 import { setGameSpeed, speedValue } from '../speed';
-const PAUSE_ITEMS = ['繼續', '重新開始', '回選角', '按鍵說明'];
-const NET_MENU_ITEMS = ['繼續', '按鍵說明', '離開連線'];
+import { drawMoveList, drawStatusLegend } from '../render/movelist';
+const PAUSE_ITEMS = ['繼續', '重新開始', '回選角', '招式表', '按鍵說明'];
+const NET_MENU_ITEMS = ['繼續', '招式表', '按鍵說明', '離開連線'];
 const HASH_INTERVAL = 120;
 
 export class BattleScene extends Scene {
@@ -30,6 +31,8 @@ export class BattleScene extends Scene {
   private paused = false;
   private pauseSel = 0;
   private showHelp = false;
+  /** 招式表頁碼（-1 = 沒開）：每個場上角色一頁，最後一頁是狀態說明 */
+  private movePage = -1;
   private intro = 90;
   /** 連線模式：等待對手按鍵的連續 tick 數 */
   private stall = 0;
@@ -218,8 +221,22 @@ export class BattleScene extends Scene {
     return this.net ? NET_MENU_ITEMS : PAUSE_ITEMS;
   }
 
+  /** 招式表要顯示的角色：真人玩家的角色在前，再來是其他場上角色（不重複） */
+  private moveListChars(): string[] {
+    const cs = this.world.chars().filter((c) => c.charId !== 'guardbot');
+    const ordered = [...cs.filter((c) => c.slot >= 0 && !c.ai), ...cs.filter((c) => c.slot < 0 || c.ai)];
+    return [...new Set(ordered.map((c) => c.charId))];
+  }
+
   private updatePause(inp: MenuInput): void {
     const a = inp.any;
+    if (this.movePage >= 0) {
+      const pages = this.moveListChars().length + 1;
+      if (a.right) this.movePage = (this.movePage + 1) % pages;
+      if (a.left) this.movePage = (this.movePage + pages - 1) % pages;
+      if (a.A || a.D || a.J) this.movePage = -1;
+      return;
+    }
     if (this.showHelp) {
       if (a.A || a.D || a.J) this.showHelp = false;
       return;
@@ -229,7 +246,8 @@ export class BattleScene extends Scene {
     if (a.down) this.pauseSel = (this.pauseSel + 1) % items.length;
     if (a.A && this.net) {
       if (this.pauseSel === 0) this.paused = false;
-      else if (this.pauseSel === 1) this.showHelp = true;
+      else if (this.pauseSel === 1) this.movePage = 0;
+      else if (this.pauseSel === 2) this.showHelp = true;
       else backToTitle(this.app, this.net);
       return;
     }
@@ -245,6 +263,9 @@ export class BattleScene extends Scene {
           backToSelect(this.app);
           break;
         case 3:
+          this.movePage = 0;
+          break;
+        case 4:
           this.showHelp = true;
           break;
       }
@@ -252,6 +273,10 @@ export class BattleScene extends Scene {
   }
 
   onEscape(): void {
+    if (this.movePage >= 0) {
+      this.movePage = -1;
+      return;
+    }
     if (this.showHelp) {
       this.showHelp = false;
       return;
@@ -284,6 +309,10 @@ export class BattleScene extends Scene {
     if (this.net) this.renderNetStatus(ctx);
     if (this.paused) {
       overlay(ctx, 0.6, VW);
+      if (this.movePage >= 0) {
+        this.renderMoveList(ctx);
+        return;
+      }
       if (this.showHelp) {
         this.renderHelp(ctx);
         return;
@@ -352,6 +381,19 @@ export class BattleScene extends Scene {
     } else if (this.stall > 20) {
       text(ctx, '等待對手…', VW / 2, 120, 22, '#ffd23f', 'center', true, true);
     }
+  }
+
+  private renderMoveList(ctx: CanvasRenderingContext2D): void {
+    const ids = this.moveListChars();
+    const page = Math.min(this.movePage, ids.length);
+    ctx.save();
+    ctx.translate(viewOffset(), 0);
+    text(ctx, page < ids.length ? '招式表' : '狀態說明', 400, 44, 24, '#ffd23f', 'center', true, true);
+    text(ctx, `◀ ${page + 1} / ${ids.length + 1} ▶`, 400, 70, 13, '#cbd5e1', 'center', false);
+    if (page < ids.length) drawMoveList(ctx, this.app.data.characters[ids[page]], 100, 86, 600, (c) => moveLabel(c), this.world.tick);
+    else drawStatusLegend(ctx, 100, 86, 600);
+    hint(ctx, touchMode() ? '搖桿←→ 換頁　點「攻擊」返回' : '←→ 換頁（最後一頁是狀態說明）　攻擊 / Esc 返回', 410, 400);
+    ctx.restore();
   }
 
   private renderHelp(ctx: CanvasRenderingContext2D): void {

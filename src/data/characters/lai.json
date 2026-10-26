@@ -172,42 +172,48 @@
       "name": "處方籤追蹤",
       "mp": 80,
       "startFrame": "pill_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "會追著敵人飛的處方籤"
     },
     {
       "command": "D^A",
       "name": "仁心回春",
       "mp": 160,
       "startFrame": "heal_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "補血並短暫減傷"
     },
     {
       "command": "DvA",
       "name": "空！",
       "mp": 140,
       "startFrame": "kong_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "周圍敵人的 MP 全部清空"
     },
     {
       "command": "D>J",
       "name": "掛號",
       "mp": 90,
       "startFrame": "ticket_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "貼上號碼牌，3 秒後爆炸"
     },
     {
       "command": "DvJ",
       "name": "疫苗針筒",
       "mp": 70,
       "startFrame": "syringe_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "針筒：打敵人扣血、打隊友補血"
     },
     {
       "command": "D^J",
       "name": "定錨護體",
       "mp": 130,
       "startFrame": "anchor_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "3 秒內受到的傷害減半"
     }
   ],
   "projectiles": {

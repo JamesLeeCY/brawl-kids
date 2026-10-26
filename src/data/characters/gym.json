@@ -161,42 +161,48 @@
       "name": "啞鈴投擲",
       "mp": 80,
       "startFrame": "dumbbell_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "丟出啞鈴"
     },
     {
       "command": "DvA",
       "name": "深蹲震地",
       "mp": 100,
       "startFrame": "squat_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "深蹲震地，打倒身邊所有人"
     },
     {
       "command": "D^A",
       "name": "肌肉充血",
       "mp": 140,
       "startFrame": "pump_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "3 秒內受到的傷害減半"
     },
     {
       "command": "D>J",
       "name": "猛男衝撞",
       "mp": 80,
       "startFrame": "bulldoze_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "D^J",
       "name": "傳承精神",
       "mp": 140,
       "startFrame": "legacy_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "召喚半透明分身跟著打 3 秒"
     },
     {
       "command": "DvJ",
       "name": "增肌期",
       "mp": 150,
       "startFrame": "bulk_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "補血，接下來 3 拳擊退加倍"
     }
   ],
   "projectiles": {

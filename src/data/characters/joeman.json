@@ -198,42 +198,48 @@
       "name": "我要扣分嘍！",
       "mp": 70,
       "startFrame": "minus_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "丟評分牌，被打中攻擊力 -10%（最多 3 層）"
     },
     {
       "command": "D>A",
       "name": "開箱翻車",
       "mp": 70,
       "startFrame": "unbox_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "隨機開出炸彈、補品或空箱"
     },
     {
       "command": "DvA",
       "name": "大胃王蓄力",
       "mp": 100,
       "startFrame": "eat_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "按住攻擊蓄力，越久震地越痛"
     },
     {
       "command": "D^A",
       "name": "試吃補血",
       "mp": 140,
       "startFrame": "taste_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "試吃補血"
     },
     {
       "command": "D>J",
       "name": "衝去排隊",
       "mp": 80,
       "startFrame": "queue_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "DvJ",
       "name": "開箱雨",
       "mp": 150,
       "startFrame": "boxrain_1",
-      "role": "area"
+      "role": "area",
+      "desc": "紙箱從天而降"
     }
   ],
   "projectiles": {

@@ -1,7 +1,7 @@
 // 電腦對手：不直接操控角色，而是每 tick 產生一份與玩家相同格式的虛擬按鍵快照。
 import { CONFIG } from '../config';
 import type { MoveDef } from '../data/schema';
-import { effTeam, isAlive, type AIState, type Entity } from './entity';
+import { effTeam, hasBuff, isAlive, type AIState, type Entity } from './entity';
 import { canUseMove } from './fsm';
 import { emptySnapshot, snapshotFrom, type Snapshot } from './snapshot';
 import type { World } from './world';
@@ -15,9 +15,29 @@ export function aiThink(w: World, e: Entity): Snapshot {
     ai.plan = [];
     return emptySnapshot();
   }
-  if (ai.plan.length) return ai.plan.shift()!;
-  if (w.tick >= ai.nextDecision) decide(w, e, ai);
-  return act(w, e, ai);
+  let s: Snapshot;
+  if (ai.plan.length) s = ai.plan.shift()!;
+  else {
+    if (w.tick >= ai.nextDecision) decide(w, e, ai);
+    s = act(w, e, ai);
+  }
+  // 方向被顛倒時：困難電腦會反著按來抵銷，其他難度照樣被整
+  if (ai.difficulty === 'hard' && hasBuff(e, 'reverse')) s = { ...s, left: s.right, right: s.left };
+  return s;
+}
+
+/** 擋在自己和目標之間的敵方實體牆 */
+function wallBetween(w: World, e: Entity, t: Entity): { x: number; z: number; h: number } | undefined {
+  const team = effTeam(e);
+  for (const p of w.entities) {
+    if (p.kind !== 'proj' || p.removed || p.team === team) continue;
+    const wd = w.data.projectiles[p.projId]?.wall;
+    if (!wd?.blockChars || Math.abs(p.z - e.z) > 24) continue;
+    const lo = Math.min(e.x, t.x);
+    const hi = Math.max(e.x, t.x);
+    if (p.x > lo - 10 && p.x < hi + 10) return { x: p.x, z: p.z, h: wd.h };
+  }
+  return undefined;
 }
 
 function nearestEnemy(w: World, e: Entity): Entity | undefined {
@@ -88,7 +108,29 @@ function decide(w: World, e: Entity, ai: AIState): void {
     return;
   }
   const aligned = Math.abs(target.z - e.z) < A.alignZ;
-  const ranged = findMove(w, e, (m) => m.role === 'ranged');
+  // 頭上有質詢倒數、被封技：先別放必殺（放了會被取消或根本放不出來）
+  const smart = ai.difficulty !== 'easy';
+  if (smart && (hasBuff(e, 'mark') || hasBuff(e, 'silence'))) {
+    // 只用一般攻擊：太近就往後退（不用「閃避」：防禦＋方向＋跳躍會誤組成必殺指令）
+    if (dist < 70) {
+      ai.intent = 'wander';
+      ai.wanderDx = target.x > e.x ? -1 : 1;
+      ai.wanderDz = 0;
+    } else ai.intent = 'approach';
+    return;
+  }
+  // 對手開了反彈：別丟飛行物
+  const ranged = hasBuff(target, 'reflect') && smart ? undefined : findMove(w, e, (m) => m.role === 'ranged');
+  // 對手開了「都有掌握」：近身會被反擊，用飛行物先把它消掉，沒有就先拉開距離
+  if (smart && hasBuff(target, 'counter')) {
+    if (ranged && aligned && dist >= 60) queueMove(e, ai, ranged, target);
+    else {
+      ai.intent = 'wander';
+      ai.wanderDx = target.x > e.x ? -1 : 1;
+      ai.wanderDz = r.int(-1, 1);
+    }
+    return;
+  }
   if (ranged && aligned && dist >= A.rangedMin && dist <= A.rangedMax && r.chance(A.specialChance[ai.difficulty])) {
     queueMove(e, ai, ranged, target);
     return;
@@ -140,6 +182,16 @@ function queueMove(e: Entity, ai: AIState, m: MoveDef, target: Entity): void {
 function act(w: World, e: Entity, ai: AIState): Snapshot {
   const s = emptySnapshot();
   const t = w.get(ai.targetId);
+  // 蓄力招：敵人離得遠才按住蓄力，靠近了就放開出手
+  if (e.state === 'attack') {
+    const f = w.currentFrame(e);
+    if (f?.hold) {
+      const foe = nearestEnemy(w, e);
+      const far = !foe || Math.abs(foe.x - e.x) + Math.abs(foe.z - e.z) * 2 > 150;
+      if (far && e.charge < f.hold.max * 0.7) s[f.hold.btn] = true;
+      return s;
+    }
+  }
   switch (ai.intent) {
     case 'wander':
       if (ai.wanderDx > 0) s.right = true;
@@ -188,6 +240,21 @@ function act(w: World, e: Entity, ai: AIState): Snapshot {
           s.A = (w.tick & 3) === 0;
           return s;
         }
+      }
+      // 前面有敵方的牆：矮牆跳過去，高牆繞到旁邊
+      const wall = ai.difficulty !== 'easy' ? wallBetween(w, e, t) : undefined;
+      if (wall) {
+        if (wall.h < 70) {
+          s[dx > 0 ? 'right' : 'left'] = true;
+          if (Math.abs(wall.x - e.x) < 46 && e.state !== 'jump') s.J = true;
+          return s;
+        }
+        const goZ = wall.z + (e.z <= wall.z ? -32 : 32);
+        const zOk = goZ >= CONFIG.physics.zMin + 2 && goZ <= CONFIG.physics.zMax - 2;
+        const tz = zOk ? goZ : wall.z + (e.z <= wall.z ? 32 : -32);
+        if (Math.abs(tz - e.z) > 3) s[tz > e.z ? 'down' : 'up'] = true;
+        if (Math.abs(e.z - wall.z) > 26) s[dx > 0 ? 'right' : 'left'] = true;
+        return s;
       }
       if (Math.abs(dz) > A.alignZ * 0.6) s[dz > 0 ? 'down' : 'up'] = true;
       if (dist > A.meleeRange - 6) {

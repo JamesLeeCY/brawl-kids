@@ -169,42 +169,48 @@
       "name": "業配連發",
       "mp": 60,
       "startFrame": "ad_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "「業配！」聲波，可穿透數人"
     },
     {
       "command": "DvA",
       "name": "洗腦神曲",
       "mp": 110,
       "startFrame": "song_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "周圍敵人隨音樂原地搖擺 1 秒"
     },
     {
       "command": "D^A",
       "name": "業主加碼",
       "mp": 130,
       "startFrame": "bonus_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "6 秒內 MP 回復加倍"
     },
     {
       "command": "D>J",
       "name": "置入衝刺",
       "mp": 80,
       "startFrame": "placement_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "DvJ",
       "name": "置入性行銷",
       "mp": 150,
       "startFrame": "gifts_1",
-      "role": "area"
+      "role": "area",
+      "desc": "禮物從天而降"
     },
     {
       "command": "D^J",
       "name": "叛徒啦叛徒",
       "mp": 120,
       "startFrame": "traitor_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "被打中的人倒戈 2 秒，攻擊自己隊友（1 對 1 時方向顛倒）"
     }
   ],
   "projectiles": {

@@ -188,6 +188,8 @@ export const MoveSchema = z.object({
   air: z.boolean().default(false),
   /** AI 用途提示 */
   role: z.enum(['ranged', 'burst', 'buff', 'rush', 'area']).optional(),
+  /** 一句招式說明（遊戲內招式表顯示） */
+  desc: z.string().optional(),
   /** 只有 HP 低於這個比例時才能用（例如 0.3） */
   hpBelow: z.number().positive().max(1).optional(),
 });

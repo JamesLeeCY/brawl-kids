@@ -229,42 +229,48 @@
       "name": "想想飛撲",
       "mp": 60,
       "startFrame": "catpounce_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "貓咪飛撲"
     },
     {
       "command": "DvA",
       "name": "汪汪大隊",
       "mp": 100,
       "startFrame": "dogs_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "三隻狗在地上往前衝"
     },
     {
       "command": "D^A",
       "name": "暖心便當",
       "mp": 140,
       "startFrame": "bento_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "吃便當補血"
     },
     {
       "command": "D>J",
       "name": "再謙卑",
       "mp": 90,
       "startFrame": "humble_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "鞠躬三次躲飛行物，第三下頭槌"
     },
     {
       "command": "DvJ",
       "name": "貓咪踩踩",
       "mp": 150,
       "startFrame": "catrain_1",
-      "role": "area"
+      "role": "area",
+      "desc": "貓咪從天而降，落地後連續踩踩"
     },
     {
       "command": "D^J",
       "name": "辣台妹",
       "mp": 130,
       "startFrame": "spicy_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "3 秒內受到的傷害減半"
     }
   ],
   "projectiles": {

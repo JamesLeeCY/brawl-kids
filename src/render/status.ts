@@ -5,7 +5,7 @@ import { FONT } from './text';
 import { lowQuality } from './quality';
 
 /** 頭上的小標籤（狀態名稱 / 倒數） */
-function tag(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, bg: string, fg = '#ffffff', size = 11): number {
+export function tag(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, bg: string, fg = '#ffffff', size = 11): number {
   ctx.font = `900 ${size}px ${FONT}`;
   const w = ctx.measureText(s).width + 10;
   ctx.fillStyle = bg;

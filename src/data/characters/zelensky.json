@@ -326,42 +326,48 @@
       "name": "向日葵飛鏢",
       "mp": 60,
       "startFrame": "flower_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "連丟向日葵飛鏢"
     },
     {
       "command": "DvA",
       "name": "即興喜劇",
       "mp": 90,
       "startFrame": "joke_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "隨機：周圍敵人笑到不能動、震地擊退或自己補血"
     },
     {
       "command": "D^A",
       "name": "綠 T 硬漢",
       "mp": 130,
       "startFrame": "tee_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "自己和隊友 3 秒內減傷一半"
     },
     {
       "command": "D>J",
       "name": "人民公僕衝刺",
       "mp": 80,
       "startFrame": "servant_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "DvJ",
       "name": "向日葵花海",
       "mp": 150,
       "startFrame": "field_1",
-      "role": "area"
+      "role": "area",
+      "desc": "向日葵從天而降"
     },
     {
       "command": "D^J",
       "name": "舞王旋轉",
       "mp": 100,
       "startFrame": "spin_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "原地旋轉連續踢擊"
     }
   ],
   "projectiles": {

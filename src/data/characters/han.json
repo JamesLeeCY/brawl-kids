@@ -259,42 +259,48 @@
       "name": "高麗菜飛彈",
       "mp": 70,
       "startFrame": "cabbage_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "連丟三顆高麗菜"
     },
     {
       "command": "DvA",
       "name": "禿子跟著月亮走",
       "mp": 130,
       "startFrame": "moon_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "會追著敵人飛的月光球"
     },
     {
       "command": "D^A",
       "name": "滷肉飯補給",
       "mp": 140,
       "startFrame": "lurou_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "吃滷肉飯補血"
     },
     {
       "command": "D>J",
       "name": "貨出得去",
       "mp": 90,
       "startFrame": "cart_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "推菜車衝撞，沿路掉高麗菜（大家都能撿）"
     },
     {
       "command": "DvJ",
       "name": "發大財",
       "mp": 150,
       "startFrame": "rich_1",
-      "role": "area"
+      "role": "area",
+      "desc": "金幣從天而降"
     },
     {
       "command": "D^J",
       "name": "魚躍龍門",
       "mp": 60,
       "startFrame": "fishjump_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "跳起來在空中飄一下"
     }
   ],
   "projectiles": {

@@ -204,42 +204,48 @@
       "name": "單字卡連發",
       "mp": 60,
       "startFrame": "card_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "連丟三張單字卡"
     },
     {
       "command": "DvA",
       "name": "你真的是來學英文的嗎？",
       "mp": 100,
       "startFrame": "english_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "近距離聲波，命中後方向顛倒 1 秒"
     },
     {
       "command": "D^A",
       "name": "滿分護盾",
       "mp": 100,
       "startFrame": "fullmark_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "4 秒內擋下所有飛行物"
     },
     {
       "command": "D>J",
       "name": "下課衝刺",
       "mp": 80,
       "startFrame": "bell_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，衝刺中無敵"
     },
     {
       "command": "D^J",
       "name": "跳級生",
       "mp": 60,
       "startFrame": "skip_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前斜上飛踢"
     },
     {
       "command": "DvJ",
       "name": "期末考",
       "mp": 150,
       "startFrame": "quiz_1",
-      "role": "area"
+      "role": "area",
+      "desc": "書本從天而降，被砸中受傷 +20%"
     }
   ],
   "projectiles": {

@@ -22,6 +22,7 @@ import { emptySnapshot, pressedEdges, type Snapshot } from './sim/snapshot';
 import type { World } from './sim/world';
 import type { NetSession } from './net/session';
 import { AutoQuality, applyQualitySetting, lowQuality, onQualityChange } from './render/quality';
+import { setShakeSetting } from './render/shake';
 import { setGameSpeed, speedValue, tickMs } from './speed';
 
 const VW = CONFIG.view.width;
@@ -123,6 +124,7 @@ function resize(): void {
 window.addEventListener('resize', resize);
 applyQualitySetting(app.settings.quality);
 setGameSpeed(speedValue(app.settings.speed));
+setShakeSetting(app.settings.shake);
 onQualityChange(resize);
 resize();
 const autoQuality = new AutoQuality();

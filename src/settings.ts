@@ -3,6 +3,7 @@ import { DEFAULT_BINDINGS, type Binding } from './input/keyboard';
 import { ACTIONS } from './sim/snapshot';
 import type { QualitySetting } from './render/quality';
 import type { SpeedSetting } from './speed';
+import type { ShakeSetting } from './render/shake';
 
 const KEY = 'brawl-kids.settings.v2';
 
@@ -15,10 +16,12 @@ export interface Settings {
   quality: QualitySetting;
   /** 遊戲速度：快 / 中 / 慢（連線時用房主的設定） */
   speed: SpeedSetting;
+  /** 畫面晃動：標準 / 弱 / 關 */
+  shake: ShakeSetting;
 }
 
 export function defaultSettings(): Settings {
-  return { bindings: DEFAULT_BINDINGS.map((b) => ({ ...b })), masterVolume: 0.8, sfxVolume: 0.8, musicVolume: 0.6, quality: 'auto', speed: 'normal' };
+  return { bindings: DEFAULT_BINDINGS.map((b) => ({ ...b })), masterVolume: 0.8, sfxVolume: 0.8, musicVolume: 0.6, quality: 'auto', speed: 'normal', shake: 'normal' };
 }
 
 export function loadSettings(): Settings {
@@ -37,6 +40,7 @@ export function loadSettings(): Settings {
     if (typeof j.musicVolume === 'number') s.musicVolume = clamp01(j.musicVolume);
     if (j.quality === 'auto' || j.quality === 'high' || j.quality === 'low') s.quality = j.quality;
     if (j.speed === 'fast' || j.speed === 'normal' || j.speed === 'slow') s.speed = j.speed;
+    if (j.shake === 'off' || j.shake === 'low' || j.shake === 'normal') s.shake = j.shake;
   } catch {
     /* 無法讀取時使用預設值 */
   }

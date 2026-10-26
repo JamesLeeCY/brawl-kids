@@ -200,42 +200,48 @@
       "name": "K 線飛彈",
       "mp": 60,
       "startFrame": "kline_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "連發三根 K 線"
     },
     {
       "command": "D^A",
       "name": "漲停板",
       "mp": 120,
       "startFrame": "limitup_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "6 秒內攻擊提高；血少於一半時傷害加倍"
     },
     {
       "command": "DvA",
       "name": "跌停震地",
       "mp": 100,
       "startFrame": "limitdown_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "震地，打倒身邊所有人"
     },
     {
       "command": "D>J",
       "name": "定期定額",
       "mp": 80,
       "startFrame": "dca_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "往前衝撞，命中後每半秒扣血，持續 4 秒"
     },
     {
       "command": "DvJ",
       "name": "股災落雷",
       "mp": 170,
       "startFrame": "crash_1",
-      "role": "area"
+      "role": "area",
+      "desc": "閃電從天而降"
     },
     {
       "command": "D^J",
       "name": "操心愛的人",
       "mp": 130,
       "startFrame": "care_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "隊友 5 秒內減傷一半（單打時給自己）"
     }
   ],
   "projectiles": {

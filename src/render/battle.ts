@@ -11,6 +11,7 @@ import { FONT, text } from './text';
 
 import { VW, viewOffset } from './view';
 import { lowQuality } from './quality';
+import { REDUCED_MOTION, shakeFactor } from './shake';
 import { drawAura, rgba, signatureOf, type AuraStyle } from './signature';
 import { EXTRA_POSES, drawBuffBack, drawBuffFront, drawExtraProjectile, drawPropBack, drawPropFront, drawRedCap } from './status';
 const HZ = CONFIG.view.horizon;
@@ -157,8 +158,7 @@ const MAX_DECALS = 14;
 const MAX_SHAKE = 2.5;
 /** 所有搖晃來源的幅度倍率 */
 const SHAKE_SCALE = 0.5;
-/** 系統設定了「減少動態效果」：不搖晃、不放大、閃光減半 */
-const REDUCED_MOTION = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 
 /** 顏色往白色靠（亮面） */
 function mixWhite(hex: string): string {
@@ -355,7 +355,7 @@ export class BattleRenderer {
         this.hitSpots.push({ x: ev.x, y: ev.y, z: ev.z });
         if (ev.heavy && !ev.blocked) {
           this.flash = Math.max(this.flash, 1);
-          if (!REDUCED_MOTION) this.zoom = { t: ZOOM_TICKS, x: ev.x, y: HZ + ev.z - ev.y };
+          if (shakeFactor() > 0) this.zoom = { t: ZOOM_TICKS, x: ev.x, y: HZ + ev.z - ev.y };
           this.addShake(4, 8);
         }
         if (!ev.blocked && ev.by) this.pendingHits.push({ x: ev.x, y: ev.y, z: ev.z, heavy: ev.heavy, by: ev.by });
@@ -380,8 +380,9 @@ export class BattleRenderer {
    * 系統設定「減少動態效果」時完全不搖。
    */
   private addShake(amp: number, ticks: number): void {
-    if (REDUCED_MOTION) return;
-    const a = Math.min(MAX_SHAKE, amp * SHAKE_SCALE);
+    const f = shakeFactor();
+    if (f <= 0) return;
+    const a = Math.min(MAX_SHAKE, amp * SHAKE_SCALE) * f;
     if (a >= this.shakeAmp * (this.shakeTicks / this.shakeTotal) || this.shakeTicks <= 0) {
       this.shakeAmp = a;
       this.shakeTicks = ticks;
@@ -646,7 +647,7 @@ export class BattleRenderer {
     const cam = Math.round(this.camX);
     if (this.zoom.t > 0 && !lowQuality) {
       // 重擊：畫面往命中點放大一下
-      const k = 1 + 0.02 * (this.zoom.t / ZOOM_TICKS);
+      const k = 1 + 0.02 * shakeFactor() * (this.zoom.t / ZOOM_TICKS);
       const zx = this.zoom.x - cam;
       ctx.translate(zx, this.zoom.y);
       ctx.scale(k, k);
@@ -714,7 +715,7 @@ export class BattleRenderer {
     ctx.restore();
     if (this.cutIn) this.drawCutIn(ctx, w, this.cutIn);
     if (this.flash > 0) {
-      ctx.fillStyle = `rgba(255,250,230,${(REDUCED_MOTION ? 0.025 : 0.05) * this.flash})`;
+      ctx.fillStyle = `rgba(255,250,230,${(REDUCED_MOTION || shakeFactor() === 0 ? 0.025 : 0.05) * this.flash})`;
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     }
     this.drawHud(ctx, w, hudExtra);

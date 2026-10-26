@@ -14,6 +14,7 @@ import { moveLabel, touchMode } from './select';
 import { hint } from './ui';
 import { recordTutorial } from '../progress';
 import { progressTotals } from './achievements';
+import { drawStatusLegend } from '../render/movelist';
 
 const STORAGE_KEY = 'brawl-kids.tutorial.v1';
 /** 教學用的角色：講萬安（D→A 市政公文是直線飛行物，最好懂） */
@@ -58,6 +59,9 @@ export class TutorialScene extends Scene {
   private dummyHp = 9999;
   private defendTicks = 0;
   private castDone = false;
+  /** 「特殊狀態」說明頁：看了一下再按攻擊才算完成 */
+  private legendTicks = 0;
+  private legendAck = false;
   private prevFrame: string | null = null;
   private readonly steps: Step[];
 
@@ -110,6 +114,11 @@ export class TutorialScene extends Scene {
             : `按住 ${k('D')}＋${k('right')}，再按 ${k('A')}：放出「${special.name}」（${moveLabel(special.command, false)}）`,
         done: () => this.castDone,
       },
+      {
+        title: '特殊狀態',
+        say: (touch) => (touch ? '看完頭上狀態標籤的意思後，點「攻擊」繼續' : `看完頭上狀態標籤的意思後，按 ${k('A')} 繼續（暫停選單的「招式表」也看得到）`),
+        done: () => this.legendAck,
+      },
     ];
   }
 
@@ -123,6 +132,10 @@ export class TutorialScene extends Scene {
       if (inp.any.A) this.toPractice();
       else if (inp.any.D || inp.any.J) this.app.scenes.pop();
       return;
+    }
+    if (this.step === this.steps.length - 1 && this.praise === 0) {
+      // 說明頁：世界照跑但不用操作，看一下再按攻擊
+      if (++this.legendTicks > 45 && inp.any.A) this.legendAck = true;
     }
     this.world.step([inp.held[0] ?? emptySnapshot(), undefined]);
     this.renderer.consume(this.world.events);
@@ -218,6 +231,7 @@ export class TutorialScene extends Scene {
       if (this.step === 2 && this.hits > 0) text(ctx, `${Math.min(3, this.hits)} / 3`, VW / 2 + 260, 162, 14, '#86efac', 'center');
       if (this.step === 3 && this.defendTicks > 0) text(ctx, `${Math.min(100, Math.round((this.defendTicks / 60) * 100))}%`, VW / 2 + 260, 162, 14, '#86efac', 'center');
     }
+    if (!this.finished && this.praise === 0 && this.step === this.steps.length - 1) drawStatusLegend(ctx, VW / 2 - 300, 180, 600);
     hint(ctx, '新手教學　·　Esc 離開');
   }
 }

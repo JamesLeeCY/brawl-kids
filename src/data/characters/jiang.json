@@ -204,42 +204,48 @@
       "name": "市政公文",
       "mp": 60,
       "startFrame": "doc_1",
-      "role": "ranged"
+      "role": "ranged",
+      "desc": "連丟三份公文"
     },
     {
       "command": "D>J",
       "name": "YouBike 衝刺",
       "mp": 80,
       "startFrame": "youbike_1",
-      "role": "rush"
+      "role": "rush",
+      "desc": "騎 YouBike 衝很遠，撞到第一個人就停"
     },
     {
       "command": "D^A",
       "name": "都有掌握",
       "mp": 120,
       "startFrame": "shield_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "5 秒內自動擋下下一次攻擊並反擊"
     },
     {
       "command": "DvA",
       "name": "垃圾車進行曲",
       "mp": 100,
       "startFrame": "truck_1",
-      "role": "burst"
+      "role": "burst",
+      "desc": "垃圾車開過去撞人"
     },
     {
       "command": "D^J",
       "name": "101 跳躍",
       "mp": 60,
       "startFrame": "jump101_1",
-      "role": "buff"
+      "role": "buff",
+      "desc": "跳起來在空中飄一下"
     },
     {
       "command": "DvJ",
       "name": "颱風假",
       "mp": 260,
       "startFrame": "typhoon_1",
-      "role": "area"
+      "role": "area",
+      "desc": "全場敵人定住 1.5 秒（大絕）"
     }
   ],
   "projectiles": {

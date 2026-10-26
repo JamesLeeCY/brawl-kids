@@ -95,3 +95,9 @@ describe('招牌動作', () => {
     }
   });
 });
+
+describe('招式說明', () => {
+  it('每一招都有說明（遊戲內招式表用）', () => {
+    for (const id of data.selectable) for (const m of data.characters[id].moves) expect(m.desc, `${id} ${m.name}`).toBeTruthy();
+  });
+});

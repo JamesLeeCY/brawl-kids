@@ -100,7 +100,7 @@ export function defaultCampaignRoute(data: CampaignData, length: number): string
 export type GameEvent =
   | { type: 'sound'; key: SoundKey }
   /** by：攻擊者（角色 id，畫面用來畫該角色的招牌特效） */
-  | { type: 'hit'; x: number; y: number; z: number; heavy: boolean; blocked: boolean; by?: number }
+  | { type: 'hit'; x: number; y: number; z: number; heavy: boolean; blocked: boolean; by?: number; dmg?: number }
   | { type: 'shake'; amp: number; ticks: number }
   | { type: 'ko'; id: number; by?: number }
   | { type: 'break'; x: number; y: number; z: number; color: string }

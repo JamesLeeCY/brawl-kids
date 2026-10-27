@@ -5,6 +5,26 @@ import { FONT } from './text';
 
 export type AuraStyle = 'sparkle' | 'electric' | 'flame' | 'bubbles' | 'notes' | 'paper' | 'pop' | 'ice';
 
+/** 招牌音效風格（命中時疊在一般打擊聲上、放招時的短旋律） */
+export type SoundStyle =
+  | 'paper'
+  | 'slap'
+  | 'laugh'
+  | 'croak'
+  | 'metal'
+  | 'zap'
+  | 'chime'
+  | 'growl'
+  | 'tweet'
+  | 'steam'
+  | 'boing'
+  | 'sparkle'
+  | 'boom'
+  | 'meow'
+  | 'coin'
+  | 'box'
+  | 'cash';
+
 export interface Signature {
   /** 命中、KO 時噴出的圖示（drawIcon 的種類） */
   icons: [string, string];
@@ -12,32 +32,34 @@ export interface Signature {
   colors: [string, string];
   /** 集氣與大招時的氣場 */
   aura: AuraStyle;
+  /** 招牌音效 */
+  sound: SoundStyle;
 }
 
 export const SIGNATURES: Record<string, Signature> = {
-  adi: { icons: ['abc', 'book'], colors: ['#0ea5e9', '#fbbf24'], aura: 'paper' },
-  aga: { icons: ['slipper', 'star'], colors: ['#ef4444', '#fde047'], aura: 'flame' },
-  boen: { icons: ['laugh', 'mic'], colors: ['#a855f7', '#facc15'], aura: 'pop' },
-  frog: { icons: ['frog', 'note'], colors: ['#22c55e', '#bbf7d0'], aura: 'bubbles' },
-  gym: { icons: ['dumbbell', 'star'], colors: ['#f97316', '#fef08a'], aura: 'flame' },
-  jiang: { icons: ['doc', 'star'], colors: ['#3b82f6', '#e0f2fe'], aura: 'paper' },
-  ko: { icons: ['bolt', 'pill'], colors: ['#22d3ee', '#e0f2fe'], aura: 'electric' },
-  lai: { icons: ['pill', 'star'], colors: ['#16a34a', '#bbf7d0'], aura: 'sparkle' },
-  puma: { icons: ['bearhead', 'star'], colors: ['#fbbf24', '#1f2937'], aura: 'electric' },
-  yu: { icons: ['candle', 'coin'], colors: ['#ef4444', '#22c55e'], aura: 'electric' },
-  trump: { icons: ['tweet', 'tower'], colors: ['#f59e0b', '#ef4444'], aura: 'pop' },
-  xi: { icons: ['bun', 'star'], colors: ['#e11d48', '#fde68a'], aura: 'bubbles' },
-  pudding: { icons: ['pudding', 'star'], colors: ['#38bdf8', '#e0f2fe'], aura: 'ice' },
-  zelensky: { icons: ['sunflower', 'star'], colors: ['#facc15', '#3b82f6'], aura: 'sparkle' },
-  kim: { icons: ['firework', 'star'], colors: ['#ef4444', '#facc15'], aura: 'flame' },
-  tsai: { icons: ['cat', 'chili'], colors: ['#ec4899', '#fb923c'], aura: 'flame' },
-  han: { icons: ['coin', 'cabbage'], colors: ['#facc15', '#84cc16'], aura: 'sparkle' },
-  huang: { icons: ['evidence', 'doc'], colors: ['#f97316', '#ffffff'], aura: 'paper' },
-  joeman: { icons: ['box', 'star'], colors: ['#f59e0b', '#fef3c7'], aura: 'pop' },
-  howhow: { icons: ['gift', 'note'], colors: ['#fb923c', '#fde047'], aura: 'notes' },
+  adi: { icons: ['abc', 'book'], colors: ['#0ea5e9', '#fbbf24'], aura: 'paper', sound: 'paper' },
+  aga: { icons: ['slipper', 'star'], colors: ['#ef4444', '#fde047'], aura: 'flame', sound: 'slap' },
+  boen: { icons: ['laugh', 'mic'], colors: ['#a855f7', '#facc15'], aura: 'pop', sound: 'laugh' },
+  frog: { icons: ['frog', 'note'], colors: ['#22c55e', '#bbf7d0'], aura: 'bubbles', sound: 'croak' },
+  gym: { icons: ['dumbbell', 'star'], colors: ['#f97316', '#fef08a'], aura: 'flame', sound: 'metal' },
+  jiang: { icons: ['doc', 'star'], colors: ['#3b82f6', '#e0f2fe'], aura: 'paper', sound: 'paper' },
+  ko: { icons: ['bolt', 'pill'], colors: ['#22d3ee', '#e0f2fe'], aura: 'electric', sound: 'zap' },
+  lai: { icons: ['pill', 'star'], colors: ['#16a34a', '#bbf7d0'], aura: 'sparkle', sound: 'chime' },
+  puma: { icons: ['bearhead', 'star'], colors: ['#fbbf24', '#1f2937'], aura: 'electric', sound: 'growl' },
+  yu: { icons: ['candle', 'coin'], colors: ['#ef4444', '#22c55e'], aura: 'electric', sound: 'zap' },
+  trump: { icons: ['tweet', 'tower'], colors: ['#f59e0b', '#ef4444'], aura: 'pop', sound: 'tweet' },
+  xi: { icons: ['bun', 'star'], colors: ['#e11d48', '#fde68a'], aura: 'bubbles', sound: 'steam' },
+  pudding: { icons: ['pudding', 'star'], colors: ['#38bdf8', '#e0f2fe'], aura: 'ice', sound: 'boing' },
+  zelensky: { icons: ['sunflower', 'star'], colors: ['#facc15', '#3b82f6'], aura: 'sparkle', sound: 'sparkle' },
+  kim: { icons: ['firework', 'star'], colors: ['#ef4444', '#facc15'], aura: 'flame', sound: 'boom' },
+  tsai: { icons: ['cat', 'chili'], colors: ['#ec4899', '#fb923c'], aura: 'flame', sound: 'meow' },
+  han: { icons: ['coin', 'cabbage'], colors: ['#facc15', '#84cc16'], aura: 'sparkle', sound: 'coin' },
+  huang: { icons: ['evidence', 'doc'], colors: ['#f97316', '#ffffff'], aura: 'paper', sound: 'paper' },
+  joeman: { icons: ['box', 'star'], colors: ['#f59e0b', '#fef3c7'], aura: 'pop', sound: 'box' },
+  howhow: { icons: ['gift', 'note'], colors: ['#fb923c', '#fde047'], aura: 'notes', sound: 'cash' },
 };
 
-const DEFAULT_SIG: Signature = { icons: ['star', 'star'], colors: ['#ffd166', '#ffffff'], aura: 'sparkle' };
+const DEFAULT_SIG: Signature = { icons: ['star', 'star'], colors: ['#ffd166', '#ffffff'], aura: 'sparkle', sound: 'sparkle' };
 
 export function signatureOf(charId: string, accent?: string): Signature {
   return SIGNATURES[charId] ?? (accent ? { ...DEFAULT_SIG, colors: [accent, '#ffffff'] } : DEFAULT_SIG);

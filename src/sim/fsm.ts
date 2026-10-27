@@ -168,7 +168,7 @@ export function updateChar(w: World, e: Entity, cur: Snapshot): void {
         e.vx = -e.facing * 3;
         e.vy = 5;
         w.emit({ type: 'say', id: e.id, text: '非常遺憾', status: true });
-        w.emit({ type: 'hit', x: e.x, y: e.y + 40, z: e.z, heavy: true, blocked: false });
+        w.emit({ type: 'hit', x: e.x, y: e.y + 40, z: e.z, heavy: true, blocked: false, by: mark.src, dmg: mark.value });
         w.emit({ type: 'sound', key: 'hit_heavy' });
         afterDamage(w, e, src);
         physics(w, e, false);
@@ -467,7 +467,7 @@ function updateGrabbing(w: World, e: Entity, pressed: Snapshot, dx: number): voi
     t.flash = C.flashTicks;
     afterDamage(w, t, killer);
     startAction(w, e, 'grab_throw');
-    w.emit({ type: 'hit', x: t.x, y: 40, z: t.z, heavy: true, blocked: false, by: e.id });
+    w.emit({ type: 'hit', x: t.x, y: 40, z: t.z, heavy: true, blocked: false, by: e.id, dmg: C.grabThrowDamage });
     w.emit({ type: 'sound', key: 'hit_heavy' });
   } else {
     e.grabPunchTick = w.tick;
@@ -475,7 +475,7 @@ function updateGrabbing(w: World, e: Entity, pressed: Snapshot, dx: number): voi
     killer.stats.damage += C.grabPunchDamage;
     t.flash = C.flashTicks;
     e.freeze = t.freeze = C.hitstopLight;
-    w.emit({ type: 'hit', x: t.x, y: 40, z: t.z, heavy: false, blocked: false, by: e.id });
+    w.emit({ type: 'hit', x: t.x, y: 40, z: t.z, heavy: false, blocked: false, by: e.id, dmg: C.grabPunchDamage });
     w.emit({ type: 'sound', key: 'hit_light' });
     if (t.hp <= 0) {
       e.grabTarget = 0;

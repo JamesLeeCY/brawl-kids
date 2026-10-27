@@ -18,6 +18,9 @@ export function aiThink(w: World, e: Entity): Snapshot {
   let s: Snapshot;
   if (ai.plan.length) s = ai.plan.shift()!;
   else {
+    // 不是在刻意放招時，清掉之前的按鍵紀錄：防禦、閃避留下的「防禦 → 方向」
+    // 接著出拳或跳躍，會誤組成必殺指令（電腦以前常這樣不小心放招）
+    e.cmdBuf.length = 0;
     if (w.tick >= ai.nextDecision) decide(w, e, ai);
     s = act(w, e, ai);
   }

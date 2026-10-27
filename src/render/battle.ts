@@ -12,7 +12,8 @@ import { FONT, text } from './text';
 import { VW, viewOffset } from './view';
 import { lowQuality } from './quality';
 import { REDUCED_MOTION, shakeFactor } from './shake';
-import { drawAura, rgba, signatureOf, type AuraStyle } from './signature';
+import { drawAura, rgba, signatureOf, type AuraStyle, type SoundStyle } from './signature';
+import type { SignatureMode } from '../audio/sfx';
 import { EXTRA_POSES, drawBuffBack, drawBuffFront, drawExtraProjectile, drawPropBack, drawPropFront, drawRedCap } from './status';
 const HZ = CONFIG.view.horizon;
 const FX = CONFIG.fx;
@@ -84,6 +85,30 @@ interface Decal {
   seed: number;
 }
 
+/** 飄起來的傷害數字 */
+interface DmgNum {
+  x: number;
+  y: number;
+  z: number;
+  t: number;
+  value: number;
+  heavy: boolean;
+  blocked: boolean;
+  by: number;
+  color?: string;
+}
+
+/** 連擊數（每個攻擊者一個） */
+interface ComboTag {
+  by: number;
+  n: number;
+  x: number;
+  y: number;
+  z: number;
+  t: number;
+  color: string;
+}
+
 /** KO 爆字 */
 interface KoSplash {
   x: number;
@@ -152,6 +177,12 @@ const CUTIN_TICKS = 52;
 const KO_TICKS = 50;
 /** 重擊放大長度 */
 const ZOOM_TICKS = 7;
+/** 傷害數字停留 tick */
+const DMG_TICKS = 46;
+/** 連擊：兩下之間最多隔幾 tick 還算同一串 */
+const COMBO_GAP = 70;
+/** 連擊數顯示 tick */
+const COMBO_TICKS = 60;
 /** 地上痕跡最多同時幾個 */
 const MAX_DECALS = 14;
 /** 畫面搖晃上限（px）：超過就壓到這個值，避免看了不舒服 */
@@ -326,6 +357,11 @@ export class BattleRenderer {
   /** 重擊時畫面放大一下（剩餘 tick 與中心） */
   private zoom = { t: 0, x: 0, y: 0 };
   private pendingHits: { x: number; y: number; z: number; heavy: boolean; by: number }[] = [];
+  /** 要播放的角色招牌音效（場景每 tick 取走） */
+  sfxQueue: { style: SoundStyle; mode: SignatureMode }[] = [];
+  private dmgNums: DmgNum[] = [];
+  private combos = new Map<number, { n: number; last: number }>();
+  private comboTags: ComboTag[] = [];
   /** 招式起始幀 → 招式（判斷是不是大招） */
   private moveIndex = new Map<string, Map<string, { mp: number; name: string }>>();
   private lastState = new Map<number, string>();
@@ -359,6 +395,7 @@ export class BattleRenderer {
           this.addShake(4, 8);
         }
         if (!ev.blocked && ev.by) this.pendingHits.push({ x: ev.x, y: ev.y, z: ev.z, heavy: ev.heavy, by: ev.by });
+        if (ev.dmg && ev.dmg > 0) this.dmgNums.push({ x: ev.x + (this.rand() - 0.5) * 14, y: ev.y + 24, z: ev.z, t: DMG_TICKS, value: ev.dmg, heavy: ev.heavy, blocked: ev.blocked, by: ev.by ?? 0 });
       } else if (ev.type === 'shake') {
         this.addShake(ev.amp, Math.min(ev.ticks, 16));
       } else if (ev.type === 'break') {
@@ -502,6 +539,7 @@ export class BattleRenderer {
           const sig = signatureOf(c.charId, w.charDef(c).palette.accent);
           const big = !!mv && mv.mp >= BIG_MOVE_MP;
           if (!lowQuality || big) this.charges.push({ id: c.id, t: big ? CHARGE_TICKS * 2 : CHARGE_TICKS, color: sig.colors[0], colors: sig.colors, aura: sig.aura, big });
+          if (mv) this.sfxQueue.push({ style: sig.sound, mode: 'cast' });
           // 大招：切入畫面（同時只有一個，連續放有冷卻）
           if (big && this.cutInCooldown <= 0) {
             this.cutIn = { id: c.id, charId: c.charId, name: mv.name, t: CUTIN_TICKS };
@@ -518,6 +556,15 @@ export class BattleRenderer {
       const a = w.get(h.by);
       if (!a || a.kind !== 'char') continue;
       const sig = signatureOf(a.charId, w.charDef(a).palette.accent);
+      this.sfxQueue.push({ style: sig.sound, mode: h.heavy ? 'heavy' : 'hit' });
+      // 連擊：同一個人 70 tick 內連續打中就累加，3 下以上在命中點顯示「N HIT!」
+      const c = this.combos.get(h.by);
+      const n = c && w.tick - c.last <= COMBO_GAP ? c.n + 1 : 1;
+      this.combos.set(h.by, { n, last: w.tick });
+      if (n >= 3) {
+        this.comboTags = this.comboTags.filter((k) => k.by !== h.by);
+        this.comboTags.push({ by: h.by, n, x: h.x, y: h.y + 64, z: h.z, t: COMBO_TICKS, color: sig.colors[0] });
+      }
       this.burst(h.x, h.y, h.z, sig.icons, sig.colors, h.heavy ? (lowQuality ? 3 : 6) : lowQuality ? 1 : 2, h.heavy ? 1.15 : 0.8);
     }
     this.pendingHits = [];
@@ -542,6 +589,18 @@ export class BattleRenderer {
       b.t--;
     }
     this.bits = this.bits.filter((b) => b.t > 0);
+    for (const d of this.dmgNums) {
+      if (!d.color && d.by) {
+        const a = w.get(d.by);
+        d.color = a?.kind === 'char' ? signatureOf(a.charId, w.charDef(a).palette.accent).colors[0] : '#ffffff';
+      }
+      d.y += 0.9 * (d.t / DMG_TICKS) + 0.15;
+      d.t--;
+    }
+    this.dmgNums = this.dmgNums.filter((d) => d.t > 0);
+    if (this.dmgNums.length > 24) this.dmgNums.splice(0, this.dmgNums.length - 24);
+    for (const k of this.comboTags) k.t--;
+    this.comboTags = this.comboTags.filter((k) => k.t > 0);
     for (const k of this.koSplashes) k.t--;
     this.koSplashes = this.koSplashes.filter((k) => k.t > 0);
     if (this.zoom.t > 0) this.zoom.t--;
@@ -708,6 +767,8 @@ export class BattleRenderer {
     }
     for (const f of this.frags) this.drawFrag(ctx, f, cam);
     for (const k of this.koSplashes) this.drawKo(ctx, k, cam);
+    for (const d of this.dmgNums) this.drawDmg(ctx, d, cam);
+    for (const k of this.comboTags) this.drawCombo(ctx, k, cam);
     for (const k of this.callouts) {
       const e = w.get(k.id);
       if (e) this.drawCallout(ctx, k, e, cam);
@@ -1724,6 +1785,54 @@ export class BattleRenderer {
         fall: true,
       });
     }
+  }
+
+  /** 傷害數字：往上飄、淡出；重擊大一點，被擋下的灰色小字 */
+  private drawDmg(ctx: CanvasRenderingContext2D, d: DmgNum, cam: number): void {
+    const age = DMG_TICKS - d.t;
+    const pop = age < 5 ? 0.6 + age * 0.1 : 1;
+    const size = (d.blocked ? 11 : d.heavy ? 20 : 15) * pop;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, d.t / 14);
+    ctx.font = `900 ${size}px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+    const x = d.x - cam;
+    const y = HZ + d.z - d.y;
+    ctx.lineWidth = d.blocked ? 3 : 4;
+    ctx.strokeStyle = '#1a1530';
+    ctx.strokeText(`${d.value}`, x, y);
+    ctx.fillStyle = d.blocked ? '#cbd5e1' : d.heavy ? mixWhite(d.color ?? '#ffd166') : '#ffffff';
+    ctx.fillText(`${d.value}`, x, y);
+    if (!d.blocked && d.heavy && d.color) {
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = d.color;
+      ctx.strokeText(`${d.value}`, x, y);
+    }
+    ctx.restore();
+  }
+
+  /** 連擊數：「3 HIT!」斜斜地跳出來，越多下越大 */
+  private drawCombo(ctx: CanvasRenderingContext2D, k: ComboTag, cam: number): void {
+    const age = COMBO_TICKS - k.t;
+    const pop = age < 6 ? 0.5 + age * 0.1 : 1;
+    const size = Math.min(30, 18 + k.n * 1.5) * pop;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, k.t / 12);
+    ctx.translate(k.x - cam + 26, HZ + k.z - k.y);
+    ctx.transform(1, 0, -0.18, 1, 0, 0);
+    ctx.font = `900 ${size}px ${FONT}`;
+    ctx.textAlign = 'left';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#1a1530';
+    ctx.strokeText(`${k.n} HIT!`, 0, 0);
+    ctx.fillStyle = mixWhite(k.color);
+    ctx.fillText(`${k.n} HIT!`, 0, 0);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = k.color;
+    ctx.strokeText(`${k.n} HIT!`, 0, 0);
+    ctx.restore();
   }
 
   /** KO 爆字：大大的「K.O.!」加放射線 */

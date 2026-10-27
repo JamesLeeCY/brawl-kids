@@ -5,7 +5,7 @@
   "accessory": "bear",
   "quote": "最短的捷徑是繞遠路",
   "stats": {
-    "hp": 460,
+    "hp": 480,
     "walkSpeed": 2.8,
     "runSpeed": 6.2,
     "jumpPower": 9.5,

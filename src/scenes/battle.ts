@@ -175,6 +175,8 @@ export class BattleScene extends Scene {
     this.renderer.consume(this.world.events);
     for (const ev of this.world.events) if (ev.type === 'sound') this.app.sfx.play(ev.key);
     this.renderer.tick(this.world);
+    for (const s of this.renderer.sfxQueue) this.app.sfx.signature(s.style, s.mode);
+    this.renderer.sfxQueue = [];
     const res = this.world.result;
     if (!res) return false;
     if (res.outcome === 'stageClear') {

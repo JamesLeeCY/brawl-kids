@@ -1,12 +1,16 @@
 // Web Audio 即時合成音效，不使用音檔。第一次按鍵時才建立 AudioContext。
 import type { SoundKey } from '../data/schema';
+import type { SoundStyle } from '../render/signature';
+
+/** 招牌音效的時機：一般命中、重擊、放招 */
+export type SignatureMode = 'hit' | 'heavy' | 'cast';
 
 export class Sfx {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private sfx: GainNode | null = null;
   private noise: AudioBuffer | null = null;
-  private lastPlay: Partial<Record<SoundKey, number>> = {};
+  private lastPlay: Partial<Record<string, number>> = {};
   masterVolume = 0.8;
   sfxVolume = 0.8;
 
@@ -121,6 +125,116 @@ export class Sfx {
         notes.forEach((fr, i) => this.tone(now + i * 0.12, 'square', fr, fr, 0.11, 0.2));
         break;
       }
+    }
+  }
+
+  /**
+   * 角色招牌音效：命中時疊在一般打擊聲上（音量較小），放招時是 2～3 個音的短旋律。
+   * 同一種音效 40ms 內不重複。
+   */
+  signature(style: SoundStyle, mode: SignatureMode): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.sfx || !this.noise) return;
+    const now = ctx.currentTime;
+    const key = `${style}:${mode}`;
+    if ((this.lastPlay[key] ?? -1) > now - 0.04) return;
+    this.lastPlay[key] = now;
+    const v = mode === 'heavy' ? 0.9 : mode === 'cast' ? 0.7 : 0.55;
+    const cast = mode === 'cast';
+    const t = now;
+    const nb = (dt: number, dur: number, type: BiquadFilterType, f: number, vol: number) => this.noiseBurst(t + dt, dur, type, f, vol * v);
+    const tn = (dt: number, type: OscillatorType, f0: number, f1: number, dur: number, vol: number) => this.tone(t + dt, type, f0, f1, dur, vol * v);
+    switch (style) {
+      case 'paper':
+        // 紙張：脆脆的啪一聲（放招：翻兩頁）
+        nb(0, 0.05, 'highpass', 3500, 0.45);
+        tn(0, 'square', 1300, 900, 0.03, 0.06);
+        if (cast) nb(0.08, 0.05, 'highpass', 3000, 0.4);
+        break;
+      case 'slap':
+        // 拖鞋：啪！
+        nb(0, 0.07, 'bandpass', 1300, 0.9);
+        if (cast) nb(0.12, 0.07, 'bandpass', 1100, 0.8);
+        break;
+      case 'laugh':
+        // 哈哈
+        for (let i = 0; i < (cast ? 3 : 2); i++) tn(i * 0.11, 'sawtooth', 430 - i * 20, 300, 0.08, 0.1);
+        break;
+      case 'croak':
+        // 呱
+        tn(0, 'square', 190, 110, 0.12, 0.13);
+        if (cast) tn(0.17, 'square', 210, 120, 0.12, 0.13);
+        break;
+      case 'metal':
+        // 啞鈴：金屬噹
+        tn(0, 'triangle', 1760, 1700, 0.28, 0.16);
+        tn(0, 'triangle', 2470, 2400, 0.2, 0.08);
+        if (cast) tn(0.14, 'triangle', 1320, 1300, 0.3, 0.14);
+        break;
+      case 'zap':
+        // 電擊：滋滋（放招：往上衝的電流）
+        if (cast) tn(0, 'sawtooth', 200, 1400, 0.22, 0.08);
+        else tn(0, 'sawtooth', 95, 60, 0.12, 0.12);
+        nb(0, cast ? 0.2 : 0.1, 'highpass', 4200, 0.35);
+        break;
+      case 'chime':
+        // 叮
+        if (cast) [880, 1320, 1760].forEach((f, i) => tn(i * 0.07, 'sine', f, f, 0.3, 0.12));
+        else {
+          tn(0, 'sine', 1320, 1320, 0.3, 0.12);
+          tn(0, 'sine', 1980, 1980, 0.2, 0.05);
+        }
+        break;
+      case 'growl':
+        // 熊吼
+        nb(0, cast ? 0.35 : 0.18, 'lowpass', 420, 0.8);
+        tn(0, 'sawtooth', 85, 60, cast ? 0.35 : 0.18, 0.1);
+        break;
+      case 'tweet':
+        // 鳥叫：啾啾
+        for (let i = 0; i < (cast ? 3 : 2); i++) tn(i * 0.08, 'sine', 2000, 3300, 0.06, 0.1);
+        break;
+      case 'steam':
+        // 蒸氣：嘶
+        nb(0, cast ? 0.4 : 0.22, 'highpass', 2600, 0.35);
+        break;
+      case 'boing':
+        // 布丁：啵嚶
+        if (cast) tn(0, 'sine', 180, 620, 0.22, 0.16);
+        else tn(0, 'sine', 520, 170, 0.2, 0.16);
+        break;
+      case 'sparkle':
+        // 閃亮
+        [1760, 2350, 2790].slice(0, cast ? 3 : 2).forEach((f, i) => tn(i * 0.05, 'sine', f, f, 0.18, 0.08));
+        break;
+      case 'boom':
+        // 煙火：咻～碰
+        if (cast) tn(0, 'sine', 600, 1900, 0.3, 0.06);
+        tn(cast ? 0.3 : 0, 'sine', 130, 45, 0.28, 0.35);
+        nb(cast ? 0.3 : 0, 0.16, 'lowpass', 900, 0.6);
+        break;
+      case 'meow':
+        // 喵
+        tn(0, 'triangle', 620, 920, 0.09, 0.12);
+        tn(0.09, 'triangle', 920, 520, cast ? 0.2 : 0.12, 0.12);
+        break;
+      case 'coin':
+        // 金幣：叮叮
+        tn(0, 'square', 988, 988, 0.07, 0.07);
+        tn(0.07, 'square', 1319, 1319, cast ? 0.25 : 0.14, 0.07);
+        break;
+      case 'box':
+        // 紙箱：碰（放招：撕膠帶）
+        if (cast) nb(0, 0.22, 'bandpass', 2200, 0.5);
+        nb(cast ? 0.2 : 0, 0.1, 'lowpass', 700, 0.8);
+        tn(cast ? 0.2 : 0, 'sine', 170, 90, 0.12, 0.25);
+        break;
+      case 'cash':
+        // 收銀機：咔～叮
+        nb(0, 0.03, 'highpass', 3000, 0.5);
+        tn(0.04, 'sine', 2093, 2093, cast ? 0.4 : 0.22, 0.12);
+        if (cast) tn(0.04, 'sine', 2637, 2637, 0.3, 0.06);
+        break;
     }
   }
 

@@ -115,7 +115,7 @@ function explodeBomb(w: World, e: Entity, b: Entity['buffs'][number]): void {
     e.vy = 6;
   }
   w.emit({ type: 'say', id: e.id, text: '叫號！', status: true });
-  w.emit({ type: 'hit', x: e.x, y: e.y + 40, z: e.z, heavy: true, blocked: false, by: src?.id });
+  w.emit({ type: 'hit', x: e.x, y: e.y + 40, z: e.z, heavy: true, blocked: false, by: src?.id, dmg: Math.round(dmg) });
   w.emit({ type: 'sound', key: 'hit_heavy' });
   w.emit({ type: 'shake', amp: CONFIG.fx.shakeAmp, ticks: CONFIG.fx.shakeTicks });
   if (e.hp <= 0 && !e.koDone) {

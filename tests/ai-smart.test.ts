@@ -92,3 +92,38 @@ describe('電腦對手：新機制', () => {
     expect(countered).toBeLessThanOrEqual(1);
   });
 });
+
+describe('電腦對手：不會誤放招', () => {
+  it('防禦、閃避留下的按鍵不會誤組成必殺指令', () => {
+    let accidental = 0;
+    let total = 0;
+    for (let seed = 1; seed <= 6; seed++) {
+      const w = new World(data, {
+        mode: 'versus',
+        stageId: 'ntu',
+        seed,
+        players: [
+          { slot: 0, charId: 'jiang', team: 1, controller: 'ai', difficulty: 'hard' },
+          { slot: 1, charId: 'gym', team: 2, controller: 'ai', difficulty: 'hard' },
+        ],
+      });
+      w.itemTimer = 1e9;
+      const prev = new Map<number, string | null>();
+      const lastQueued = new Map<number, number>();
+      while (!w.result && w.tick < 2400) {
+        w.step([undefined, undefined]);
+        for (const c of w.chars()) {
+          if (c.ai && c.ai.plan.length >= 4) lastQueued.set(c.id, w.tick);
+          const mv = data.characters[c.charId].moves.find((m) => m.startFrame === c.frame);
+          if (mv && prev.get(c.id) !== c.frame) {
+            total++;
+            if (w.tick - (lastQueued.get(c.id) ?? -999) > 8) accidental++;
+          }
+          prev.set(c.id, c.frame);
+        }
+      }
+    }
+    expect(total).toBeGreaterThan(20);
+    expect(accidental).toBe(0);
+  });
+});

@@ -111,6 +111,8 @@ export class ReplayScene extends Scene {
     this.renderer.consume(w.events);
     for (const ev of w.events) if (ev.type === 'sound') this.app.sfx.play(ev.key);
     this.renderer.tick(w);
+    for (const s of this.renderer.sfxQueue) this.app.sfx.signature(s.style, s.mode);
+    this.renderer.sfxQueue = [];
   }
 
   private checkEnd(): void {
